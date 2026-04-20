@@ -153,129 +153,154 @@ function renderSidebar() {
   const org = bootstrap.organization;
   const navItems = [
     ["dashboard", "Dashboard"],
-    ["new", "New Engagement"],
-    ["workspace", "Workspace"],
+    ["workspace", "Projects"],
+    ["vault", "Vault"],
     ["usage", "Usage"],
     ["billing", "Billing"],
     ["settings", "Settings"],
   ];
-  const progress = org ? Math.min((org.monthlyRuns / org.monthlyLimit) * 100, 100) : 0;
+  const navIcons = {
+    dashboard: "▦",
+    workspace: "◫",
+    vault: "⌂",
+    usage: "◔",
+    billing: "$",
+    settings: "⚙",
+  };
   return `
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-badge">${initials(user.fullName)}</div>
+    <aside class="sidebar strategy-sidebar">
+      <div class="brand strategy-brand">
+        <div class="strategy-mark"></div>
         <div class="brand-copy">
-          <h1>AI Consultant</h1>
+          <h1>AI Strategy Workspace</h1>
           <p>${org.name}</p>
         </div>
       </div>
-      <div class="nav-group">
+      <div class="nav-group strategy-nav">
         ${navItems
           .map(
             ([key, label]) => `
-          <button class="nav-button ${state.view === key ? "active" : ""}" data-action="navigate" data-view="${key}">
+          <button class="nav-button strategy-nav-button ${state.view === key ? "active" : ""}" data-action="navigate" data-view="${key}">
+            <span class="strategy-nav-icon">${navIcons[key]}</span>
             ${label}
           </button>
         `
           )
           .join("")}
       </div>
-      <div class="sidebar-card">
-        <span class="subtle">${org.plan} plan</span>
-        <h3 class="section-title" style="margin-top:8px;">Monthly generation budget</h3>
-        <p class="muted">${org.monthlyRuns} of ${org.monthlyLimit} runs used this cycle.</p>
-        <div class="progress-track"><div class="progress-fill" style="width:${progress}%;"></div></div>
-      </div>
-      <div class="sidebar-card">
-        <span class="subtle">Current user</span>
-        <h3 class="section-title" style="margin-top:8px;">${user.fullName}</h3>
-        <p class="muted">${user.title}</p>
+      <div class="strategy-sidebar-footer">
+        <div class="strategy-plan-label">Current plan</div>
+        <div class="strategy-plan-name">${org.plan}</div>
+        <div class="strategy-plan-meta">${user.fullName}</div>
       </div>
     </aside>
   `;
 }
 
 function renderDashboard() {
-  const { dashboard, organization } = state.bootstrap;
-  const stats = dashboard.stats
-    .map(
-      (item) => `
-      <article class="stat-card">
-        <span class="subtle">${item.label}</span>
-        <div class="stat-value">${item.value}</div>
-        <p class="muted">${item.note}</p>
-      </article>
-    `
-    )
-    .join("");
-
-  const engagementsMarkup = dashboard.engagements.length
-    ? dashboard.engagements
-        .map(
-          (item) => `
-        <article class="engagement-item">
-          <header>
-            <div>
-              <strong>${item.title}</strong>
-              <p class="muted">${item.client} • ${item.type}</p>
-            </div>
-            <div class="row-actions">
-              <span class="badge">${item.stage}</span>
-              <button class="btn btn-secondary" data-action="open-engagement" data-id="${item.id}">Open</button>
-            </div>
-          </header>
-          <p class="muted">Updated ${formatDate(item.updatedAt)} • ${item.uploads.length} upload${item.uploads.length === 1 ? "" : "s"} • ${item.matchedCases.length} matched case${item.matchedCases.length === 1 ? "" : "s"}</p>
-        </article>
-      `
-        )
-        .join("")
-    : `<div class="empty-state">No engagements yet. Start a new one to generate your first consultant workspace.</div>`;
-
-  const membersMarkup = organization.members
-    .slice(0, 4)
-    .map(
-      (member) => `
-      <article class="member-item">
-        <header>
-          <div>
-            <strong>${member.name}</strong>
-            <p class="muted">${member.email}</p>
-          </div>
-          <span class="badge">${member.role}</span>
-        </header>
-      </article>
-    `
-    )
-    .join("");
+  const { dashboard } = state.bootstrap;
+  const workflows = [
+    ["↗", "Go-to-Market Strategy", "Product launch planning, channel strategy, positioning"],
+    ["$", "Pricing Strategy", "Price optimization, packaging, competitive analysis"],
+    ["⊕", "Market Entry", "Geographic expansion, TAM analysis, market assessment"],
+    ["◔", "Growth Plan", "Customer acquisition, retention, expansion strategy"],
+    ["✣", "Operating Model", "Org design, process optimization, capability building"],
+    ["◎", "Strategic Review", "Performance analysis, initiative prioritization, roadmap"],
+  ];
+  const recentProjects = [
+    {
+      id: dashboard.engagements[0]?.id || "",
+      title: "EMEA Market Entry - Consumer Hardware",
+      objective:
+        "Evaluate market opportunity and define go-to-market approach for Saudi Arabia, UAE, and Egypt",
+      status: "In Progress",
+      outputs: ["Strategy Draft", "Analysis Tree", "Execution Plan"],
+      updated: "2 hours ago",
+      progress: 63,
+    },
+    {
+      id: dashboard.engagements[0]?.id || "",
+      title: "SaaS Pricing Model Redesign",
+      objective:
+        "Transition from seat-based to usage-based pricing with value metric analysis",
+      status: "Draft",
+      outputs: ["Strategy Draft", "Analysis Tree"],
+      updated: "1 day ago",
+      progress: 42,
+    },
+  ];
 
   return `
-    <div class="topbar">
-      <div>
-        <span class="pill">Overview</span>
-        <h2 class="section-title" style="font-size:2.4rem;margin-top:14px;">Consulting operations at a glance</h2>
-        <p class="muted">Monitor active workspaces, usage, and the latest proposal generation activity.</p>
+    <section class="strategy-dashboard">
+      <div class="strategy-heading">
+        <h2>What are you working on?</h2>
+        <p>Generate structured strategy from your business context and institutional knowledge</p>
       </div>
-      <div class="toolbar-actions">
-        <button class="btn btn-secondary" data-action="navigate" data-view="new">New engagement</button>
-        <button class="btn btn-primary" data-action="download-export">Export snapshot</button>
+
+      <button class="strategy-hero-cta" data-action="navigate" data-view="new">
+        <span class="strategy-cta-plus">+</span>
+        <span class="strategy-cta-copy">
+          <strong>Start New Project</strong>
+          <span>Choose from templates or define your own strategic challenge</span>
+        </span>
+        <span class="strategy-cta-arrow">→</span>
+      </button>
+
+      <div class="strategy-section-head">
+        <h3>Common Workflows</h3>
       </div>
-    </div>
-    <section class="dashboard-grid">
-      ${stats}
-      <article class="list-card">
-        <div class="section-head">
-          <div>
-            <h3 class="section-title">Active engagements</h3>
-            <p class="muted">Jump back into any workspace.</p>
-          </div>
-        </div>
-        <div class="engagement-list">${engagementsMarkup}</div>
-      </article>
-      <article class="list-card side">
-        <h3 class="section-title">Team pulse</h3>
-        <p class="muted">Recent members and collaboration access.</p>
-        <div class="member-list">${membersMarkup}</div>
-      </article>
+      <div class="workflow-grid">
+        ${workflows
+          .map(
+            ([icon, title, text]) => `
+          <button class="workflow-card" data-action="navigate" data-view="new">
+            <span class="workflow-icon">${icon}</span>
+            <strong>${title}</strong>
+            <span>${text}</span>
+          </button>
+        `
+          )
+          .join("")}
+      </div>
+
+      <div class="strategy-section-head recent-projects-head">
+        <h3>Recent Projects</h3>
+        <button class="strategy-text-link" data-action="navigate" data-view="workspace">View all</button>
+      </div>
+      <div class="recent-projects-list">
+        ${recentProjects
+          .map(
+            (project) => `
+          <article class="project-card">
+            <div class="project-card-head">
+              <div>
+                <strong>${project.title}</strong>
+                <div class="project-label">Business Objective</div>
+              </div>
+              <span class="project-status">${project.status}</span>
+            </div>
+            <p class="project-objective">${project.objective}</p>
+            <div class="project-meta-grid">
+              <div>
+                <div class="project-label">Outputs Generated</div>
+                <div class="project-badges">
+                  ${project.outputs.map((output) => `<span class="project-badge">${output}</span>`).join("")}
+                </div>
+              </div>
+              <div>
+                <div class="project-label">Last Updated</div>
+                <div class="project-updated">◔ ${project.updated}</div>
+              </div>
+            </div>
+            <div class="project-footer">
+              <button class="project-open-btn" data-action="open-engagement" data-id="${project.id}">Open Workspace →</button>
+              <div class="project-progress"><span style="width:${project.progress}%"></span></div>
+            </div>
+          </article>
+        `
+          )
+          .join("")}
+      </div>
     </section>
   `;
 }
@@ -594,6 +619,118 @@ function renderWorkspaceTab(engagement) {
   }
 }
 
+function renderProjects() {
+  const engagementsMarkup = getEngagements().length
+    ? getEngagements()
+        .map(
+          (item) => `
+        <article class="project-card">
+          <div class="project-card-head">
+            <div>
+              <strong>${item.title}</strong>
+              <div class="project-label">${item.client}</div>
+            </div>
+            <span class="project-status">${item.stage}</span>
+          </div>
+          <p class="project-objective">${item.brief.summary || item.type}</p>
+          <div class="project-meta-grid">
+            <div>
+              <div class="project-label">Outputs Generated</div>
+              <div class="project-badges">
+                <span class="project-badge">Strategy Draft</span>
+                <span class="project-badge">Analysis Tree</span>
+                <span class="project-badge">Workplan</span>
+              </div>
+            </div>
+            <div>
+              <div class="project-label">Last Updated</div>
+              <div class="project-updated">◔ ${formatDate(item.updatedAt)}</div>
+            </div>
+          </div>
+          <div class="project-footer">
+            <button class="project-open-btn" data-action="open-engagement" data-id="${item.id}">Open Workspace →</button>
+            <div class="project-progress"><span style="width:70%"></span></div>
+          </div>
+        </article>
+      `
+        )
+        .join("")
+    : `<div class="empty-state">No projects yet.</div>`;
+
+  return `
+    <section class="strategy-dashboard">
+      <div class="strategy-heading">
+        <h2>Projects</h2>
+        <p>Your strategy workspaces and generated outputs.</p>
+      </div>
+      <div class="recent-projects-list">${engagementsMarkup}</div>
+    </section>
+  `;
+}
+
+function renderVault() {
+  const engagement = getSelectedEngagement() || getEngagements()[0];
+  const docs = [
+    "Board strategy memo",
+    "Market sizing workbook",
+    "Operating model reference deck",
+    "Prior pricing study",
+  ];
+  return `
+    <section class="strategy-dashboard">
+      <div class="strategy-heading">
+        <h2>Reference Knowledge</h2>
+        <p>Used for matching and context retrieval across strategy projects.</p>
+      </div>
+      <div class="vault-summary-grid">
+        <article class="vault-stat-card">
+          <div class="project-label">Documents in vault</div>
+          <strong>${docs.length + (engagement?.uploads?.length || 0)}</strong>
+        </article>
+        <article class="vault-stat-card">
+          <div class="project-label">Most recent project</div>
+          <strong>${engagement?.title || "No project selected"}</strong>
+        </article>
+      </div>
+      <div class="project-card">
+        <div class="strategy-section-head" style="margin-bottom:12px;">
+          <h3>Recently added documents</h3>
+        </div>
+        <div class="engagement-list">
+          ${docs
+            .concat((engagement?.uploads || []).map((item) => item.name))
+            .map((doc) => `<article class="engagement-item">${doc}</article>`)
+            .join("")}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderTopChrome() {
+  const user = state.bootstrap.user;
+  const routeMap = {
+    dashboard: "/dashboard",
+    new: "/templates",
+    workspace: "/projects",
+    vault: "/vault",
+    usage: "/usage",
+    billing: "/billing",
+    settings: "/settings",
+  };
+  return `
+    <div class="app-topbar">
+      <div class="app-topbar-left">
+        <div class="topbar-chip">AI</div>
+        <div class="topbar-route">${routeMap[state.view] || "/dashboard"}</div>
+      </div>
+      <div class="app-topbar-right">
+        <div class="topbar-avatar">${initials(user.fullName).slice(0, 1)}</div>
+      </div>
+    </div>
+  `;
+}
+
 function renderUsage() {
   const org = state.bootstrap.organization;
   const usagePct = Math.round((org.monthlyRuns / org.monthlyLimit) * 100);
@@ -774,23 +911,28 @@ function renderModal() {
 
 function renderApp() {
   return `
-    <div class="shell">
+    <div class="shell strategy-shell">
       ${renderSidebar()}
-      <main class="main">
+      <div class="strategy-main">
+        ${renderTopChrome()}
+        <main class="main strategy-content">
         ${
           state.view === "dashboard"
             ? renderDashboard()
             : state.view === "new"
               ? renderNewEngagement()
               : state.view === "workspace"
-                ? renderWorkspace()
-                : state.view === "usage"
-                  ? renderUsage()
-                  : state.view === "billing"
-                    ? renderBilling()
-                    : renderSettings()
+                ? renderProjects()
+                : state.view === "vault"
+                  ? renderVault()
+                  : state.view === "usage"
+                    ? renderUsage()
+                    : state.view === "billing"
+                      ? renderBilling()
+                      : renderSettings()
         }
-      </main>
+        </main>
+      </div>
     </div>
     ${renderModal()}
   `;
