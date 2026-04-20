@@ -1,0 +1,9 @@
+{
+  "name": "ai-consultant",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-stack AI consultant workspace demo inspired by the shared Figma Make file.",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

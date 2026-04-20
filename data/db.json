@@ -1,0 +1,180 @@
+{
+  "session": {
+    "userId": "1962e705-a2a1-4e7b-a20e-f53549daae77",
+    "organizationId": "344af24a-9d57-409f-86cc-bc15783aa285"
+  },
+  "users": [
+    {
+      "id": "1962e705-a2a1-4e7b-a20e-f53549daae77",
+      "fullName": "Morgan Lee",
+      "email": "morgan@altitudeadvisory.com",
+      "title": "Principal Consultant"
+    }
+  ],
+  "organizations": [
+    {
+      "id": "344af24a-9d57-409f-86cc-bc15783aa285",
+      "name": "Altitude Advisory",
+      "plan": "Team",
+      "monthlyRuns": 42,
+      "monthlyLimit": 120,
+      "members": [
+        {
+          "id": "aa5c2974-abba-48fa-81cf-551b8855dc0b",
+          "name": "Morgan Lee",
+          "email": "morgan@altitudeadvisory.com",
+          "role": "Admin",
+          "status": "Active"
+        },
+        {
+          "id": "96dfccd8-8022-46e9-a425-d3b1ba9adadc",
+          "name": "Priya Chen",
+          "email": "priya@altitudeadvisory.com",
+          "role": "Editor",
+          "status": "Active"
+        },
+        {
+          "id": "9fe79eaa-9cd2-4731-a15b-570aae7dbb6a",
+          "name": "Jon Alvarez",
+          "email": "jon@altitudeadvisory.com",
+          "role": "Viewer",
+          "status": "Invited"
+        }
+      ]
+    }
+  ],
+  "billing": {
+    "plan": "Team",
+    "status": "Active",
+    "nextInvoiceDate": "2026-05-01",
+    "amount": 149,
+    "cardBrand": "Visa",
+    "cardLast4": "4242"
+  },
+  "settings": {
+    "privacyMode": true,
+    "supportEmail": "support@altitudeadvisory.com",
+    "autoDeleteDays": 180
+  },
+  "engagements": [
+    {
+      "id": "87b3bb46-5645-445f-83a3-dd9a71bb0c6e",
+      "title": "Northstar Logistics Margin Expansion",
+      "client": "Northstar Logistics",
+      "type": "Pricing and operations strategy",
+      "owner": "Morgan Lee",
+      "stage": "Workspace",
+      "updatedAt": "2026-04-20T23:32:45.666Z",
+      "tags": [
+        "Logistics",
+        "Pricing",
+        "Operations"
+      ],
+      "uploads": [
+        {
+          "id": "ca8350c9-7363-4c5e-93cc-63c29805c0e9",
+          "name": "northstar-board-deck.pdf",
+          "status": "Processed",
+          "pages": 34
+        },
+        {
+          "id": "53de2472-6e89-4be7-bc2c-6a4e2f8ea9dd",
+          "name": "customer-segmentation.xlsx",
+          "status": "Processed",
+          "pages": 6
+        }
+      ],
+      "brief": {
+        "summary": "Northstar wants a proposal starter focused on gross margin recovery, warehouse productivity, and customer segment repricing over the next two quarters.",
+        "goal": "Identify the top profit levers, quantify impact, and outline a 12-week delivery plan with client and consultant responsibilities.",
+        "ask": "Prepare an executive-ready proposal starter and workplan with supporting evidence from prior cases."
+      },
+      "businessContext": {
+        "industry": "Third-party logistics",
+        "currentSituation": "Margins have compressed 280 bps over 18 months due to contract drift, rising accessorial complexity, and underutilized warehouse labor.",
+        "constraints": "Leadership wants changes that do not disrupt major customer renewals in Q3 and must preserve service levels for strategic accounts."
+      },
+      "insights": [
+        "Top 15 customers account for 68% of revenue but only 41% of contribution margin.",
+        "Warehouse overtime in the Southeast region is 1.8x peer benchmark.",
+        "Accessorial charges are billed inconsistently across legacy contracts."
+      ],
+      "issueTree": [
+        {
+          "title": "Revenue quality",
+          "children": [
+            "Contract repricing",
+            "Accessorial capture",
+            "Customer mix"
+          ]
+        },
+        {
+          "title": "Cost-to-serve",
+          "children": [
+            "Warehouse labor",
+            "Route density",
+            "Exception handling"
+          ]
+        },
+        {
+          "title": "Execution risk",
+          "children": [
+            "Renewal timing",
+            "Client adoption",
+            "Data quality"
+          ]
+        }
+      ],
+      "matchedCases": [
+        {
+          "id": "d634822a-869f-4f05-81da-88305c07f46e",
+          "title": "FreightWorks pricing redesign",
+          "fit": 94,
+          "blurb": "Improved EBITDA by $7.8M through repricing and service-tier rationalization across enterprise accounts."
+        },
+        {
+          "id": "918ee0e4-e79e-4201-a548-00741248f9d0",
+          "title": "HarborShip warehouse reset",
+          "fit": 88,
+          "blurb": "Reduced overtime 23% by redesigning labor scheduling and slotting logic across three sites."
+        }
+      ],
+      "proposalStarter": {
+        "hook": "Recover 200 to 300 bps of gross margin within two quarters without jeopardizing strategic renewals.",
+        "sections": [
+          "Situation and stakes",
+          "Where value is leaking today",
+          "Workstreams and expected impact",
+          "Delivery cadence and team"
+        ]
+      },
+      "workplan": [
+        {
+          "week": "Weeks 1-2",
+          "focus": "Diagnostic and data validation",
+          "output": "Profit pool baseline and customer-segment heatmap"
+        },
+        {
+          "week": "Weeks 3-6",
+          "focus": "Pricing and operations design",
+          "output": "Repricing playbook and labor reset recommendations"
+        },
+        {
+          "week": "Weeks 7-12",
+          "focus": "Pilot and leadership materials",
+          "output": "Pilot results, proposal narrative, implementation plan"
+        }
+      ],
+      "keyRisks": [
+        "Renewal calendar may limit repricing speed for top-tier accounts.",
+        "Historical cost allocation is incomplete for two acquired regions.",
+        "Client change capacity is constrained due to ERP migration."
+      ],
+      "referenceWork": [
+        "Pricing waterfall diagnostic",
+        "Warehouse labor benchmark pack",
+        "Client interview guide"
+      ]
+    }
+  ]
+}
