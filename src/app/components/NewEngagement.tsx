@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Upload, Lock, FileText, X, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, Lock, FileText, X, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import { Sidebar } from './shared/Sidebar';
 import { useAppData } from '../lib/AppProvider';
+import { BackButton } from './shared/BackButton';
 
 type UploadStatus = 'idle' | 'uploading' | 'completed' | 'parsing' | 'parsed' | 'failed';
 
@@ -116,13 +117,7 @@ export default function NewEngagement() {
         {/* Header */}
         <header className="border-b border-black/5 bg-white px-8 py-6">
           <div className="flex items-center gap-4">
-            <Link
-              to="/dashboard"
-              className="inline-flex items-center gap-2 text-sm text-black/60 transition-colors hover:text-black"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Link>
+            <BackButton fallbackTo="/dashboard" />
           </div>
           <div className="mt-4">
             <h1

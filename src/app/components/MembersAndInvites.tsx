@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowLeft, UserPlus, MoreVertical, Crown, Mail, CheckCircle2 } from 'lucide-react';
+import { UserPlus, MoreVertical, Crown, Mail, CheckCircle2 } from 'lucide-react';
 import { Sidebar } from './shared/Sidebar';
 import { InviteTeammateModal } from './organization/InviteTeammateModal';
 import { ChangeRoleModal } from './organization/ChangeRoleModal';
 import { RemoveMemberModal } from './organization/RemoveMemberModal';
 import { useAppData } from '../lib/AppProvider';
 import type { Member } from '../lib/types';
+import { BackButton } from './shared/BackButton';
 
 export default function MembersAndInvites() {
   const { bootstrap } = useAppData();
@@ -55,13 +56,7 @@ export default function MembersAndInvites() {
         {/* Header */}
         <header className="border-b border-black/5 bg-white px-8 py-6">
           <div className="flex items-center gap-4">
-            <Link
-              to="/dashboard"
-              className="inline-flex items-center gap-2 text-sm text-black/60 transition-colors hover:text-black"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Link>
+            <BackButton fallbackTo="/dashboard" />
           </div>
           <div className="mt-4 flex items-center justify-between">
             <div>

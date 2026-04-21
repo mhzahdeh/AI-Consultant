@@ -1,5 +1,5 @@
-import { Link } from 'react-router';
-import { ArrowLeft, Loader2, AlertCircle, TrendingUp, FileText, CheckCircle2, X, Eye } from 'lucide-react';
+import { Loader2, AlertCircle, TrendingUp, FileText, CheckCircle2, X, Eye } from 'lucide-react';
+import { BackButton } from './shared/BackButton';
 import { Sidebar } from './shared/Sidebar';
 
 export default function MatchedCasesStatesDemo() {
@@ -11,13 +11,7 @@ export default function MatchedCasesStatesDemo() {
         {/* Header */}
         <header className="border-b border-black/5 bg-white px-8 py-6">
           <div className="flex items-center gap-4">
-            <Link
-              to="/workspace"
-              className="inline-flex items-center gap-2 text-sm text-black/60 transition-colors hover:text-black"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Workspace
-            </Link>
+            <BackButton fallbackTo="/workspace" label="Back to Workspace" />
           </div>
           <div className="mt-4">
             <h1

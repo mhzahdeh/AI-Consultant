@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, FileText, Edit3, Upload, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
+import { FileText, Edit3, Upload, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router';
 import { Sidebar } from './shared/Sidebar';
+import { BackButton } from './shared/BackButton';
 
 export default function BriefReview() {
   const [isEditing, setIsEditing] = useState(false);
@@ -52,13 +53,7 @@ export default function BriefReview() {
         {/* Header */}
         <header className="border-b border-black/5 bg-white px-8 py-6">
           <div className="flex items-center gap-4">
-            <Link
-              to="/new-engagement"
-              className="inline-flex items-center gap-2 text-sm text-black/60 transition-colors hover:text-black"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Edit
-            </Link>
+            <BackButton fallbackTo="/new-engagement" label="Back to Edit" />
           </div>
           <div className="mt-4">
             <h1

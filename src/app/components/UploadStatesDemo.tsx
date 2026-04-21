@@ -1,6 +1,6 @@
-import { Link } from 'react-router';
-import { ArrowLeft, FileText, X, CheckCircle2, Loader2, AlertCircle, Upload } from 'lucide-react';
+import { FileText, X, CheckCircle2, Loader2, AlertCircle, Upload } from 'lucide-react';
 import { Sidebar } from './shared/Sidebar';
+import { BackButton } from './shared/BackButton';
 
 export default function UploadStatesDemo() {
   const uploadStates = [
@@ -139,13 +139,7 @@ export default function UploadStatesDemo() {
         {/* Header */}
         <header className="border-b border-black/5 bg-white px-8 py-6">
           <div className="flex items-center gap-4">
-            <Link
-              to="/new-engagement"
-              className="inline-flex items-center gap-2 text-sm text-black/60 transition-colors hover:text-black"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Link>
+            <BackButton fallbackTo="/new-engagement" />
           </div>
           <div className="mt-4">
             <h1

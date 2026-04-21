@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
-import { ArrowLeft } from 'lucide-react';
+import { useSearchParams } from 'react-router';
 import { Sidebar } from './shared/Sidebar';
 import { WorkspaceTopBar } from './workspace/WorkspaceTopBar';
 import { WorkspaceTabs } from './workspace/WorkspaceTabs';
@@ -14,6 +13,7 @@ import { VersionHistoryModal } from './workspace/VersionHistoryModal';
 import { ExportModal } from './workspace/ExportModal';
 import { RegenerateSectionModal } from './workspace/RegenerateSectionModal';
 import { useAppData } from '../lib/AppProvider';
+import { BackButton } from './shared/BackButton';
 
 export default function EngagementWorkspace() {
   const { engagements, currentEngagement, selectEngagement, regenerateSection } = useAppData();
@@ -64,13 +64,7 @@ export default function EngagementWorkspace() {
       <div className="flex-1">
         {/* Back Navigation */}
         <div className="border-b border-black/5 bg-white px-8 py-3">
-          <Link
-            to="/dashboard"
-            className="inline-flex items-center gap-2 text-sm text-black/60 transition-colors hover:text-black"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </Link>
+          <BackButton fallbackTo="/dashboard" />
         </div>
 
         {/* Workspace Top Bar */}

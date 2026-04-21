@@ -1,12 +1,13 @@
 import { Link } from 'react-router';
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Crown, Calendar, CreditCard, Users, Check, AlertCircle, TrendingUp } from 'lucide-react';
+import { Crown, Calendar, CreditCard, Users, Check, AlertCircle, TrendingUp } from 'lucide-react';
 import { Sidebar } from './shared/Sidebar';
 import { UpgradeModal } from './billing/UpgradeModal';
 import { UpgradeSuccessModal } from './billing/UpgradeSuccessModal';
 import { PaymentIssueState } from './billing/PaymentIssueState';
 import { useAppData } from '../lib/AppProvider';
+import { BackButton } from './shared/BackButton';
 
 export default function BillingPage() {
   const { bootstrap, updatePlan } = useAppData();
@@ -53,13 +54,7 @@ export default function BillingPage() {
         {/* Header */}
         <header className="border-b border-black/5 bg-white px-8 py-6">
           <div className="flex items-center gap-4">
-            <Link
-              to="/dashboard"
-              className="inline-flex items-center gap-2 text-sm text-black/60 transition-colors hover:text-black"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Link>
+            <BackButton fallbackTo="/dashboard" />
           </div>
           <div className="mt-4">
             <h1

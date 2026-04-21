@@ -1,10 +1,11 @@
 import { Link } from 'react-router';
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, FileText, Upload, RefreshCw, FileDown, Database, Clock, TrendingUp, Crown, ArrowRight } from 'lucide-react';
+import { FileText, Upload, RefreshCw, FileDown, Database, Clock, TrendingUp, Crown, ArrowRight } from 'lucide-react';
 import { Sidebar } from './shared/Sidebar';
 import { LimitHitModal } from './usage/LimitHitModal';
 import { useAppData } from '../lib/AppProvider';
+import { BackButton } from './shared/BackButton';
 
 export default function UsagePage() {
   const { bootstrap } = useAppData();
@@ -53,13 +54,7 @@ export default function UsagePage() {
         {/* Header */}
         <header className="border-b border-black/5 bg-white px-8 py-6">
           <div className="flex items-center gap-4">
-            <Link
-              to="/dashboard"
-              className="inline-flex items-center gap-2 text-sm text-black/60 transition-colors hover:text-black"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Link>
+            <BackButton fallbackTo="/dashboard" />
           </div>
           <div className="mt-4 flex items-center justify-between">
             <div>

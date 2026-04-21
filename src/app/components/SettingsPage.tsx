@@ -1,12 +1,13 @@
 import { Link, useSearchParams } from 'react-router';
 import { useState } from 'react';
-import { ArrowLeft, Building2, Users, CreditCard, BarChart3, Shield, Trash2, HelpCircle } from 'lucide-react';
+import { Building2, Users, CreditCard, BarChart3, Shield, Trash2, HelpCircle } from 'lucide-react';
 import { Sidebar } from './shared/Sidebar';
 import { OrganizationSettings } from './settings/OrganizationSettings';
 import { PrivacySettings } from './settings/PrivacySettings';
 import { DeletionSettings } from './settings/DeletionSettings';
 import { SupportSettings } from './settings/SupportSettings';
 import { useAppData } from '../lib/AppProvider';
+import { BackButton } from './shared/BackButton';
 
 export default function SettingsPage() {
   const { bootstrap } = useAppData();
@@ -89,13 +90,7 @@ export default function SettingsPage() {
         {/* Header */}
         <header className="border-b border-black/5 bg-white px-8 py-6">
           <div className="flex items-center gap-4">
-            <Link
-              to="/dashboard"
-              className="inline-flex items-center gap-2 text-sm text-black/60 transition-colors hover:text-black"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Link>
+            <BackButton fallbackTo="/dashboard" />
           </div>
           <div className="mt-4">
             <h1

@@ -1,7 +1,8 @@
 import { Link } from 'react-router';
 import { motion } from 'motion/react';
-import { ArrowLeft, Mail, Lock } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react';
 import { useState } from 'react';
+import { BackButton } from './shared/BackButton';
 
 export default function LogInPage() {
   const [email, setEmail] = useState('');
@@ -42,13 +43,7 @@ export default function LogInPage() {
 
       {/* Back to home */}
       <div className="absolute left-6 top-6">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-sm text-black/60 transition-colors hover:text-black"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Link>
+        <BackButton fallbackTo="/" />
       </div>
 
       <div className="relative flex min-h-screen items-center justify-center px-6 py-12">

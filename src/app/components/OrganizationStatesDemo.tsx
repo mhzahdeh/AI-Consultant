@@ -1,5 +1,5 @@
-import { Link } from 'react-router';
-import { ArrowLeft, Crown, CheckCircle2, Mail, Loader2, AlertCircle } from 'lucide-react';
+import { Crown, CheckCircle2, Mail, Loader2, AlertCircle } from 'lucide-react';
+import { BackButton } from './shared/BackButton';
 import { Sidebar } from './shared/Sidebar';
 
 export default function OrganizationStatesDemo() {
@@ -11,13 +11,7 @@ export default function OrganizationStatesDemo() {
         {/* Header */}
         <header className="border-b border-black/5 bg-white px-8 py-6">
           <div className="flex items-center gap-4">
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 text-sm text-black/60 transition-colors hover:text-black"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Hub
-            </Link>
+            <BackButton fallbackTo="/" label="Back to Hub" />
           </div>
           <div className="mt-4">
             <h1
