@@ -49,7 +49,7 @@ function getSelectedEngagement() {
 
 function setSelectedEngagement(id) {
   state.selectedEngagementId = id;
-  state.view = "workspace";
+  state.view = "projectDetail";
   render();
 }
 
@@ -307,62 +307,46 @@ function renderDashboard() {
 
 function renderNewEngagement() {
   const user = state.bootstrap.user;
+  const templates = [
+    ["↗", "Go-to-Market Strategy", "Product launch planning, channel strategy, market positioning", ["Launch plan", "Channel strategy", "Positioning framework", "Execution roadmap"]],
+    ["$", "Pricing Strategy", "Price optimization, packaging design, competitive benchmarking", ["Pricing framework", "Value metric analysis", "Competitive analysis", "Risks"]],
+    ["⊕", "Market Entry Strategy", "Geographic expansion, TAM assessment, regulatory navigation", ["Market-entry analysis", "Entry mode evaluation", "Regulatory roadmap", "Execution plan"]],
+    ["◔", "Growth Strategy", "Customer acquisition, retention optimization, expansion planning", ["Growth roadmap", "Acquisition strategy", "Retention framework", "Recommendation"]],
+    ["◎", "Customer Segmentation", "Market segmentation, persona development, targeting strategy", ["Segmentation logic", "Persona profiles", "Targeting criteria", "Value proposition"]],
+    ["▧", "Competitive Review", "Competitive landscape, differentiation, strategic response", ["Landscape map", "Competitor profiles", "Threat assessment", "Response plan"]],
+    ["✣", "Operating Model", "Org design, process optimization, capability building", ["Org model", "Process map", "Capability gaps", "Roadmap"]],
+    ["◫", "Strategic Review", "Performance analysis, initiative prioritization, roadmap", ["Performance review", "Initiative portfolio", "Decision tree", "Roadmap"]],
+  ];
   return `
-    <div class="topbar">
-      <div>
-        <span class="pill">Create</span>
-        <h2 class="section-title" style="font-size:2.4rem;margin-top:14px;">Start a new engagement</h2>
-        <p class="muted">Capture the client brief, upload source materials, and generate the workspace.</p>
+    <section class="strategy-dashboard">
+      <div class="strategy-heading">
+        <h2>Choose a starting point</h2>
+        <p>Select a strategic workflow or define your own challenge from scratch.</p>
       </div>
-    </div>
-    <section class="workspace-panel">
-      <form id="engagement-form" class="field-grid">
-        <div class="field-grid two-col">
-          <div class="field">
-            <label for="title">Engagement title</label>
-            <input id="title" name="title" placeholder="Apollo Health commercial reset" required />
-          </div>
-          <div class="field">
-            <label for="client">Client</label>
-            <input id="client" name="client" placeholder="Apollo Health" required />
-          </div>
-        </div>
-        <div class="field-grid two-col">
-          <div class="field">
-            <label for="type">Engagement type</label>
-            <select id="type" name="type">
-              <option>Growth strategy</option>
-              <option>Pricing strategy</option>
-              <option>Operations transformation</option>
-              <option>Commercial diligence</option>
-              <option>PMO support</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="industry">Industry</label>
-            <input id="industry" name="industry" placeholder="Healthcare services" />
-          </div>
-        </div>
-        <div class="field">
-          <label for="summary">Brief summary</label>
-          <textarea id="summary" name="summary" placeholder="What problem is the client trying to solve?"></textarea>
-        </div>
-        <div class="field-grid two-col">
-          <div class="field">
-            <label for="goal">Success goal</label>
-            <textarea id="goal" name="goal" placeholder="Define the target outcome."></textarea>
-          </div>
-          <div class="field">
-            <label for="ask">Proposal ask</label>
-            <textarea id="ask" name="ask" placeholder="What should the proposal starter help sell?"></textarea>
-          </div>
-        </div>
-        <input type="hidden" name="owner" value="${user.fullName}" />
-        <div class="toolbar-actions">
-          <button class="btn btn-primary" type="submit">Create engagement</button>
-          <button class="btn btn-secondary" type="button" data-action="seed-example">Fill example</button>
-        </div>
-      </form>
+      <button class="strategy-hero-cta" data-action="open-modal" data-modal="customProject">
+        <span class="strategy-cta-plus">+</span>
+        <span class="strategy-cta-copy">
+          <strong>Start from blank</strong>
+          <span>Define a custom business objective, context, and desired outputs</span>
+        </span>
+        <span class="strategy-cta-arrow">→</span>
+      </button>
+      <div class="template-grid">
+        ${templates
+          .map(
+            ([icon, title, text, outputs]) => `
+          <button class="template-card" data-action="open-modal" data-modal="customProject" data-template="${title}">
+            <span class="template-icon">${icon}</span>
+            <strong>${title}</strong>
+            <p>${text}</p>
+            <div class="template-output-row">
+              ${outputs.map((output) => `<span>${output}</span>`).join("")}
+            </div>
+          </button>
+        `
+          )
+          .join("")}
+      </div>
     </section>
   `;
 }
@@ -371,10 +355,10 @@ function renderWorkspace() {
   const engagement = getSelectedEngagement();
   if (!engagement) {
     return `
-      <section class="workspace-panel">
-        <div class="empty-state">
-          <h3 class="section-title">No workspace selected</h3>
-          <p class="muted">Open an engagement from the dashboard or create a new one.</p>
+      <section class="strategy-dashboard">
+        <div class="strategy-heading">
+          <h2>No project selected</h2>
+          <p>Open a project from the projects list.</p>
         </div>
       </section>
     `;
@@ -393,54 +377,72 @@ function renderWorkspace() {
   ];
 
   return `
-    <div class="workspace-topbar">
-      <div>
-        <span class="pill">${engagement.client}</span>
-        <h2 class="section-title" style="font-size:2.4rem;margin-top:14px;">${engagement.title}</h2>
-        <p class="muted">Updated ${formatDate(engagement.updatedAt)} • ${engagement.type}</p>
+    <section class="strategy-dashboard project-workspace">
+      <div class="workspace-command-bar">
+        <div>
+          <div class="project-label">Business Objective</div>
+          <h2>${engagement.title}</h2>
+          <p>${engagement.brief.summary || engagement.type}</p>
+        </div>
+        <div class="workspace-command-actions">
+          <button class="project-open-btn secondary" data-action="generate" data-id="${engagement.id}">Regenerate outputs</button>
+          <button class="project-open-btn" data-action="open-modal" data-modal="export">Export →</button>
+        </div>
       </div>
-      <div class="toolbar-actions">
-        <button class="btn btn-secondary" data-action="generate" data-id="${engagement.id}">Generate artifacts</button>
-        <button class="btn btn-primary" data-action="open-modal" data-modal="export">Export</button>
+
+      <div class="workspace-tabbar">
+        ${tabs
+          .map(
+            ([key, label]) => `
+          <button class="${state.activeTab === key ? "active" : ""}" data-action="tab" data-tab="${key}">${label}</button>
+        `
+          )
+          .join("")}
       </div>
-    </div>
-    <div class="workspace-tabs">
-      ${tabs
-        .map(
-          ([key, label]) => `
-        <button class="tab-button ${state.activeTab === key ? "active" : ""}" data-action="tab" data-tab="${key}">${label}</button>
-      `
-        )
-        .join("")}
-    </div>
-    <div class="workspace-layout">
-      <section class="workspace-panel">${renderWorkspaceTab(engagement)}</section>
-      <aside class="workspace-side">
-        <h3 class="section-title">Workspace rail</h3>
-        <div class="upload-zone" style="margin-top:14px;">
-          <strong>Source uploads</strong>
-          <p class="muted">Add a filename to simulate ingestion through the backend.</p>
-          <form id="upload-form" class="field-grid" style="margin-top:14px;">
-            <div class="field">
-              <label for="upload-name">Filename</label>
-              <input id="upload-name" name="name" placeholder="board-pack.pdf" />
-            </div>
-            <button class="btn btn-secondary" type="submit">Add upload</button>
+
+      <div class="workspace-layout strategy-workspace-layout">
+        <section class="workspace-panel strategy-workspace-panel">${renderWorkspaceTab(engagement)}</section>
+        <aside class="workspace-side strategy-workspace-side">
+          <div class="project-label">Reference inputs</div>
+          <h3>Knowledge used</h3>
+          <form id="upload-form" class="workspace-upload-form">
+            <input name="name" placeholder="Add source document" />
+            <button type="submit">Add</button>
           </form>
-        </div>
-        <div class="engagement-list">
-          ${engagement.uploads
-            .map(
-              (upload) => `
-            <article class="upload-item">
-              <strong>${upload.name}</strong>
-              <p class="muted">${upload.status} • ${upload.pages} pages</p>
-            </article>
-          `
-            )
-            .join("")}
-        </div>
-      </aside>
+          <div class="workspace-source-list">
+            ${engagement.uploads
+              .map(
+                (upload) => `
+              <article>
+                <strong>${upload.name}</strong>
+                <span>${upload.status} • ${upload.pages} pages</span>
+              </article>
+            `
+              )
+              .join("")}
+          </div>
+        </aside>
+      </div>
+    </section>
+  `;
+}
+
+function renderMiniMetric(label, value) {
+  return `
+    <article class="mini-metric">
+      <span>${label}</span>
+      <strong>${value}</strong>
+    </article>
+  `;
+}
+
+function renderStructuredList(items) {
+  if (!items.length) {
+    return `<div class="empty-state strategy-empty">Generate outputs to populate this section.</div>`;
+  }
+  return `
+    <div class="structured-list">
+      ${items.map((item) => `<article>${item}</article>`).join("")}
     </div>
   `;
 }
@@ -449,170 +451,137 @@ function renderWorkspaceTab(engagement) {
   switch (state.activeTab) {
     case "brief":
       return `
-        <div class="section-head">
+        <div class="workspace-panel-head">
           <div>
-            <h3 class="section-title">Client brief</h3>
-            <p class="muted">Editable core context for the proposal generation flow.</p>
+            <div class="project-label">Input brief</div>
+            <h3>Strategic challenge</h3>
           </div>
-          <button class="btn btn-ghost" data-action="save-brief">Save</button>
+          <button class="strategy-text-link" data-action="save-brief">Save changes</button>
         </div>
-        <form id="brief-form" class="field-grid" style="margin-top:16px;">
-          <div class="field">
-            <label for="brief-summary">Summary</label>
-            <textarea id="brief-summary" name="summary">${engagement.brief.summary || ""}</textarea>
-          </div>
-          <div class="split-grid">
-            <div class="field">
-              <label for="brief-goal">Goal</label>
-              <textarea id="brief-goal" name="goal">${engagement.brief.goal || ""}</textarea>
-            </div>
-            <div class="field">
-              <label for="brief-ask">Ask</label>
-              <textarea id="brief-ask" name="ask">${engagement.brief.ask || ""}</textarea>
-            </div>
+        <form id="brief-form" class="strategy-form">
+          <label>
+            <span>Context</span>
+            <textarea name="summary">${engagement.brief.summary || ""}</textarea>
+          </label>
+          <div class="strategy-form-grid">
+            <label>
+              <span>Business objective</span>
+              <textarea name="goal">${engagement.brief.goal || ""}</textarea>
+            </label>
+            <label>
+              <span>Desired output</span>
+              <textarea name="ask">${engagement.brief.ask || ""}</textarea>
+            </label>
           </div>
         </form>
       `;
     case "business":
       return `
-        <div class="section-head">
+        <div class="workspace-panel-head">
           <div>
-            <h3 class="section-title">Business context</h3>
-            <p class="muted">Industry, situation, and constraints shaping the engagement.</p>
+            <div class="project-label">Business Context</div>
+            <h3>Situation framing</h3>
           </div>
         </div>
-        <div class="field-grid" style="margin-top:16px;">
-          <article class="engagement-item"><strong>Industry</strong><p class="muted">${engagement.businessContext.industry || "Not set"}</p></article>
-          <article class="engagement-item"><strong>Current situation</strong><p class="muted">${engagement.businessContext.currentSituation || "Generate artifacts to populate this section."}</p></article>
-          <article class="engagement-item"><strong>Constraints</strong><p class="muted">${engagement.businessContext.constraints || "Add deadlines, budget limits, stakeholder needs, or delivery boundaries."}</p></article>
+        <div class="metric-grid">
+          ${renderMiniMetric("Industry", engagement.businessContext.industry || "Not set")}
+          ${renderMiniMetric("Project type", engagement.type)}
+        </div>
+        <div class="structured-list">
+          <article>${engagement.businessContext.currentSituation || "Generate outputs to create a current-state narrative."}</article>
+          <article>${engagement.businessContext.constraints || "Add constraints, timing, stakeholders, or decision requirements."}</article>
         </div>
       `;
     case "insights":
       return `
-        <h3 class="section-title">Key insights</h3>
-        <div class="engagement-list" style="margin-top:16px;">
-          ${
-            engagement.insights.length
-              ? engagement.insights.map((insight) => `<article class="insight-item">${insight}</article>`).join("")
-              : `<div class="empty-state">No insights yet. Generate artifacts to synthesize the brief.</div>`
-          }
-        </div>
+        <div class="workspace-panel-head"><div><div class="project-label">Analysis</div><h3>Key insights</h3></div></div>
+        ${renderStructuredList(engagement.insights)}
       `;
     case "issueTree":
       return `
-        <h3 class="section-title">Issue tree</h3>
-        <div class="engagement-list" style="margin-top:16px;">
+        <div class="workspace-panel-head"><div><div class="project-label">Analysis Tree</div><h3>Issue tree</h3></div></div>
+        <div class="issue-tree-grid">
           ${
             engagement.issueTree.length
               ? engagement.issueTree
                   .map(
                     (branch) => `
-                  <article class="issue-item">
+                  <article>
                     <strong>${branch.title}</strong>
-                    <p class="muted">${branch.children.join(" • ")}</p>
+                    <span>${branch.children.join(" • ")}</span>
                   </article>
                 `
                   )
                   .join("")
-              : `<div class="empty-state">No issue tree yet. Generate artifacts to scaffold one.</div>`
+              : `<div class="empty-state strategy-empty">Generate outputs to scaffold an issue tree.</div>`
           }
         </div>
       `;
     case "matched":
       return `
-        <div class="section-head">
-          <div>
-            <h3 class="section-title">Matched cases</h3>
-            <p class="muted">Reference work surfaced by the backend generation flow.</p>
-          </div>
-        </div>
-        <div class="case-list" style="margin-top:16px;">
+        <div class="workspace-panel-head"><div><div class="project-label">Reference Knowledge</div><h3>Matched reference work</h3></div></div>
+        <div class="reference-card-list">
           ${
             engagement.matchedCases.length
               ? engagement.matchedCases
                   .map(
                     (item) => `
-                <article class="case-item">
-                  <header>
-                    <div>
-                      <strong>${item.title}</strong>
-                      <p class="muted">${item.blurb}</p>
-                    </div>
-                    <span class="badge">${item.fit}% fit</span>
-                  </header>
+                <article>
+                  <strong>${item.title}</strong>
+                  <p>${item.blurb}</p>
+                  <span>${item.fit}% fit</span>
                 </article>
               `
                   )
                   .join("")
-              : `<div class="empty-state">No matched cases yet. Generate artifacts to create them.</div>`
+              : `<div class="empty-state strategy-empty">No reference work matched yet.</div>`
           }
         </div>
       `;
     case "proposal":
       return `
-        <h3 class="section-title">Proposal starter</h3>
+        <div class="workspace-panel-head"><div><div class="project-label">Strategy Draft</div><h3>Proposal starter</h3></div></div>
         ${
           engagement.proposalStarter.hook
             ? `
-          <article class="engagement-item" style="margin-top:16px;">
-            <strong>Hook</strong>
-            <p class="muted">${engagement.proposalStarter.hook}</p>
-          </article>
-          <article class="engagement-item" style="margin-top:12px;">
-            <strong>Suggested sections</strong>
-            <p class="muted">${engagement.proposalStarter.sections.join(" • ")}</p>
-          </article>
+          <div class="draft-panel">
+            <p>${engagement.proposalStarter.hook}</p>
+            ${engagement.proposalStarter.sections.map((section) => `<div>${section}</div>`).join("")}
+          </div>
         `
-            : `<div class="empty-state" style="margin-top:16px;">Generate artifacts to draft the proposal starter narrative.</div>`
+            : `<div class="empty-state strategy-empty">Generate outputs to draft the strategy narrative.</div>`
         }
       `;
     case "workplan":
       return `
-        <h3 class="section-title">Workplan</h3>
-        <div class="timeline-list" style="margin-top:16px;">
+        <div class="workspace-panel-head"><div><div class="project-label">Execution Plan</div><h3>Workplan</h3></div></div>
+        <div class="timeline-list strategy-timeline">
           ${
             engagement.workplan.length
               ? engagement.workplan
                   .map(
                     (item) => `
-                <article class="timeline-item">
-                  <header>
-                    <div>
-                      <strong>${item.week}</strong>
-                      <p class="muted">${item.focus}</p>
-                    </div>
-                    <span class="badge">Output</span>
-                  </header>
-                  <p class="muted">${item.output}</p>
+                <article>
+                  <strong>${item.week}</strong>
+                  <span>${item.focus}</span>
+                  <p>${item.output}</p>
                 </article>
               `
                   )
                   .join("")
-              : `<div class="empty-state">No workplan yet. Generate artifacts to build the phased delivery plan.</div>`
+              : `<div class="empty-state strategy-empty">Generate outputs to build the execution plan.</div>`
           }
         </div>
       `;
     case "risks":
       return `
-        <h3 class="section-title">Key risks</h3>
-        <div class="risk-list" style="margin-top:16px;">
-          ${
-            engagement.keyRisks.length
-              ? engagement.keyRisks.map((risk) => `<article class="risk-item">${risk}</article>`).join("")
-              : `<div class="empty-state">No key risks yet. Generate artifacts to outline them.</div>`
-          }
-        </div>
+        <div class="workspace-panel-head"><div><div class="project-label">Assumptions & Risks</div><h3>Key risks</h3></div></div>
+        ${renderStructuredList(engagement.keyRisks)}
       `;
     case "reference":
       return `
-        <h3 class="section-title">Reference work</h3>
-        <div class="engagement-list" style="margin-top:16px;">
-          ${
-            engagement.referenceWork.length
-              ? engagement.referenceWork.map((item) => `<article class="engagement-item">${item}</article>`).join("")
-              : `<div class="empty-state">No reference work yet. Generate artifacts to populate this library.</div>`
-          }
-        </div>
+        <div class="workspace-panel-head"><div><div class="project-label">Institutional Knowledge</div><h3>Reference work</h3></div></div>
+        ${renderStructuredList(engagement.referenceWork)}
       `;
     default:
       return "";
@@ -713,6 +682,7 @@ function renderTopChrome() {
     dashboard: "/dashboard",
     new: "/templates",
     workspace: "/projects",
+    projectDetail: "/projects/workspace",
     vault: "/vault",
     usage: "/usage",
     billing: "/billing",
@@ -735,24 +705,26 @@ function renderUsage() {
   const org = state.bootstrap.organization;
   const usagePct = Math.round((org.monthlyRuns / org.monthlyLimit) * 100);
   return `
-    <div class="topbar">
-      <div>
-        <span class="pill">Usage</span>
-        <h2 class="section-title" style="font-size:2.4rem;margin-top:14px;">Generation usage</h2>
-        <p class="muted">Keep an eye on workspace runs and plan headroom.</p>
+    <section class="strategy-dashboard">
+      <div class="strategy-heading">
+        <h2>Usage</h2>
+        <p>Track strategy generations, reference knowledge, and active project volume.</p>
       </div>
-    </div>
-    <section class="billing-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">
-      <article class="usage-card">
-        <span class="subtle">Current cycle</span>
-        <div class="stat-value">${org.monthlyRuns} / ${org.monthlyLimit}</div>
-        <p class="muted">${usagePct}% of plan capacity used.</p>
-        <div class="progress-track"><div class="progress-fill" style="width:${Math.min(usagePct, 100)}%;"></div></div>
-      </article>
-      <article class="usage-card">
-        <span class="subtle">Recommendation</span>
-        <div class="stat-value">${usagePct > 75 ? "Upgrade" : "Healthy"}</div>
-        <p class="muted">${usagePct > 75 ? "You are approaching the monthly cap. Upgrade or tighten generation workflows." : "Current run rate is within plan limits."}</p>
+      <div class="usage-grid">
+        ${renderMiniMetric("Active Projects", getEngagements().length)}
+        ${renderMiniMetric("Reference Docs", 18)}
+        ${renderMiniMetric("Generations", org.monthlyRuns)}
+      </div>
+      <article class="project-card">
+        <div class="project-card-head">
+          <div>
+            <strong>Monthly generation budget</strong>
+            <div class="project-label">${usagePct}% used</div>
+          </div>
+          <span class="project-status">${usagePct > 75 ? "Review" : "Healthy"}</span>
+        </div>
+        <div class="project-progress usage-progress"><span style="width:${Math.min(usagePct, 100)}%"></span></div>
+        <p class="project-objective">${org.monthlyRuns} of ${org.monthlyLimit} strategy runs used this cycle.</p>
       </article>
     </section>
   `;
@@ -761,29 +733,23 @@ function renderUsage() {
 function renderBilling() {
   const billing = state.bootstrap.billing;
   return `
-    <div class="topbar">
-      <div>
-        <span class="pill">Billing</span>
-        <h2 class="section-title" style="font-size:2.4rem;margin-top:14px;">Plan and payment</h2>
-        <p class="muted">Basic billing surface for the local backend demo.</p>
+    <section class="strategy-dashboard">
+      <div class="strategy-heading">
+        <h2>Billing</h2>
+        <p>Manage plan access for your strategy workspace.</p>
       </div>
-    </div>
-    <section class="billing-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));">
-      <article class="billing-card">
-        <span class="subtle">Plan</span>
-        <div class="stat-value">${billing.plan}</div>
-        <p class="muted">${billing.status} subscription.</p>
-      </article>
-      <article class="billing-card">
-        <span class="subtle">Next invoice</span>
-        <div class="stat-value">$${billing.amount}</div>
-        <p class="muted">${billing.nextInvoiceDate}</p>
-      </article>
-      <article class="billing-card">
-        <span class="subtle">Payment method</span>
-        <div class="stat-value">${billing.cardBrand}</div>
-        <p class="muted">Ending in ${billing.cardLast4}</p>
-      </article>
+      <div class="billing-plan-card">
+        <div>
+          <div class="project-label">Current plan</div>
+          <h3>${billing.plan}</h3>
+          <p>${billing.status} subscription. Next invoice on ${billing.nextInvoiceDate}.</p>
+        </div>
+        <strong>$${billing.amount}</strong>
+      </div>
+      <div class="vault-summary-grid">
+        ${renderMiniMetric("Payment method", `${billing.cardBrand} •••• ${billing.cardLast4}`)}
+        ${renderMiniMetric("Included generations", state.bootstrap.organization.monthlyLimit)}
+      </div>
     </section>
   `;
 }
@@ -792,63 +758,55 @@ function renderSettings() {
   const settings = state.bootstrap.settings;
   const org = state.bootstrap.organization;
   return `
-    <div class="topbar">
-      <div>
-        <span class="pill">Settings</span>
-        <h2 class="section-title" style="font-size:2.4rem;margin-top:14px;">Organization controls</h2>
-        <p class="muted">Manage invites, privacy defaults, and cleanup policies.</p>
+    <section class="strategy-dashboard">
+      <div class="strategy-heading">
+        <h2>Settings</h2>
+        <p>Organization access, privacy defaults, and workspace controls.</p>
       </div>
-      <div class="toolbar-actions">
-        <button class="btn btn-secondary" data-action="open-modal" data-modal="invite">Invite teammate</button>
-      </div>
-    </div>
-    <section class="settings-grid" style="grid-template-columns:1.1fr .9fr;">
-      <article class="settings-card">
-        <h3 class="section-title">Members and invites</h3>
-        <div class="member-list">
-          ${org.members
-            .map(
-              (member) => `
-            <article class="member-item">
-              <header>
+      <div class="settings-layout">
+        <article class="project-card">
+          <div class="project-card-head">
+            <strong>Members and invites</strong>
+            <button class="strategy-text-link" data-action="open-modal" data-modal="invite">Invite teammate</button>
+          </div>
+          <div class="settings-member-list">
+            ${org.members
+              .map(
+                (member) => `
+              <article>
                 <div>
                   <strong>${member.name}</strong>
-                  <p class="muted">${member.email}</p>
+                  <span>${member.email}</span>
                 </div>
-                <div class="row-actions">
-                  <span class="badge">${member.role}</span>
-                  <button class="btn btn-ghost" data-action="toggle-role" data-id="${member.id}">
-                    ${member.role === "Viewer" ? "Promote" : "Demote"}
-                  </button>
-                </div>
-              </header>
-            </article>
-          `
-            )
-            .join("")}
-        </div>
-      </article>
-      <article class="settings-card">
-        <h3 class="section-title">Workspace defaults</h3>
-        <form id="settings-form" class="field-grid" style="margin-top:16px;">
-          <div class="field">
-            <label for="supportEmail">Support email</label>
-            <input id="supportEmail" name="supportEmail" value="${settings.supportEmail}" />
+                <button data-action="toggle-role" data-id="${member.id}">${member.role}</button>
+              </article>
+            `
+              )
+              .join("")}
           </div>
-          <div class="field">
-            <label for="autoDeleteDays">Auto-delete uploads after days</label>
-            <input id="autoDeleteDays" name="autoDeleteDays" type="number" value="${settings.autoDeleteDays}" />
-          </div>
-          <div class="field">
-            <label for="privacyMode">Privacy mode</label>
-            <select id="privacyMode" name="privacyMode">
-              <option value="true" ${settings.privacyMode ? "selected" : ""}>Enabled</option>
-              <option value="false" ${!settings.privacyMode ? "selected" : ""}>Disabled</option>
-            </select>
-          </div>
-          <button class="btn btn-primary" type="submit">Save settings</button>
-        </form>
-      </article>
+        </article>
+        <article class="project-card">
+          <strong>Workspace defaults</strong>
+          <form id="settings-form" class="strategy-form compact">
+            <label>
+              <span>Support email</span>
+              <input name="supportEmail" value="${settings.supportEmail}" />
+            </label>
+            <label>
+              <span>Auto-delete uploads after days</span>
+              <input name="autoDeleteDays" type="number" value="${settings.autoDeleteDays}" />
+            </label>
+            <label>
+              <span>Privacy mode</span>
+              <select name="privacyMode">
+                <option value="true" ${settings.privacyMode ? "selected" : ""}>Enabled</option>
+                <option value="false" ${!settings.privacyMode ? "selected" : ""}>Disabled</option>
+              </select>
+            </label>
+            <button class="project-open-btn" type="submit">Save settings →</button>
+          </form>
+        </article>
+      </div>
     </section>
   `;
 }
@@ -906,6 +864,55 @@ function renderModal() {
     `;
   }
 
+  if (state.modal === "customProject") {
+    const template = state.selectedTemplate || "Custom Strategy Project";
+    return `
+      <div class="modal open" id="modal-root">
+        <div class="modal-card strategy-modal-card">
+          <div class="workspace-panel-head">
+            <div>
+              <div class="project-label">New project</div>
+              <h3>${template}</h3>
+            </div>
+            <button class="strategy-text-link" data-action="close-modal">Close</button>
+          </div>
+          <form id="engagement-form" class="strategy-form compact">
+            <label>
+              <span>Project title</span>
+              <input name="title" value="${template === "Custom Strategy Project" ? "" : template}" placeholder="EMEA Market Entry - Consumer Hardware" required />
+            </label>
+            <label>
+              <span>Business area</span>
+              <input name="client" placeholder="Consumer Hardware" required />
+            </label>
+            <label>
+              <span>Workflow type</span>
+              <input name="type" value="${template}" />
+            </label>
+            <label>
+              <span>Industry</span>
+              <input name="industry" placeholder="Technology, healthcare, retail..." />
+            </label>
+            <label>
+              <span>Business context</span>
+              <textarea name="summary" placeholder="What is the strategic challenge?"></textarea>
+            </label>
+            <label>
+              <span>Business objective</span>
+              <textarea name="goal" placeholder="What decision or plan should this produce?"></textarea>
+            </label>
+            <label>
+              <span>Desired outputs</span>
+              <textarea name="ask" placeholder="Strategy draft, analysis tree, execution plan..."></textarea>
+            </label>
+            <input type="hidden" name="owner" value="${state.bootstrap.user.fullName}" />
+            <button class="project-open-btn" type="submit">Create workspace →</button>
+          </form>
+        </div>
+      </div>
+    `;
+  }
+
   return `<div class="modal" id="modal-root"></div>`;
 }
 
@@ -923,13 +930,15 @@ function renderApp() {
               ? renderNewEngagement()
               : state.view === "workspace"
                 ? renderProjects()
-                : state.view === "vault"
-                  ? renderVault()
-                  : state.view === "usage"
-                    ? renderUsage()
-                    : state.view === "billing"
-                      ? renderBilling()
-                      : renderSettings()
+                : state.view === "projectDetail"
+                  ? renderWorkspace()
+                  : state.view === "vault"
+                    ? renderVault()
+                    : state.view === "usage"
+                      ? renderUsage()
+                      : state.view === "billing"
+                        ? renderBilling()
+                        : renderSettings()
         }
         </main>
       </div>
@@ -1031,6 +1040,9 @@ document.addEventListener("click", async (event) => {
   }
 
   if (action === "open-modal") {
+    if (button.dataset.template) {
+      state.selectedTemplate = button.dataset.template;
+    }
     state.modal = button.dataset.modal;
     render();
     return;
@@ -1118,7 +1130,8 @@ document.addEventListener("submit", async (event) => {
       });
       state.bootstrap.dashboard = data.dashboard;
       state.selectedEngagementId = data.engagement.id;
-      state.view = "workspace";
+      state.view = "projectDetail";
+      state.modal = null;
       showToast("Engagement created");
       render();
     } catch (error) {

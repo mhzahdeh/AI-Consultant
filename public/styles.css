@@ -997,6 +997,375 @@ body {
   font-size: 24px;
 }
 
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.template-card {
+  min-height: 210px;
+  padding: 24px;
+  border: 1px solid var(--figma-line);
+  background: #fff;
+  text-align: left;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  color: var(--figma-text);
+}
+
+.template-card:hover {
+  border-color: #111;
+}
+
+.template-icon {
+  color: #555;
+  font-size: 18px;
+}
+
+.template-card strong {
+  font-size: 16px;
+}
+
+.template-card p {
+  margin: 0;
+  color: #666;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.template-output-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.template-output-row span {
+  padding: 5px 8px;
+  border: 1px solid var(--figma-line);
+  color: #555;
+  font-size: 10px;
+}
+
+.workspace-command-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 28px;
+  align-items: start;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--figma-line);
+}
+
+.workspace-command-bar h2 {
+  margin: 8px 0;
+  font-size: 32px;
+  line-height: 1.12;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.workspace-command-bar p {
+  max-width: 720px;
+  margin: 0;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.workspace-command-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.project-open-btn.secondary {
+  background: #fff;
+  color: #111;
+  border: 1px solid var(--figma-line-strong);
+}
+
+.workspace-tabbar {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--figma-line);
+  overflow-x: auto;
+}
+
+.workspace-tabbar button {
+  padding: 14px 16px;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #777;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.workspace-tabbar button.active {
+  border-bottom-color: #000;
+  color: #000;
+}
+
+.strategy-workspace-layout {
+  grid-template-columns: minmax(0, 1fr) 300px;
+}
+
+.strategy-workspace-panel,
+.strategy-workspace-side {
+  border: 1px solid var(--figma-line);
+  box-shadow: none;
+  background: #fff;
+  padding: 24px;
+}
+
+.workspace-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.workspace-panel-head h3,
+.strategy-workspace-side h3 {
+  margin: 6px 0 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 18px;
+}
+
+.strategy-form {
+  display: grid;
+  gap: 16px;
+}
+
+.strategy-form.compact {
+  margin-top: 18px;
+  gap: 12px;
+}
+
+.strategy-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.strategy-form label {
+  display: grid;
+  gap: 8px;
+  color: #777;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.strategy-form input,
+.strategy-form textarea,
+.strategy-form select,
+.workspace-upload-form input {
+  width: 100%;
+  border: 1px solid var(--figma-line-strong);
+  border-radius: 0;
+  background: #fff;
+  color: #111;
+  padding: 12px;
+  font-size: 13px;
+}
+
+.strategy-form textarea {
+  min-height: 96px;
+}
+
+.metric-grid,
+.usage-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.mini-metric {
+  padding: 20px;
+  border: 1px solid var(--figma-line);
+  background: #fff;
+}
+
+.mini-metric span {
+  display: block;
+  color: #777;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mini-metric strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 22px;
+}
+
+.structured-list,
+.reference-card-list,
+.issue-tree-grid,
+.strategy-timeline,
+.workspace-source-list {
+  display: grid;
+  gap: 12px;
+}
+
+.structured-list article,
+.issue-tree-grid article,
+.reference-card-list article,
+.strategy-timeline article,
+.workspace-source-list article {
+  padding: 18px;
+  border: 1px solid var(--figma-line);
+  background: #fff;
+  color: #555;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.issue-tree-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.issue-tree-grid strong,
+.reference-card-list strong,
+.strategy-timeline strong,
+.workspace-source-list strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #111;
+  font-size: 13px;
+}
+
+.issue-tree-grid span,
+.strategy-timeline span,
+.workspace-source-list span {
+  color: #777;
+  font-size: 12px;
+}
+
+.reference-card-list p,
+.strategy-timeline p {
+  margin: 0 0 10px;
+  color: #555;
+}
+
+.reference-card-list article > span {
+  display: inline-flex;
+  padding: 4px 7px;
+  border: 1px solid var(--figma-line);
+  color: #333;
+  font-size: 10px;
+}
+
+.draft-panel {
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+  border: 1px solid var(--figma-line);
+}
+
+.draft-panel p {
+  margin: 0 0 6px;
+  color: #333;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.draft-panel div {
+  padding: 12px 0;
+  border-top: 1px solid var(--figma-line);
+  font-weight: 700;
+}
+
+.workspace-upload-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.workspace-upload-form button {
+  padding: 0 14px;
+  background: #000;
+  color: #fff;
+}
+
+.billing-plan-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+  border: 1px solid var(--figma-line);
+  background: #000;
+  color: #fff;
+}
+
+.billing-plan-card h3 {
+  margin: 8px 0;
+  font-size: 30px;
+}
+
+.billing-plan-card p {
+  margin: 0;
+  color: #bdbdbd;
+}
+
+.billing-plan-card strong {
+  font-size: 34px;
+}
+
+.usage-progress {
+  margin: 22px 0 14px;
+}
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 16px;
+}
+
+.settings-member-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.settings-member-list article {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 0;
+  border-top: 1px solid var(--figma-line);
+}
+
+.settings-member-list span {
+  display: block;
+  margin-top: 4px;
+  color: #777;
+  font-size: 12px;
+}
+
+.settings-member-list button {
+  padding: 6px 9px;
+  border: 1px solid var(--figma-line);
+  background: #fff;
+  color: #333;
+  font-size: 11px;
+}
+
+.strategy-modal-card {
+  border-radius: 0;
+  box-shadow: none;
+  border: 1px solid var(--figma-line);
+}
+
+.strategy-empty {
+  border-radius: 0;
+  border: 1px solid var(--figma-line);
+  background: #fff;
+}
+
 .btn-primary,
 .btn-secondary,
 .btn-ghost,
@@ -1036,7 +1405,15 @@ body {
   .workflow-grid,
   .project-meta-grid,
   .project-footer,
-  .vault-summary-grid {
+  .vault-summary-grid,
+  .template-grid,
+  .strategy-form-grid,
+  .metric-grid,
+  .usage-grid,
+  .issue-tree-grid,
+  .settings-layout,
+  .strategy-workspace-layout,
+  .workspace-command-bar {
     grid-template-columns: 1fr;
   }
 }
