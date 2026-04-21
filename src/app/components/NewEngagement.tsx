@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { Upload, Lock, FileText, X, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
@@ -20,6 +20,7 @@ interface UploadedFile {
 export default function NewEngagement() {
   const navigate = useNavigate();
   const { createEngagement } = useAppData();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [engagementTitle, setEngagementTitle] = useState('');
   const [clientAlias, setClientAlias] = useState('');
   const [problemType, setProblemType] = useState('');
@@ -41,40 +42,7 @@ export default function NewEngagement() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-
-    const files = Array.from(e.dataTransfer.files);
-    files.forEach((file) => {
-      const newFile: UploadedFile = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: file.name,
-        size: `${(file.size / 1024).toFixed(1)} KB`,
-        type: file.type.split('/')[1]?.toUpperCase() || 'FILE',
-        status: 'uploading',
-        uploadedAt: new Date().toISOString(),
-      };
-
-      setUploadedFiles(prev => [...prev, newFile]);
-
-      // Simulate upload
-      setTimeout(() => {
-        setUploadedFiles(prev =>
-          prev.map(f => f.id === newFile.id ? { ...f, status: 'completed' } : f)
-        );
-
-        // Simulate parsing
-        setTimeout(() => {
-          setUploadedFiles(prev =>
-            prev.map(f => f.id === newFile.id ? { ...f, status: 'parsing' } : f)
-          );
-
-          setTimeout(() => {
-            setUploadedFiles(prev =>
-              prev.map(f => f.id === newFile.id ? { ...f, status: 'parsed' } : f)
-            );
-          }, 1500);
-        }, 500);
-      }, 2000);
-    });
+    processFiles(Array.from(e.dataTransfer.files));
   };
 
   const handleDeleteFile = (id: string) => {
@@ -91,6 +59,50 @@ export default function NewEngagement() {
         prev.map(f => f.id === id ? { ...f, status: 'parsed' } : f)
       );
     }, 2000);
+  };
+
+  const processFiles = (files: File[]) => {
+    files.forEach((file) => {
+      const newFile: UploadedFile = {
+        id: Math.random().toString(36).slice(2, 11),
+        name: file.name,
+        size: file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${(file.size / 1024).toFixed(1)} KB`,
+        type: file.name.split('.').pop()?.toUpperCase() || file.type.split('/')[1]?.toUpperCase() || 'FILE',
+        status: 'uploading',
+        uploadedAt: new Date().toISOString(),
+      };
+
+      setUploadedFiles((prev) => [...prev, newFile]);
+
+      window.setTimeout(() => {
+        setUploadedFiles((prev) =>
+          prev.map((f) => (f.id === newFile.id ? { ...f, status: 'completed' } : f))
+        );
+
+        window.setTimeout(() => {
+          setUploadedFiles((prev) =>
+            prev.map((f) => (f.id === newFile.id ? { ...f, status: 'parsing' } : f))
+          );
+
+          window.setTimeout(() => {
+            setUploadedFiles((prev) =>
+              prev.map((f) => (f.id === newFile.id ? { ...f, status: 'parsed' } : f))
+            );
+          }, 900);
+        }, 350);
+      }, 600);
+    });
+  };
+
+  const handleBrowseFiles = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    processFiles(files);
+    e.target.value = '';
   };
 
   const isFormValid = engagementTitle && clientAlias && problemType && (brief || uploadedFiles.length > 0);
@@ -259,10 +271,27 @@ export default function NewEngagement() {
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
+                  onClick={handleBrowseFiles}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleBrowseFiles();
+                    }
+                  }}
                   className={`cursor-pointer border-2 border-dashed transition-colors ${
                     isDragging ? 'border-black bg-black/[0.02]' : 'border-black/10 bg-white hover:border-black/20'
                   } p-12 text-center`}
                 >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx,.txt"
+                    className="hidden"
+                    onChange={handleFileSelection}
+                  />
                   <Upload className="mx-auto mb-4 h-8 w-8 text-black/40" />
                   <p className="mb-1 text-sm text-black">Drop your files here</p>
                   <p className="text-xs text-black/40">or click to browse • PDF, DOC, TXT up to 25MB</p>
