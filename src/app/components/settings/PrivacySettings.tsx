@@ -36,19 +36,19 @@ export function PrivacySettings() {
           <div className="border-l-2 border-black/10 bg-black/[0.01] p-4">
             <div className="space-y-3 text-xs">
               <div>
-                <strong className="text-black">Files and outputs are not used for model training.</strong>
+                <strong className="text-black">Workspace data is scoped to the signed-in organization.</strong>
                 <br />
-                Documents you upload and artifacts we generate stay within your organization boundary. They are never used to train shared public models or improve the service for other customers.
+                The application enforces session-based access and organization membership checks before loading or mutating workspace data.
               </div>
               <div>
-                <strong className="text-black">Data stays within your workspace.</strong>
+                <strong className="text-black">Operational storage details depend on deployment.</strong>
                 <br />
-                Team members can only access engagements, uploads, and vault items within your organization. Data is scoped to your workspace and not visible to other customers.
+                This local environment stores application data in a private SQLite database and uploaded source files on the host machine. Additional controls like encrypted object storage, KMS, or retention policies are deployment-specific and should be configured separately.
               </div>
               <div>
-                <strong className="text-black">You control deletion.</strong>
+                <strong className="text-black">Model-handling policy must match the backend you deploy.</strong>
                 <br />
-                You can delete individual uploads, artifacts, or your entire workspace at any time. Deletion is immediate from the application. Underlying storage cleanup follows standard retention windows.
+                This app now persists artifacts, uploads, and versions, but whether data is retained, exported, or sent to external model providers depends on the production integration you attach to it.
               </div>
             </div>
           </div>
@@ -86,7 +86,7 @@ export function PrivacySettings() {
               Uploaded Files
             </div>
             <div className="text-xs leading-relaxed text-black/70">
-              PDFs, documents, case studies, and frameworks you upload for matching and context retrieval. Files are stored encrypted and accessed only during artifact generation within your workspace.
+              PDFs, documents, case studies, and frameworks you upload for matching and context retrieval. In this local build they are stored on disk and indexed into the workspace so later artifact generation can reuse the extracted text.
             </div>
           </div>
 
@@ -132,7 +132,7 @@ export function PrivacySettings() {
             </div>
           </div>
           <div className="text-xs leading-relaxed text-black/70">
-            All files and artifacts are stored encrypted at rest. Access is scoped to your organization and authenticated team members with appropriate role permissions.
+              In this build, files and artifacts are stored in the local application data directory. Organization and session checks gate access in the app layer.
           </div>
         </div>
 
@@ -147,7 +147,7 @@ export function PrivacySettings() {
             </div>
           </div>
           <div className="text-xs leading-relaxed text-black/70">
-            Deleted items are removed immediately from the application. Underlying storage cleanup follows a 30-day retention window for recovery purposes, then permanent deletion.
+            Delete and retention behavior should be defined by the environment where this app is deployed. The current local build does not advertise a managed retention SLA.
           </div>
         </div>
       </div>

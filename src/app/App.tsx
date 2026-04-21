@@ -1,56 +1,171 @@
-import { BrowserRouter, Routes, Route } from 'react-router';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 
-// Marketing pages
-import NavigationHub from './components/NavigationHub';
-import LandingPage from './components/LandingPage';
-import SignUpPage from './components/SignUpPage';
-import LogInPage from './components/LogInPage';
+import NavigationHub from "./components/NavigationHub";
+import LandingPage from "./components/LandingPage";
+import SignUpPage from "./components/SignUpPage";
+import LogInPage from "./components/LogInPage";
+import CreateOrganization from "./components/CreateOrganization";
+import OrganizationSelection from "./components/OrganizationSelection";
+import AcceptInvite from "./components/AcceptInvite";
+import MembersAndInvites from "./components/MembersAndInvites";
+import Dashboard from "./components/Dashboard";
+import NewEngagement from "./components/NewEngagement";
+import BriefReview from "./components/BriefReview";
+import EngagementWorkspace from "./components/EngagementWorkspace";
+import UsagePage from "./components/UsagePage";
+import BillingPage from "./components/BillingPage";
+import SettingsPage from "./components/SettingsPage";
+import { useAppData } from "./lib/AppProvider";
 
-// Organization pages
-import CreateOrganization from './components/CreateOrganization';
-import OrganizationSelection from './components/OrganizationSelection';
-import AcceptInvite from './components/AcceptInvite';
-import MembersAndInvites from './components/MembersAndInvites';
+function LoadingScreen() {
+  return <div className="flex min-h-screen items-center justify-center bg-white text-sm text-black/60">Loading…</div>;
+}
 
-// Product pages
-import DesignSystemPage from './components/DesignSystemPage';
-import Dashboard from './components/Dashboard';
-import NewEngagement from './components/NewEngagement';
-import BriefReview from './components/BriefReview';
-import UploadStatesDemo from './components/UploadStatesDemo';
-import EngagementWorkspace from './components/EngagementWorkspace';
-import MatchedCasesStatesDemo from './components/MatchedCasesStatesDemo';
-import ArtifactStatesDemo from './components/ArtifactStatesDemo';
-import OrganizationStatesDemo from './components/OrganizationStatesDemo';
-import UsagePage from './components/UsagePage';
-import BillingPage from './components/BillingPage';
-import SettingsPage from './components/SettingsPage';
+function PublicOnly({ children }: { children: React.ReactNode }) {
+  const { session, isLoading } = useAppData();
+  if (isLoading) return <LoadingScreen />;
+  if (session?.authenticated) {
+    if (!session.bootstrapReady) {
+      return <Navigate to={session.organizations.length > 1 ? "/select-organization" : "/create-organization"} replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
+}
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { session, isLoading } = useAppData();
+  const location = useLocation();
+  if (isLoading) return <LoadingScreen />;
+  if (!session?.authenticated) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+  return <>{children}</>;
+}
+
+function RequireWorkspace({ children }: { children: React.ReactNode }) {
+  const { session, isLoading } = useAppData();
+  if (isLoading) return <LoadingScreen />;
+  if (!session?.authenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  if (!session.bootstrapReady) {
+    return <Navigate to={session.organizations.length > 1 ? "/select-organization" : "/create-organization"} replace />;
+  }
+  return <>{children}</>;
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<NavigationHub />} />
+      <Route path="/landing" element={<LandingPage />} />
+      <Route
+        path="/signup"
+        element={
+          <PublicOnly>
+            <SignUpPage />
+          </PublicOnly>
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          <PublicOnly>
+            <LogInPage />
+          </PublicOnly>
+        }
+      />
+      <Route
+        path="/create-organization"
+        element={
+          <RequireAuth>
+            <CreateOrganization />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/select-organization"
+        element={
+          <RequireAuth>
+            <OrganizationSelection />
+          </RequireAuth>
+        }
+      />
+      <Route path="/accept-invite" element={<AcceptInvite />} />
+      <Route
+        path="/members"
+        element={
+          <RequireWorkspace>
+            <MembersAndInvites />
+          </RequireWorkspace>
+        }
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <RequireWorkspace>
+            <Dashboard />
+          </RequireWorkspace>
+        }
+      />
+      <Route
+        path="/new-engagement"
+        element={
+          <RequireWorkspace>
+            <NewEngagement />
+          </RequireWorkspace>
+        }
+      />
+      <Route
+        path="/brief-review"
+        element={
+          <RequireWorkspace>
+            <BriefReview />
+          </RequireWorkspace>
+        }
+      />
+      <Route
+        path="/workspace"
+        element={
+          <RequireWorkspace>
+            <EngagementWorkspace />
+          </RequireWorkspace>
+        }
+      />
+      <Route
+        path="/usage"
+        element={
+          <RequireWorkspace>
+            <UsagePage />
+          </RequireWorkspace>
+        }
+      />
+      <Route
+        path="/billing"
+        element={
+          <RequireWorkspace>
+            <BillingPage />
+          </RequireWorkspace>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <RequireWorkspace>
+            <SettingsPage />
+          </RequireWorkspace>
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<NavigationHub />} />
-        <Route path="/landing" element={<LandingPage />} />
-        <Route path="/signup" element={<SignUpPage />} />
-        <Route path="/login" element={<LogInPage />} />
-        <Route path="/create-organization" element={<CreateOrganization />} />
-        <Route path="/select-organization" element={<OrganizationSelection />} />
-        <Route path="/accept-invite" element={<AcceptInvite />} />
-        <Route path="/members" element={<MembersAndInvites />} />
-        <Route path="/design-system" element={<DesignSystemPage />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/new-engagement" element={<NewEngagement />} />
-        <Route path="/brief-review" element={<BriefReview />} />
-        <Route path="/upload-states" element={<UploadStatesDemo />} />
-        <Route path="/workspace" element={<EngagementWorkspace />} />
-        <Route path="/matched-cases-states" element={<MatchedCasesStatesDemo />} />
-        <Route path="/artifact-states" element={<ArtifactStatesDemo />} />
-        <Route path="/organization-states" element={<OrganizationStatesDemo />} />
-        <Route path="/usage" element={<UsagePage />} />
-        <Route path="/billing" element={<BillingPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-      </Routes>
+      <AppRoutes />
     </BrowserRouter>
   );
 }

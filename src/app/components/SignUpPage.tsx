@@ -1,20 +1,25 @@
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { motion } from 'motion/react';
 import { Mail, Lock, Building2 } from 'lucide-react';
 import { useState } from 'react';
 import { BackButton } from './shared/BackButton';
+import { useAppData } from '../lib/AppProvider';
 
 export default function SignUpPage() {
+  const navigate = useNavigate();
+  const { signUp } = useAppData();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [organization, setOrganization] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
@@ -35,9 +40,18 @@ export default function SignUpPage() {
     }
 
     setErrors(newErrors);
+    setFormError('');
 
     if (Object.keys(newErrors).length === 0) {
-      console.log('Form submitted:', { email, password, organization });
+      try {
+        setIsSubmitting(true);
+        await signUp(organization, email, password);
+        navigate('/create-organization', { replace: true });
+      } catch (error) {
+        setFormError(error instanceof Error ? error.message : 'Unable to create your account');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -77,6 +91,11 @@ export default function SignUpPage() {
           {/* Form Card */}
           <div className="border border-black/10 bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {formError && (
+                <div className="border-l-2 border-black/20 bg-black/[0.02] p-3 text-xs text-black/70">
+                  {formError}
+                </div>
+              )}
               {/* Organization */}
               <div>
                 <label htmlFor="organization" className="mb-2 block text-sm text-black">
@@ -143,9 +162,10 @@ export default function SignUpPage() {
               {/* Submit Button */}
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="w-full border border-black bg-black py-3 text-sm text-white transition-all hover:bg-black/90"
               >
-                Create account
+                {isSubmitting ? 'Creating account…' : 'Create account'}
               </button>
 
               {/* Divider */}
@@ -190,7 +210,7 @@ export default function SignUpPage() {
             {/* Privacy Notice */}
             <div className="mt-6 border-t border-black/5 pt-6">
               <p className="text-xs leading-relaxed text-black/50">
-                By creating an account, you confirm that your data is private to your organization and will not be used to train shared public models.
+                By creating an account, you can set up a private workspace and control who gets access. Storage and model-handling details depend on the deployment configuration.
               </p>
             </div>
           </div>

@@ -1,19 +1,25 @@
-import { Link } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { motion } from 'motion/react';
 import { Mail, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { BackButton } from './shared/BackButton';
+import { useAppData } from '../lib/AppProvider';
 
 export default function LogInPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { logIn } = useAppData();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
@@ -28,9 +34,19 @@ export default function LogInPage() {
     }
 
     setErrors(newErrors);
+    setFormError('');
 
     if (Object.keys(newErrors).length === 0) {
-      console.log('Form submitted:', { email, password });
+      try {
+        setIsSubmitting(true);
+        await logIn(email, password);
+        const from = (location.state as { from?: string } | null)?.from;
+        navigate(from || '/dashboard', { replace: true });
+      } catch (error) {
+        setFormError(error instanceof Error ? error.message : 'Unable to log in');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -68,8 +84,13 @@ export default function LogInPage() {
           </div>
 
           {/* Form Card */}
-          <div className="border border-black/10 bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+            <div className="border border-black/10 bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {formError && (
+                <div className="border-l-2 border-black/20 bg-black/[0.02] p-3 text-xs text-black/70">
+                  {formError}
+                </div>
+              )}
               {/* Email */}
               <div>
                 <label htmlFor="email" className="mb-2 block text-sm text-black">
@@ -123,9 +144,10 @@ export default function LogInPage() {
               {/* Submit Button */}
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="w-full border border-black bg-black py-3 text-sm text-white transition-all hover:bg-black/90"
               >
-                Log in
+                {isSubmitting ? 'Logging in…' : 'Log in'}
               </button>
 
               {/* Divider */}
@@ -179,7 +201,7 @@ export default function LogInPage() {
           {/* Invite Notice */}
           <div className="mt-8 border border-black/5 bg-black/[0.01] p-4 text-center">
             <p className="text-xs leading-relaxed text-black/60">
-              If you've been invited to join an organization, check your email for the invitation link.
+              Demo owner login: `sarah@northstar-advisory.com` / `ChangeMe123!`
             </p>
           </div>
         </motion.div>

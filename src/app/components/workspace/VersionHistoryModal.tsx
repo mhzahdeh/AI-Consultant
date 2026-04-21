@@ -1,70 +1,37 @@
-import { X, RotateCcw, Copy } from 'lucide-react';
+import { X, RotateCcw, Copy, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useState } from 'react';
+import type { Engagement } from '../../lib/types';
 
 interface VersionHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
+  engagement: Engagement | null;
+  onRestore: (versionId: string) => Promise<void>;
 }
 
-export function VersionHistoryModal({ isOpen, onClose }: VersionHistoryModalProps) {
-  const versions = [
-    {
-      id: 'v7',
-      number: 7,
-      timestamp: '2 hours ago',
-      source: 'Manual edit',
-      description: 'Updated timeline phase 2 duration',
-      isCurrent: true,
-    },
-    {
-      id: 'v6',
-      number: 6,
-      timestamp: '3 hours ago',
-      source: 'Section regeneration',
-      description: 'Regenerated "Proposed Workstreams" section',
-      isCurrent: false,
-    },
-    {
-      id: 'v5',
-      number: 5,
-      timestamp: '5 hours ago',
-      source: 'Manual edit',
-      description: 'Added key questions section',
-      isCurrent: false,
-    },
-    {
-      id: 'v4',
-      number: 4,
-      timestamp: '1 day ago',
-      source: 'Section regeneration',
-      description: 'Regenerated "Problem Statement" with targeted instructions',
-      isCurrent: false,
-    },
-    {
-      id: 'v3',
-      number: 3,
-      timestamp: '1 day ago',
-      source: 'Manual edit',
-      description: 'Updated assumptions and risks',
-      isCurrent: false,
-    },
-    {
-      id: 'v2',
-      number: 2,
-      timestamp: '2 days ago',
-      source: 'Full regeneration',
-      description: 'Regenerated entire document after brief update',
-      isCurrent: false,
-    },
-    {
-      id: 'v1',
-      number: 1,
-      timestamp: '2 days ago',
-      source: 'Initial generation',
-      description: 'Generated from matched cases',
-      isCurrent: false,
-    },
-  ];
+export function VersionHistoryModal({ isOpen, onClose, engagement, onRestore }: VersionHistoryModalProps) {
+  const [compareVersionId, setCompareVersionId] = useState<string | null>(null);
+  const [restoringVersionId, setRestoringVersionId] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  const versions =
+    engagement?.workspace.versions.map((version) => ({
+      ...version,
+      isCurrent: version.id === engagement.workspace.currentVersionId,
+    })) || [];
+
+  const currentVersion = versions.find((version) => version.isCurrent) || null;
+  const compareVersion = versions.find((version) => version.id === compareVersionId) || null;
+
+  const handleRestore = async (versionId: string) => {
+    setRestoringVersionId(versionId);
+    await onRestore(versionId);
+    setRestoringVersionId(null);
+    setCompareVersionId(null);
+    setStatusMessage('Version restored successfully');
+    window.setTimeout(() => setStatusMessage(null), 2000);
+  };
 
   return (
     <AnimatePresence>
@@ -109,6 +76,31 @@ export function VersionHistoryModal({ isOpen, onClose }: VersionHistoryModalProp
 
             {/* Version List */}
             <div className="p-8">
+              {statusMessage && (
+                <div className="mb-4 flex items-center gap-2 border border-black/10 bg-black/[0.02] px-4 py-3 text-sm text-black">
+                  <CheckCircle2 className="h-4 w-4" />
+                  {statusMessage}
+                </div>
+              )}
+              {compareVersion && currentVersion && (
+                <div className="mb-6 border border-black/10 bg-black/[0.02] p-4">
+                  <div className="mb-3 text-sm text-black" style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>
+                    Comparing Version {compareVersion.number} to current Version {currentVersion.number}
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="border border-black/10 bg-white p-4">
+                      <div className="mb-1 text-xs uppercase tracking-wider text-black/40">Selected version</div>
+                      <div className="text-sm text-black">{compareVersion.description}</div>
+                      <div className="mt-2 text-xs text-black/50">{compareVersion.source} • {compareVersion.timestamp}</div>
+                    </div>
+                    <div className="border border-black/10 bg-white p-4">
+                      <div className="mb-1 text-xs uppercase tracking-wider text-black/40">Current version</div>
+                      <div className="text-sm text-black">{currentVersion.description}</div>
+                      <div className="mt-2 text-xs text-black/50">{currentVersion.source} • {currentVersion.timestamp}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="space-y-4">
                 {versions.map((version) => (
                   <div
@@ -155,13 +147,26 @@ export function VersionHistoryModal({ isOpen, onClose }: VersionHistoryModalProp
 
                     {!version.isCurrent && (
                       <div className="flex items-center gap-2">
-                        <button className="inline-flex items-center gap-2 border border-black/10 bg-white px-3 py-1.5 text-xs text-black transition-all hover:border-black/20">
+                        <button
+                          type="button"
+                          onClick={() => void handleRestore(version.id)}
+                          disabled={restoringVersionId === version.id}
+                          className="inline-flex items-center gap-2 border border-black/10 bg-white px-3 py-1.5 text-xs text-black transition-all hover:border-black/20 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
                           <RotateCcw className="h-3 w-3" />
-                          Restore Version
+                          {restoringVersionId === version.id ? 'Restoring…' : 'Restore Version'}
                         </button>
-                        <button className="inline-flex items-center gap-2 border border-black/10 bg-white px-3 py-1.5 text-xs text-black transition-all hover:border-black/20">
+                        <button
+                          type="button"
+                          onClick={() => setCompareVersionId(compareVersionId === version.id ? null : version.id)}
+                          className={`inline-flex items-center gap-2 border px-3 py-1.5 text-xs transition-all ${
+                            compareVersionId === version.id
+                              ? 'border-black bg-black text-white'
+                              : 'border-black/10 bg-white text-black hover:border-black/20'
+                          }`}
+                        >
                           <Copy className="h-3 w-3" />
-                          Compare
+                          {compareVersionId === version.id ? 'Comparing' : 'Compare'}
                         </button>
                       </div>
                     )}

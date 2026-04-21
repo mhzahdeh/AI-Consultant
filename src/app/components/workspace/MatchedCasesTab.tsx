@@ -11,7 +11,7 @@ interface MatchedCasesTabProps {
 
 export function MatchedCasesTab({ engagement, onPreview }: MatchedCasesTabProps) {
   const { toggleMatchedCase } = useAppData();
-  const [matchingStatus, setMatchingStatus] = useState<'loading' | 'completed' | 'empty'>('completed');
+  const [matchingStatus] = useState<'loading' | 'completed' | 'empty'>('completed');
   const [sortBy, setSortBy] = useState('confidence');
   const cases = engagement.matchedCases;
 

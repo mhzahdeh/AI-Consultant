@@ -148,7 +148,7 @@ export function InviteTeammateModal({ isOpen, onClose }: InviteTeammateModalProp
                   <select
                     id="role"
                     value={role}
-                    onChange={(e) => setRole(e.target.value)}
+                    onChange={(e) => setRole(e.target.value as Role)}
                     disabled={status === 'sending'}
                     className="w-full appearance-none border border-black/10 bg-white py-3 px-4 text-sm text-black transition-colors focus:border-black focus:outline-none disabled:cursor-not-allowed disabled:bg-black/[0.02]"
                   >

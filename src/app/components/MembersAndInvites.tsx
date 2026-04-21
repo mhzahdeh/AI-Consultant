@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
-import { UserPlus, MoreVertical, Crown, Mail, CheckCircle2 } from 'lucide-react';
+import { UserPlus, Crown, Mail, CheckCircle2 } from 'lucide-react';
 import { Sidebar } from './shared/Sidebar';
 import { InviteTeammateModal } from './organization/InviteTeammateModal';
 import { ChangeRoleModal } from './organization/ChangeRoleModal';
@@ -15,7 +14,6 @@ export default function MembersAndInvites() {
   const [isChangeRoleModalOpen, setIsChangeRoleModalOpen] = useState(false);
   const [isRemoveMemberModalOpen, setIsRemoveMemberModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
-  const [showRoleHelper, setShowRoleHelper] = useState(false);
   const members = bootstrap?.members || [];
 
   const handleChangeRole = (member: Member) => {
@@ -135,14 +133,24 @@ export default function MembersAndInvites() {
                           </span>
                         </div>
 
-                        <div className="col-span-1 flex items-center justify-end">
+                        <div className="col-span-1 flex items-center justify-end gap-2">
+                          {member.role !== 'owner' && member.status === 'active' && (
+                            <button
+                              type="button"
+                              onClick={() => handleChangeRole(member)}
+                              className="text-xs text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black"
+                            >
+                              Role
+                            </button>
+                          )}
                           {member.role !== 'owner' && (
-                            <div className="relative">
-                              <button className="text-black/40 transition-colors hover:text-black">
-                                <MoreVertical className="h-4 w-4" />
-                              </button>
-                              {/* Dropdown would appear here */}
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMember(member)}
+                              className="text-xs text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black"
+                            >
+                              Remove
+                            </button>
                           )}
                         </div>
                       </div>

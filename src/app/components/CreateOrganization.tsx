@@ -1,14 +1,20 @@
 import { Link } from 'react-router';
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Building2, Users, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Building2, CheckCircle2, ArrowRight } from 'lucide-react';
+import { useAppData } from '../lib/AppProvider';
+import { useNavigate } from 'react-router';
 
 export default function CreateOrganization() {
+  const navigate = useNavigate();
+  const { createOrganization } = useAppData();
   const [orgName, setOrgName] = useState('');
   const [slug, setSlug] = useState('');
   const [useCase, setUseCase] = useState('');
   const [selectedPlan, setSelectedPlan] = useState('team');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const generateSlug = (name: string) => {
     return name
@@ -24,7 +30,7 @@ export default function CreateOrganization() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
@@ -38,9 +44,18 @@ export default function CreateOrganization() {
     }
 
     setErrors(newErrors);
+    setFormError('');
 
     if (Object.keys(newErrors).length === 0) {
-      console.log('Creating organization:', { orgName, slug, useCase, selectedPlan });
+      try {
+        setIsSubmitting(true);
+        await createOrganization({ name: orgName, slug, useCase, plan: selectedPlan === 'starter' ? 'Starter' : selectedPlan === 'solo' ? 'Solo' : 'Team' });
+        navigate('/dashboard', { replace: true });
+      } catch (error) {
+        setFormError(error instanceof Error ? error.message : 'Unable to create organization');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -85,6 +100,11 @@ export default function CreateOrganization() {
               <div className="lg:col-span-2">
                 <div className="border border-black/10 bg-white p-8">
                   <form onSubmit={handleSubmit} className="space-y-6">
+                    {formError && (
+                      <div className="border-l-2 border-black/20 bg-black/[0.02] p-3 text-xs text-black/70">
+                        {formError}
+                      </div>
+                    )}
                     {/* Organization Name */}
                     <div>
                       <label htmlFor="orgName" className="mb-2 block text-sm text-black">
@@ -163,9 +183,10 @@ export default function CreateOrganization() {
                     <div className="flex flex-col gap-4 border-t border-black/5 pt-6">
                       <button
                         type="submit"
+                        disabled={isSubmitting}
                         className="inline-flex items-center justify-center gap-2 border border-black bg-black px-6 py-3 text-sm text-white transition-all hover:bg-black/90"
                       >
-                        Create Organization
+                        {isSubmitting ? 'Creating…' : 'Create Organization'}
                         <ArrowRight className="h-4 w-4" />
                       </button>
                       <Link

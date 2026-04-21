@@ -1,41 +1,15 @@
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { motion } from 'motion/react';
 import { Plus, Users, ArrowRight, Crown } from 'lucide-react';
+import { useAppData } from '../lib/AppProvider';
 
 export default function OrganizationSelection() {
-  const organizations = [
-    {
-      id: '1',
-      name: 'Acme Consulting',
-      slug: 'acme-consulting',
-      role: 'Owner',
-      plan: 'Team',
-      memberCount: 12,
-      isActive: false,
-    },
-    {
-      id: '2',
-      name: 'Northstar Advisory',
-      slug: 'northstar-advisory',
-      role: 'Admin',
-      plan: 'Team',
-      memberCount: 8,
-      isActive: true,
-    },
-    {
-      id: '3',
-      name: 'Personal Workspace',
-      slug: 'sarah-chen',
-      role: 'Owner',
-      plan: 'Solo',
-      memberCount: 1,
-      isActive: false,
-    },
-  ];
+  const navigate = useNavigate();
+  const { session, selectOrganization, logOut } = useAppData();
+  const organizations = session?.organizations || [];
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
       <header className="border-b border-black/5 px-8 py-6">
         <div className="mx-auto max-w-4xl">
           <div className="flex items-center gap-2">
@@ -47,7 +21,6 @@ export default function OrganizationSelection() {
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="px-8 py-16">
         <div className="mx-auto max-w-4xl">
           <motion.div
@@ -55,7 +28,6 @@ export default function OrganizationSelection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           >
-            {/* Title */}
             <div className="mb-12">
               <h1
                 className="mb-3 text-4xl tracking-tight text-black lg:text-5xl"
@@ -68,7 +40,6 @@ export default function OrganizationSelection() {
               </p>
             </div>
 
-            {/* Organization List */}
             <div className="mb-8 space-y-4">
               {organizations.map((org, i) => (
                 <motion.button
@@ -76,6 +47,7 @@ export default function OrganizationSelection() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1, duration: 0.5 }}
+                  onClick={() => void selectOrganization(org.id).then(() => navigate('/dashboard', { replace: true }))}
                   className={`group w-full border p-6 text-left transition-all ${
                     org.isActive
                       ? 'border-black bg-black/[0.02] shadow-[0_2px_12px_rgb(0,0,0,0.04)]'
@@ -96,7 +68,7 @@ export default function OrganizationSelection() {
                             Active
                           </span>
                         )}
-                        {org.role === 'Owner' && (
+                        {org.role === 'owner' && (
                           <Crown className="h-4 w-4 text-black/40" />
                         )}
                       </div>
@@ -104,7 +76,7 @@ export default function OrganizationSelection() {
                       <div className="grid grid-cols-3 gap-4">
                         <div>
                           <div className="mb-1 text-xs text-black/40">Your Role</div>
-                          <div className="text-sm text-black">{org.role}</div>
+                          <div className="text-sm capitalize text-black">{org.role}</div>
                         </div>
                         <div>
                           <div className="mb-1 text-xs text-black/40">Plan</div>
@@ -132,7 +104,6 @@ export default function OrganizationSelection() {
               ))}
             </div>
 
-            {/* Create New Organization */}
             <Link
               to="/create-organization"
               className="group flex w-full items-center justify-between border border-black/10 bg-white p-6 text-left transition-all hover:border-black/20 hover:shadow-[0_4px_20px_rgb(0,0,0,0.04)]"
@@ -156,9 +127,12 @@ export default function OrganizationSelection() {
               <ArrowRight className="h-5 w-5 text-black/40 transition-transform group-hover:translate-x-1" />
             </Link>
 
-            {/* Sign Out */}
             <div className="mt-8 text-center">
-              <button className="text-sm text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black">
+              <button
+                type="button"
+                onClick={() => void logOut().then(() => navigate('/login', { replace: true }))}
+                className="text-sm text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black"
+              >
                 Sign out
               </button>
             </div>

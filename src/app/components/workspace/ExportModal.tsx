@@ -2,6 +2,7 @@ import { X, FileDown, CheckCircle2, Loader2, AlertCircle, Copy } from 'lucide-re
 import { motion, AnimatePresence } from 'motion/react';
 import { useState } from 'react';
 import type { Engagement } from '../../lib/types';
+import { useAppData } from '../../lib/AppProvider';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface ExportModalProps {
 type ExportStatus = 'idle' | 'exporting' | 'success' | 'error';
 
 export function ExportModal({ isOpen, onClose, engagement }: ExportModalProps) {
+  const { markExport } = useAppData();
   const [exportStatus, setExportStatus] = useState<ExportStatus>('idle');
   const [exportFormat, setExportFormat] = useState<'docx' | 'pdf' | null>(null);
 
@@ -24,8 +26,14 @@ export function ExportModal({ isOpen, onClose, engagement }: ExportModalProps) {
         'Brief',
         engagement.brief,
         '',
-        'Objective',
-        engagement.objective,
+        'Proposal Starter',
+        ...engagement.workspace.proposalStarter.content.sections.flatMap((section) => [section.label, section.body, '']),
+        'Issue Tree',
+        engagement.workspace.issueTree.content.rootQuestion,
+        '',
+        ...engagement.workspace.issueTree.content.branches.flatMap((branch) => [branch.title, `Hypotheses: ${branch.hypotheses.join('; ')}`, `Required Data: ${branch.requiredData.join('; ')}`, '']),
+        'Workplan',
+        ...engagement.workspace.workplan.content.phases.flatMap((phase) => [phase.name, phase.weeks, ...phase.deliverables, '']),
         '',
         `Last saved: ${engagement.workspace.lastSaved}`,
       ].join('\n')
@@ -35,22 +43,30 @@ export function ExportModal({ isOpen, onClose, engagement }: ExportModalProps) {
     setExportFormat(format);
     setExportStatus('exporting');
 
-    setTimeout(() => {
-      if (engagement) {
-        const blob = new Blob([exportBody], { type: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = `${engagement.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.${format}`;
-        anchor.click();
-        URL.revokeObjectURL(url);
+    void (async () => {
+      try {
+        if (engagement) {
+          await markExport(engagement.id);
+          const blob = new Blob([exportBody], { type: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement('a');
+          anchor.href = url;
+          anchor.download = `${engagement.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.${format}`;
+          anchor.click();
+          URL.revokeObjectURL(url);
+        }
+        setExportStatus('success');
+      } catch {
+        setExportStatus('error');
       }
-      setExportStatus('success');
-    }, 400);
+    })();
   };
 
   const handleCopyToClipboard = async () => {
     if (!exportBody) return;
+    if (engagement) {
+      await markExport(engagement.id);
+    }
     await navigator.clipboard.writeText(exportBody);
     setExportFormat(null);
     setExportStatus('success');

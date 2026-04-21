@@ -1,11 +1,36 @@
 export type Role = "owner" | "admin" | "editor" | "viewer" | "billing";
 export type MemberStatus = "active" | "invited" | "pending";
+export type UploadStatus = "processing" | "parsed" | "failed";
 
 export interface User {
   id: string;
   fullName: string;
   email: string;
   role: Role;
+}
+
+export interface SessionOrganization {
+  id: string;
+  name: string;
+  slug: string;
+  plan: string;
+  role: Role;
+  status: MemberStatus;
+  memberCount: number;
+  isActive: boolean;
+}
+
+export interface SessionState {
+  authenticated: boolean;
+  user: Pick<User, "id" | "fullName" | "email"> | null;
+  organizations: SessionOrganization[];
+  activeOrganizationId: string | null;
+  activeRole: Role | null;
+  bootstrapReady: boolean;
+  onboarding?: {
+    seededOwnerEmail: string;
+    seededOwnerPassword: string;
+  };
 }
 
 export interface Organization {
@@ -40,9 +65,13 @@ export interface UploadItem {
   name: string;
   size: string;
   type: string;
-  status: string;
+  mimeType: string;
+  status: UploadStatus;
   uploadedAt: string;
+  uploadedAtIso: string;
   pages?: number;
+  extractedText?: string;
+  error?: string | null;
 }
 
 export interface MatchedCase {
@@ -56,19 +85,67 @@ export interface MatchedCase {
   included: boolean;
 }
 
+export interface VersionEntry {
+  id: string;
+  number: number;
+  timestamp: string;
+  createdAt: string;
+  source: string;
+  description: string;
+}
+
+export interface ProposalSection {
+  key: string;
+  label: string;
+  body: string;
+}
+
+export interface ProposalArtifactContent {
+  sections: ProposalSection[];
+}
+
+export interface IssueTreeBranch {
+  title: string;
+  hypotheses: string[];
+  requiredData: string[];
+}
+
+export interface IssueTreeArtifactContent {
+  rootQuestion: string;
+  branches: IssueTreeBranch[];
+}
+
+export interface WorkplanPhase {
+  name: string;
+  weeks: string;
+  deliverables: string[];
+}
+
+export interface WorkplanArtifactContent {
+  phases: WorkplanPhase[];
+}
+
+export interface BriefArtifactContent {
+  text: string;
+  notes: string;
+}
+
+export interface ArtifactRecord<TContent> {
+  id: string;
+  title: string;
+  generatedFrom: number;
+  content: TContent;
+  updatedAt: string;
+}
+
 export interface WorkspaceData {
   lastSaved: string;
+  currentVersionId: string | null;
+  versions: VersionEntry[];
   sourceText: Array<{ id: string; source: string; content: string }>;
-  proposalStarter: {
-    title: string;
-    generatedFrom: number;
-  };
-  issueTree: {
-    title: string;
-  };
-  workplan: {
-    title: string;
-  };
+  proposalStarter: ArtifactRecord<ProposalArtifactContent>;
+  issueTree: ArtifactRecord<IssueTreeArtifactContent>;
+  workplan: ArtifactRecord<WorkplanArtifactContent>;
   regenerationLog: Array<{ id: string; section: string; instructions: string; timestamp: string }>;
 }
 
@@ -95,7 +172,7 @@ export interface UsageSummaryItem {
   used: number;
   limit: number | string;
   unit?: string;
-  icon: string;
+  icon?: string;
 }
 
 export interface UsageMetric {
@@ -107,6 +184,7 @@ export interface UsageMetric {
   resetDate: string | null;
   isNearLimit: boolean;
   isAtLimit: boolean;
+  icon?: string;
 }
 
 export interface UsageActivity {
@@ -167,4 +245,26 @@ export interface Bootstrap {
   billing: BillingData;
   members: Member[];
   settings: SettingsData;
+}
+
+export interface InviteDetail {
+  token: string;
+  organizationName: string;
+  invitedBy: string;
+  invitedByEmail: string;
+  role: Role;
+  expiresIn: string;
+  organizationPlan: string;
+  status: string;
+  email: string;
+}
+
+export interface UploadDraft {
+  id: string;
+  name: string;
+  size: string;
+  type: string;
+  mimeType: string;
+  uploadedAt: string;
+  contentBase64: string;
 }

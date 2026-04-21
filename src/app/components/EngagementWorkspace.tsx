@@ -14,13 +14,13 @@ import { ExportModal } from './workspace/ExportModal';
 import { RegenerateSectionModal } from './workspace/RegenerateSectionModal';
 import { useAppData } from '../lib/AppProvider';
 import { BackButton } from './shared/BackButton';
+import type { UploadDraft } from '../lib/types';
 
 export default function EngagementWorkspace() {
-  const { engagements, currentEngagement, selectEngagement, regenerateSection, saveWorkspace } = useAppData();
+  const { engagements, currentEngagement, selectEngagement, regenerateSection, saveWorkspace, restoreVersion, saveArtifact, uploadFiles } = useAppData();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('proposal');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isRegenerateOpen, setIsRegenerateOpen] = useState(false);
@@ -35,8 +35,7 @@ export default function EngagementWorkspace() {
     }
   }, [engagements, searchParams, selectEngagement]);
 
-  const handlePreview = (caseId: string) => {
-    setSelectedCaseId(caseId);
+  const handlePreview = () => {
     setIsPreviewOpen(true);
   };
 
@@ -93,13 +92,23 @@ export default function EngagementWorkspace() {
 
         {/* Tab Content */}
         <div className="bg-white">
-          {activeTab === 'brief' && <BriefTab engagement={currentEngagement} />}
-          {activeTab === 'matched-cases' && <MatchedCasesTab engagement={currentEngagement} onPreview={handlePreview} />}
+          {activeTab === 'brief' && (
+            <BriefTab
+              engagement={currentEngagement}
+              onUploadFiles={async (uploads: UploadDraft[]) => {
+                await uploadFiles(currentEngagement.id, uploads);
+              }}
+            />
+          )}
+          {activeTab === 'matched-cases' && <MatchedCasesTab engagement={currentEngagement} onPreview={() => handlePreview()} />}
           {activeTab === 'proposal' && (
             <ProposalStarterTab
               onExport={() => setIsExportOpen(true)}
               onVersionHistory={() => setIsVersionHistoryOpen(true)}
               onRegenerateSection={handleRegenerateSection}
+              onSaveArtifact={async (payload) => {
+                await saveArtifact(currentEngagement.id, 'proposal', payload);
+              }}
               engagement={currentEngagement}
             />
           )}
@@ -107,12 +116,20 @@ export default function EngagementWorkspace() {
             <IssueTreeTab
               onExport={() => setIsExportOpen(true)}
               onVersionHistory={() => setIsVersionHistoryOpen(true)}
+              onSaveArtifact={async (payload) => {
+                await saveArtifact(currentEngagement.id, 'issue-tree', payload);
+              }}
+              engagement={currentEngagement}
             />
           )}
           {activeTab === 'workplan' && (
             <WorkplanTab
               onExport={() => setIsExportOpen(true)}
               onVersionHistory={() => setIsVersionHistoryOpen(true)}
+              onSaveArtifact={async (payload) => {
+                await saveArtifact(currentEngagement.id, 'workplan', payload);
+              }}
+              engagement={currentEngagement}
             />
           )}
         </div>
@@ -127,6 +144,11 @@ export default function EngagementWorkspace() {
       <VersionHistoryModal
         isOpen={isVersionHistoryOpen}
         onClose={() => setIsVersionHistoryOpen(false)}
+        engagement={currentEngagement}
+        onRestore={async (versionId) => {
+          if (!currentEngagement) return;
+          await restoreVersion(currentEngagement.id, versionId);
+        }}
       />
       <ExportModal
         isOpen={isExportOpen}

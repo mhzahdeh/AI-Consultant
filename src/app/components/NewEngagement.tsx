@@ -5,16 +5,22 @@ import { Link, useNavigate } from 'react-router';
 import { Sidebar } from './shared/Sidebar';
 import { useAppData } from '../lib/AppProvider';
 import { BackButton } from './shared/BackButton';
+import type { UploadDraft } from '../lib/types';
 
 type UploadStatus = 'idle' | 'uploading' | 'completed' | 'parsing' | 'parsed' | 'failed';
 
-interface UploadedFile {
-  id: string;
-  name: string;
-  size: string;
-  type: string;
-  status: UploadStatus;
-  uploadedAt: string;
+type UploadedFile = UploadDraft & { status: UploadStatus };
+
+function fileToBase64(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      resolve(result.split(',')[1] || '');
+    };
+    reader.onerror = () => reject(reader.error || new Error('Unable to read file'));
+    reader.readAsDataURL(file);
+  });
 }
 
 export default function NewEngagement() {
@@ -29,6 +35,7 @@ export default function NewEngagement() {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -61,17 +68,23 @@ export default function NewEngagement() {
     }, 2000);
   };
 
-  const processFiles = (files: File[]) => {
-    files.forEach((file) => {
+  const processFiles = async (files: File[]) => {
+    const nextFiles = await Promise.all(files.map(async (file) => {
+      const contentBase64 = await fileToBase64(file);
       const newFile: UploadedFile = {
-        id: Math.random().toString(36).slice(2, 11),
+        id: crypto.randomUUID(),
         name: file.name,
         size: file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${(file.size / 1024).toFixed(1)} KB`,
         type: file.name.split('.').pop()?.toUpperCase() || file.type.split('/')[1]?.toUpperCase() || 'FILE',
+        mimeType: file.type || 'application/octet-stream',
+        contentBase64,
         status: 'uploading',
         uploadedAt: new Date().toISOString(),
       };
+      return newFile;
+    }));
 
+    nextFiles.forEach((newFile) => {
       setUploadedFiles((prev) => [...prev, newFile]);
 
       window.setTimeout(() => {
@@ -101,7 +114,7 @@ export default function NewEngagement() {
   const handleFileSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    processFiles(files);
+    void processFiles(files);
     e.target.value = '';
   };
 
@@ -109,16 +122,27 @@ export default function NewEngagement() {
 
   const handleCreate = async () => {
     if (!isFormValid || isSubmitting) return;
-    setIsSubmitting(true);
-    const engagement = await createEngagement({
-      title: engagementTitle,
-      client: clientAlias,
-      problemType,
-      brief,
-      notes,
-      uploads: uploadedFiles,
-    });
-    navigate(`/workspace?id=${engagement.id}`);
+    setFormError('');
+    try {
+      setIsSubmitting(true);
+      const engagement = await createEngagement({
+        title: engagementTitle,
+        client: clientAlias,
+        problemType,
+        brief,
+        notes,
+        uploads: uploadedFiles.map((file) => {
+          const { status, ...upload } = file;
+          void status;
+          return upload;
+        }),
+      });
+      navigate(`/workspace?id=${engagement.id}`);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Unable to create engagement');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -151,6 +175,11 @@ export default function NewEngagement() {
               transition={{ duration: 0.5 }}
               className="space-y-8"
             >
+              {formError && (
+                <div className="border-l-2 border-black/20 bg-black/[0.02] p-4 text-sm text-black/70">
+                  {formError}
+                </div>
+              )}
               {/* Basic Information */}
               <section className="border border-black/10 bg-white p-8">
                 <h2
