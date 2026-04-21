@@ -1,4 +1,5 @@
-import { Clock, Lock, Save, FileDown, MoreVertical } from 'lucide-react';
+import { Clock, Lock, Save, FileDown, MoreVertical, History, PanelsTopLeft } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Badge } from '../design-system/Badge';
 
 interface WorkspaceTopBarProps {
@@ -8,10 +9,41 @@ interface WorkspaceTopBarProps {
     problemType: string;
     status: string;
     lastUpdated: string;
+    workspace?: {
+      lastSaved?: string;
+    };
   };
+  onSave: () => void;
+  onExport: () => void;
+  onVersionHistory: () => void;
+  isSaving?: boolean;
+  saveNotice?: string | null;
 }
 
-export function WorkspaceTopBar({ engagement }: WorkspaceTopBarProps) {
+export function WorkspaceTopBar({
+  engagement,
+  onSave,
+  onExport,
+  onVersionHistory,
+  isSaving = false,
+  saveNotice,
+}: WorkspaceTopBarProps) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [isMenuOpen]);
+
   return (
     <div className="border-b border-black/5 bg-white px-8 py-4">
       <div className="flex items-start justify-between">
@@ -39,26 +71,67 @@ export function WorkspaceTopBar({ engagement }: WorkspaceTopBarProps) {
               <Clock className="h-4 w-4 text-black/40" />
               {engagement.lastUpdated}
             </div>
+            {saveNotice && <div className="text-black">{saveNotice}</div>}
           </div>
 
           <div className="mt-3 flex items-center gap-2 text-xs text-black/40">
             <Lock className="h-3 w-3" />
             Private to your organization
+            {engagement.workspace?.lastSaved ? <span>• Last saved {engagement.workspace.lastSaved}</span> : null}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button className="inline-flex items-center gap-2 border border-black/10 bg-white px-4 py-2 text-sm text-black transition-all hover:border-black/20">
+        <div className="relative flex items-center gap-3" ref={menuRef}>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={isSaving}
+            className="inline-flex items-center gap-2 border border-black/10 bg-white px-4 py-2 text-sm text-black transition-all hover:border-black/20 disabled:cursor-not-allowed disabled:opacity-60"
+          >
             <Save className="h-4 w-4" />
-            Save
+            {isSaving ? 'Saving…' : 'Save'}
           </button>
-          <button className="inline-flex items-center gap-2 border border-black bg-black px-4 py-2 text-sm text-white transition-all hover:bg-black/90">
+          <button
+            type="button"
+            onClick={onExport}
+            className="inline-flex items-center gap-2 border border-black bg-black px-4 py-2 text-sm text-white transition-all hover:bg-black/90"
+          >
             <FileDown className="h-4 w-4" />
             Export
           </button>
-          <button className="border border-black/10 bg-white px-3 py-2 text-black transition-all hover:border-black/20">
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((open) => !open)}
+            className="border border-black/10 bg-white px-3 py-2 text-black transition-all hover:border-black/20"
+          >
             <MoreVertical className="h-4 w-4" />
           </button>
+          {isMenuOpen && (
+            <div className="absolute right-0 top-14 z-20 min-w-52 border border-black/10 bg-white p-2 shadow-[0_12px_30px_rgb(0,0,0,0.08)]">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onVersionHistory();
+                }}
+                className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-black transition-colors hover:bg-black/[0.03]"
+              >
+                <History className="h-4 w-4" />
+                Version history
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onExport();
+                }}
+                className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-black transition-colors hover:bg-black/[0.03]"
+              >
+                <PanelsTopLeft className="h-4 w-4" />
+                Export draft
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

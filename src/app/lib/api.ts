@@ -41,6 +41,11 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ brief }),
     }),
+  saveWorkspace: (engagementId: string) =>
+    request<Engagement>(`/api/engagements/${engagementId}/save`, {
+      method: "PATCH",
+      body: JSON.stringify({}),
+    }),
   toggleMatchedCase: (engagementId: string, caseId: string, included: boolean) =>
     request(`/api/engagements/${engagementId}/matches/${caseId}`, {
       method: "PATCH",

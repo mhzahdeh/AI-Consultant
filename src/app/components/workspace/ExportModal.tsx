@@ -1,31 +1,59 @@
 import { X, FileDown, CheckCircle2, Loader2, AlertCircle, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState } from 'react';
+import type { Engagement } from '../../lib/types';
 
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  engagement: Engagement | null;
 }
 
 type ExportStatus = 'idle' | 'exporting' | 'success' | 'error';
 
-export function ExportModal({ isOpen, onClose }: ExportModalProps) {
+export function ExportModal({ isOpen, onClose, engagement }: ExportModalProps) {
   const [exportStatus, setExportStatus] = useState<ExportStatus>('idle');
   const [exportFormat, setExportFormat] = useState<'docx' | 'pdf' | null>(null);
+
+  const exportBody = engagement
+    ? [
+        engagement.title,
+        `Client: ${engagement.client}`,
+        `Problem Type: ${engagement.problemType}`,
+        '',
+        'Brief',
+        engagement.brief,
+        '',
+        'Objective',
+        engagement.objective,
+        '',
+        `Last saved: ${engagement.workspace.lastSaved}`,
+      ].join('\n')
+    : '';
 
   const handleExport = (format: 'docx' | 'pdf') => {
     setExportFormat(format);
     setExportStatus('exporting');
 
-    // Simulate export
     setTimeout(() => {
+      if (engagement) {
+        const blob = new Blob([exportBody], { type: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `${engagement.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.${format}`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+      }
       setExportStatus('success');
-    }, 2000);
+    }, 400);
   };
 
-  const handleCopyToClipboard = () => {
-    // Simulate copy
-    console.log('Copied to clipboard');
+  const handleCopyToClipboard = async () => {
+    if (!exportBody) return;
+    await navigator.clipboard.writeText(exportBody);
+    setExportFormat(null);
+    setExportStatus('success');
   };
 
   const handleRetry = () => {
@@ -77,7 +105,7 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                 Export Version
               </div>
               <div className="text-sm text-black">
-                Latest saved version (v7) • Saved 5 minutes ago
+                Latest saved version • Saved {engagement?.workspace.lastSaved || 'recently'}
               </div>
             </div>
 

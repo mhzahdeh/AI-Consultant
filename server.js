@@ -193,6 +193,28 @@ const requestHandler = async (req, res) => {
       return;
     }
 
+    if (url.pathname.match(/^\/api\/engagements\/[^/]+\/save$/) && req.method === "PATCH") {
+      const db = await loadDb();
+      const engagementId = url.pathname.split("/")[3];
+      const engagement = getEngagement(db, engagementId);
+      if (!engagement) {
+        json(res, 404, { error: "Engagement not found" });
+        return;
+      }
+      engagement.lastUpdated = nowRelative();
+      engagement.workspace.lastSaved = nowRelative();
+      db.usage.recentActivity.unshift({
+        id: id("act"),
+        action: "Workspace saved",
+        engagement: engagement.title,
+        user: db.user.fullName,
+        timestamp: nowRelative(),
+      });
+      await saveDb(db);
+      json(res, 200, engagement);
+      return;
+    }
+
     if (url.pathname.match(/^\/api\/engagements\/[^/]+\/matches\/[^/]+$/) && req.method === "PATCH") {
       const db = await loadDb();
       const [, , , engagementId, , caseId] = url.pathname.split("/");

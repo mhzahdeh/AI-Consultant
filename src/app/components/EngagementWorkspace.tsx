@@ -16,7 +16,7 @@ import { useAppData } from '../lib/AppProvider';
 import { BackButton } from './shared/BackButton';
 
 export default function EngagementWorkspace() {
-  const { engagements, currentEngagement, selectEngagement, regenerateSection } = useAppData();
+  const { engagements, currentEngagement, selectEngagement, regenerateSection, saveWorkspace } = useAppData();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('proposal');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -25,6 +25,8 @@ export default function EngagementWorkspace() {
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isRegenerateOpen, setIsRegenerateOpen] = useState(false);
   const [sectionToRegenerate, setSectionToRegenerate] = useState('');
+  const [isSavingWorkspace, setIsSavingWorkspace] = useState(false);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const selectedId = searchParams.get('id') || engagements[0]?.id || null;
@@ -53,6 +55,15 @@ export default function EngagementWorkspace() {
     setIsRegenerateOpen(false);
   };
 
+  const handleSaveWorkspace = async () => {
+    if (!currentEngagement || isSavingWorkspace) return;
+    setIsSavingWorkspace(true);
+    await saveWorkspace(currentEngagement.id);
+    setIsSavingWorkspace(false);
+    setSaveNotice('Saved successfully');
+    window.setTimeout(() => setSaveNotice(null), 2000);
+  };
+
   if (!currentEngagement) {
     return <div className="flex min-h-screen items-center justify-center bg-white text-sm text-black/60">Loading workspace…</div>;
   }
@@ -68,7 +79,14 @@ export default function EngagementWorkspace() {
         </div>
 
         {/* Workspace Top Bar */}
-        <WorkspaceTopBar engagement={currentEngagement} />
+        <WorkspaceTopBar
+          engagement={currentEngagement}
+          onSave={handleSaveWorkspace}
+          onExport={() => setIsExportOpen(true)}
+          onVersionHistory={() => setIsVersionHistoryOpen(true)}
+          isSaving={isSavingWorkspace}
+          saveNotice={saveNotice}
+        />
 
         {/* Tab Navigation */}
         <WorkspaceTabs activeTab={activeTab} onTabChange={setActiveTab} />
@@ -113,6 +131,7 @@ export default function EngagementWorkspace() {
       <ExportModal
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
+        engagement={currentEngagement}
       />
       <RegenerateSectionModal
         isOpen={isRegenerateOpen}

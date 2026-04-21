@@ -20,6 +20,7 @@ interface AppContextValue {
   selectEngagement: (engagementId: string | null) => Promise<void>;
   createEngagement: (input: CreateEngagementInput) => Promise<Engagement>;
   saveBrief: (engagementId: string, brief: string) => Promise<void>;
+  saveWorkspace: (engagementId: string) => Promise<void>;
   toggleMatchedCase: (engagementId: string, caseId: string, included: boolean) => Promise<void>;
   regenerateSection: (engagementId: string, section: string, instructions: string) => Promise<void>;
   inviteMember: (email: string, role: Role) => Promise<Member>;
@@ -105,6 +106,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     syncEngagement(engagement);
   }, [syncEngagement]);
 
+  const saveWorkspace = useCallback(async (engagementId: string) => {
+    const engagement = await api.saveWorkspace(engagementId);
+    syncEngagement(engagement);
+    await refreshBootstrap();
+  }, [refreshBootstrap, syncEngagement]);
+
   const toggleMatchedCase = useCallback(async (engagementId: string, caseId: string, included: boolean) => {
     await api.toggleMatchedCase(engagementId, caseId, included);
     const engagement = await api.getEngagement(engagementId);
@@ -154,6 +161,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       selectEngagement,
       createEngagement,
       saveBrief,
+      saveWorkspace,
       toggleMatchedCase,
       regenerateSection,
       inviteMember,
@@ -171,6 +179,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       selectEngagement,
       createEngagement,
       saveBrief,
+      saveWorkspace,
       toggleMatchedCase,
       regenerateSection,
       inviteMember,
