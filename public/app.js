@@ -46,7 +46,25 @@ function getEngagements() {
 }
 
 function getVault() {
-  return state.bootstrap?.vault || { cases: [], recentCases: [], sources: [] };
+  return state.bootstrap?.vault || {
+    cases: [],
+    recentCases: [],
+    sources: [],
+    internalAssets: [],
+    derivedPatterns: [],
+    projectArtifacts: [],
+    totals: {
+      internalAssetCount: 0,
+      publicCaseCount: 0,
+      projectArtifactCount: 0,
+      derivedPatternCount: 0,
+      knowledgeObjectCount: 0,
+    },
+    positioning: {
+      title: "",
+      summary: "",
+    },
+  };
 }
 
 function getVaultCases() {
@@ -55,6 +73,10 @@ function getVaultCases() {
 
 function getVaultSources() {
   return getVault().sources || [];
+}
+
+function getVaultTotals() {
+  return getVault().totals || {};
 }
 
 function getSelectedEngagement() {
@@ -300,6 +322,7 @@ function renderSidebar() {
 function renderDashboard() {
   const { dashboard } = state.bootstrap;
   const vault = getVault();
+  const totals = getVaultTotals();
   const workflows = [
     ["↗", "Go-to-Market Strategy", "Product launch planning, channel strategy, positioning"],
     ["$", "Pricing Strategy", "Price optimization, packaging, competitive analysis"],
@@ -335,7 +358,7 @@ function renderDashboard() {
     : ["No imported cases yet"];
   const usageCards = [
     ["Active Projects", String(getEngagements().length), "of Unlimited"],
-    ["Reference Docs", String(vault.caseCount || 0), "trusted case studies"],
+    ["Knowledge Objects", String(totals.knowledgeObjectCount || 0), "internal assets, analogs, artifacts"],
     ["Generations", String(state.bootstrap.organization.monthlyRuns), "of 5,000"],
   ];
 
@@ -405,8 +428,8 @@ function renderDashboard() {
           <div class="reference-summary">
             <div class="reference-icon">◫</div>
             <div>
-              <strong>${vault.caseCount || 0} trusted cases in vault</strong>
-              <p>${vault.sourceCount || 0} approved consulting firm sources connected</p>
+              <strong>${vault.positioning.title}</strong>
+              <p>${vault.positioning.summary}</p>
             </div>
           </div>
           <button class="reference-action" data-action="navigate" data-view="vault">Manage Vault</button>
@@ -789,29 +812,111 @@ function renderProjects() {
 
 function renderVault() {
   const vault = getVault();
+  const totals = getVaultTotals();
   const sources = getVaultSources();
   const cases = getVaultCases();
+  const internalAssets = vault.internalAssets || [];
+  const derivedPatterns = vault.derivedPatterns || [];
+  const projectArtifacts = vault.projectArtifacts || [];
   return `
     <section class="strategy-dashboard">
       <div class="strategy-heading">
         <h2>Reference Knowledge</h2>
-        <p>Import public case studies from an approved source list and use them as trusted vault references.</p>
+        <p>${vault.positioning.summary}</p>
       </div>
       <div class="vault-summary-grid">
         <article class="vault-stat-card">
-          <div class="project-label">Cases in vault</div>
-          <strong>${vault.caseCount || 0}</strong>
+          <div class="project-label">Internal foundation</div>
+          <strong>${totals.internalAssetCount || 0}</strong>
         </article>
         <article class="vault-stat-card">
-          <div class="project-label">Trusted sources</div>
-          <strong>${vault.sourceCount || 0}</strong>
+          <div class="project-label">Public analog cases</div>
+          <strong>${totals.publicCaseCount || 0}</strong>
+        </article>
+        <article class="vault-stat-card">
+          <div class="project-label">Project artifacts</div>
+          <strong>${totals.projectArtifactCount || 0}</strong>
+        </article>
+        <article class="vault-stat-card">
+          <div class="project-label">Derived patterns</div>
+          <strong>${totals.derivedPatternCount || 0}</strong>
+        </article>
+      </div>
+      <article class="project-card vault-foundation-card">
+        <div class="strategy-section-head" style="margin-bottom:12px;">
+          <h3>How the vault is positioned</h3>
+        </div>
+        <div class="vault-positioning-copy">
+          <p>The vault is not positioned as a scraped-case database. It is positioned as a consulting knowledge base with three evidence layers.</p>
+          <div class="vault-layer-grid">
+            <article class="vault-layer-card">
+              <div class="project-label">Layer 1</div>
+              <strong>Internal knowledge foundation</strong>
+              <p>Templates, playbooks, frameworks, and delivery assets that represent your proprietary operating baseline.</p>
+            </article>
+            <article class="vault-layer-card">
+              <div class="project-label">Layer 2</div>
+              <strong>Public analog case library</strong>
+              <p>Curated consulting firm cases used as external evidence, analogs, and quantified proof points rather than the core source of truth.</p>
+            </article>
+            <article class="vault-layer-card">
+              <div class="project-label">Layer 3</div>
+              <strong>Project artifact layer</strong>
+              <p>Uploads and engagement-specific materials that ground recommendations in the live client context.</p>
+            </article>
+          </div>
+        </div>
+      </article>
+      <div class="vault-knowledge-grid">
+        <article class="project-card">
+          <div class="strategy-section-head" style="margin-bottom:12px;">
+            <h3>Internal knowledge foundation</h3>
+          </div>
+          <div class="vault-simple-list">
+            ${internalAssets
+              .map(
+                (item) => `
+              <article class="vault-simple-card">
+                <div class="project-label">${item.type}</div>
+                <strong>${item.title}</strong>
+                <p>${item.focus}</p>
+              </article>
+            `
+              )
+              .join("")}
+          </div>
+        </article>
+        <article class="project-card">
+          <div class="strategy-section-head" style="margin-bottom:12px;">
+            <h3>Project artifact layer</h3>
+          </div>
+          ${
+            projectArtifacts.length
+              ? `
+            <div class="vault-simple-list">
+              ${projectArtifacts
+                .slice(0, 6)
+                .map(
+                  (item) => `
+                <article class="vault-simple-card">
+                  <div class="project-label">${item.engagementTitle}</div>
+                  <strong>${item.name}</strong>
+                  <p>${item.status} • ${item.pages} pages</p>
+                </article>
+              `
+                )
+                .join("")}
+            </div>
+          `
+              : `<div class="empty-state">No project artifacts uploaded yet.</div>`
+          }
         </article>
       </div>
       <article class="project-card vault-import-card">
         <div class="strategy-section-head vault-import-head">
           <div>
-            <h3>Import from approved firms</h3>
-            <p class="muted">The importer only pulls from whitelisted consulting firm domains.</p>
+            <h3>Public analog case library</h3>
+            <p class="muted">The importer only pulls from whitelisted consulting firm domains and stores source attribution for every imported case.</p>
           </div>
           <button class="project-open-btn" data-action="import-vault-source" data-source-id="">Import all sources</button>
         </div>
@@ -836,7 +941,7 @@ function renderVault() {
       </article>
       <div class="project-card">
         <div class="strategy-section-head" style="margin-bottom:12px;">
-          <h3>Imported cases</h3>
+          <h3>Imported public analog cases</h3>
         </div>
         ${
           cases.length
@@ -862,6 +967,24 @@ function renderVault() {
             : `<div class="empty-state">No imported case studies yet.</div>`
         }
       </div>
+      <article class="project-card">
+        <div class="strategy-section-head" style="margin-bottom:12px;">
+          <h3>Derived reusable patterns</h3>
+        </div>
+        <div class="vault-simple-list">
+          ${derivedPatterns
+            .map(
+              (item) => `
+            <article class="vault-simple-card">
+              <div class="project-label">${item.type}</div>
+              <strong>${item.title}</strong>
+              <p>${item.description}</p>
+            </article>
+          `
+            )
+            .join("")}
+        </div>
+      </article>
     </section>
   `;
 }
@@ -893,7 +1016,7 @@ function renderTopChrome() {
 
 function renderUsage() {
   const org = state.bootstrap.organization;
-  const vault = getVault();
+  const totals = getVaultTotals();
   const usagePct = Math.round((org.monthlyRuns / org.monthlyLimit) * 100);
   return `
     <section class="strategy-dashboard">
@@ -903,7 +1026,7 @@ function renderUsage() {
       </div>
       <div class="usage-grid">
         ${renderMiniMetric("Active Projects", getEngagements().length)}
-        ${renderMiniMetric("Reference Docs", vault.caseCount || 0)}
+        ${renderMiniMetric("Knowledge Objects", totals.knowledgeObjectCount || 0)}
         ${renderMiniMetric("Generations", org.monthlyRuns)}
       </div>
       <article class="project-card">
