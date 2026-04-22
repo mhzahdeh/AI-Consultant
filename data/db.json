@@ -194,68 +194,125 @@
   "vault": {
     "cases": [
       {
-        "id": "c5fe8b19-817d-41d1-b050-5b1e5808d64b",
-        "sourceId": "bain-client-results",
-        "sourceName": "Bain & Company",
-        "sourceDomain": "bain.com",
-        "title": "Firm Strategy & Operations Consulting | Private Equity | Bain & Company",
-        "summary": "Our PE firm strategy & operations consultants can help you articulate your vision, decide where to focus and how to win, and organize the firm to execute.",
-        "url": "https://www.bain.com/industry-expertise/private-equity/firm-strategy-operations/",
+        "id": "84418aa0-867e-44c6-9aad-23e2c95f5a2e",
+        "sourceId": "deloitte-operate-case-studies",
+        "sourceName": "Deloitte",
+        "sourceDomain": "deloitte.com",
+        "title": "us bissell ams case study",
+        "summary": "Imported from Deloitte case-study PDF link.",
+        "url": "https://www.deloitte.com/content/dam/assets-zone3/us/en/docs/services/consulting/2024/us-bissell-ams-case-study.pdf",
         "publishedAt": null,
-        "importedAt": "2026-04-22T19:32:50.404Z"
+        "importedAt": "2026-04-22T19:36:48.294Z"
       },
       {
-        "id": "bd1db2df-c0fc-437f-a16f-98beef15bb38",
-        "sourceId": "bain-client-results",
-        "sourceName": "Bain & Company",
-        "sourceDomain": "bain.com",
-        "title": "Telco CX Transformation",
-        "summary": "Unlock value with a customer-centric business model powered by data and digital",
-        "url": "https://www.bain.com/industry-expertise/telecommunications/digital-customer-experience/",
+        "id": "5609dfdf-886b-4510-8611-902ada20230f",
+        "sourceId": "deloitte-operate-case-studies",
+        "sourceName": "Deloitte",
+        "sourceDomain": "deloitte.com",
+        "title": "us cchs ams case study vf",
+        "summary": "Imported from Deloitte case-study PDF link.",
+        "url": "https://www.deloitte.com/content/dam/assets-zone3/us/en/docs/industries/technology-media-telecommunications/2024/us-cchs-ams-case-study-vf.pdf",
         "publishedAt": null,
-        "importedAt": "2026-04-22T19:32:50.404Z"
+        "importedAt": "2026-04-22T19:36:48.294Z"
       },
       {
-        "id": "225bf79f-fe9c-49ab-b74d-d0b1f6a9f787",
-        "sourceId": "bain-client-results",
-        "sourceName": "Bain & Company",
-        "sourceDomain": "bain.com",
-        "title": "Supporting Your Growth",
-        "summary": "See how we support your growth with guidance and resources.",
-        "url": "https://www.bain.com/careers/life-at-bain/supporting-your-growth/",
+        "id": "25374429-515c-488b-9992-4e97c28d1dff",
+        "sourceId": "deloitte-operate-case-studies",
+        "sourceName": "Deloitte",
+        "sourceDomain": "deloitte.com",
+        "title": "us carle health manda case study",
+        "summary": "Imported from Deloitte case-study PDF link.",
+        "url": "https://www.deloitte.com/content/dam/assets-zone3/us/en/docs/services/consulting/2024/us-carle-health-manda-case-study.pdf",
         "publishedAt": null,
-        "importedAt": "2026-04-22T19:32:50.404Z"
+        "importedAt": "2026-04-22T19:36:48.294Z"
+      },
+      {
+        "id": "f59068b4-5560-4fc7-8e5f-40158b51d97e",
+        "sourceId": "deloitte-operate-case-studies",
+        "sourceName": "Deloitte",
+        "sourceDomain": "deloitte.com",
+        "title": "us northwell health testing foundry case study",
+        "summary": "Imported from Deloitte case-study PDF link.",
+        "url": "https://www.deloitte.com/content/dam/assets-zone3/us/en/docs/services/consulting/2024/us-northwell-health-testing-foundry-case-study.pdf",
+        "publishedAt": null,
+        "importedAt": "2026-04-22T19:36:48.294Z"
+      },
+      {
+        "id": "4845264a-cfe8-45f8-8340-973a2ad98669",
+        "sourceId": "accenture-case-studies",
+        "sourceName": "Accenture",
+        "sourceDomain": "accenture.com",
+        "title": "Reinventing the future of football | I NFL Case Study | Accenture",
+        "summary": "Accenture partnered with the NFL to transform data usage, streamline operations, and expand global reach. Read more.",
+        "url": "https://www.accenture.com/us-en/case-studies/data-ai/nfl-gameplan-reinventing-future-football",
+        "publishedAt": null,
+        "importedAt": "2026-04-22T19:36:05.923Z"
+      },
+      {
+        "id": "5106e705-c9e6-49ed-8576-2570039ed4b6",
+        "sourceId": "accenture-case-studies",
+        "sourceName": "Accenture",
+        "sourceDomain": "accenture.com",
+        "title": "Poste Italiane's Pivot to Platform Powerhouse",
+        "summary": "Poste Italiane with Accenture, transformed into Italy's largest integrated service platform, delivering essential services to 45 million citizens. Read more.",
+        "url": "https://www.accenture.com/us-en/case-studies/data-ai/poste-italianes-pivot-postal-service-platform-powerhouse",
+        "publishedAt": null,
+        "importedAt": "2026-04-22T19:36:05.923Z"
+      },
+      {
+        "id": "94d64c28-4311-412b-8a48-77837646e111",
+        "sourceId": "accenture-case-studies",
+        "sourceName": "Accenture",
+        "sourceDomain": "accenture.com",
+        "title": "Revolutionizing the UAE’s Payment Systems | AEP Case Study | Accenture",
+        "summary": "Accenture helped with the Aani Instant Payment Platform by leading the integration of over 40 solutions. Read more.",
+        "url": "https://www.accenture.com/us-en/case-studies/data-ai/revolutionizing-uae-payment-systems",
+        "publishedAt": null,
+        "importedAt": "2026-04-22T19:36:05.923Z"
+      },
+      {
+        "id": "e70534fb-93f4-4733-a01c-cd5824c7b5b4",
+        "sourceId": "accenture-case-studies",
+        "sourceName": "Accenture",
+        "sourceDomain": "accenture.com",
+        "title": "Telco Shared Services | Vodafone Case Study | Accenture",
+        "summary": "Vodafone and Accenture partner to reinvent Vodafone’s shared services to deliver intelligent solutions for Telco. Read more.",
+        "url": "https://www.accenture.com/us-en/case-studies/communications-media/vodafone-pioneers-commercialized-shared-services-operations",
+        "publishedAt": null,
+        "importedAt": "2026-04-22T19:36:05.923Z"
       }
     ],
     "sources": [
       {
-        "id": "mckinsey-case-studies",
-        "name": "McKinsey & Company",
-        "domain": "mckinsey.com",
-        "listUrl": "https://www.mckinsey.com/about-us/case-studies",
+        "id": "accenture-case-studies",
+        "name": "Accenture",
+        "domain": "accenture.com",
+        "listUrl": "https://www.accenture.com/us-en/insights/strategy/reinvented-with-accenture",
+        "allowedPathPrefixes": [
+          "/us-en/case-studies/"
+        ],
+        "extractor": "accenture",
         "enabled": true,
-        "lastImportedAt": null,
-        "lastImportCount": 0,
+        "lastImportedAt": "2026-04-22T19:36:05.923Z",
+        "lastImportCount": 4,
         "lastError": null
       },
       {
-        "id": "bcg-client-impact",
-        "name": "BCG",
-        "domain": "bcg.com",
-        "listUrl": "https://www.bcg.com/about/client-impact",
+        "id": "deloitte-operate-case-studies",
+        "name": "Deloitte",
+        "domain": "deloitte.com",
+        "listUrl": "https://www.deloitte.com/us/en/services/consulting/services/operate-case-studies.html",
+        "allowedPathPrefixes": [
+          "/content/dam/"
+        ],
+        "allowedUrlPattern": "case-study",
+        "allowedExtensions": [
+          ".pdf"
+        ],
+        "extractor": "deloitte",
         "enabled": true,
-        "lastImportedAt": null,
-        "lastImportCount": 0,
-        "lastError": null
-      },
-      {
-        "id": "bain-client-results",
-        "name": "Bain & Company",
-        "domain": "bain.com",
-        "listUrl": "https://www.bain.com/client-results/",
-        "enabled": true,
-        "lastImportedAt": "2026-04-22T19:32:50.404Z",
-        "lastImportCount": 3,
+        "lastImportedAt": "2026-04-22T19:36:48.294Z",
+        "lastImportCount": 4,
         "lastError": null
       }
     ],
@@ -296,5 +353,6 @@
         "description": "Reusable structure for role clarity, governance reset, and execution cadence design."
       }
     ]
-  }
+  },
+  "sessions": []
 }

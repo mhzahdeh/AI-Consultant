@@ -1,7 +1,7 @@
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
-const { randomUUID } = require("node:crypto");
+const { randomUUID, createHash } = require("node:crypto");
 const { URL } = require("node:url");
 
 const PORT = process.env.PORT || 3000;
@@ -12,24 +12,25 @@ const DB_PATH = path.join(DATA_DIR, "db.json");
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5.2";
+const SESSION_COOKIE = "ai_consultant_session";
 const TRUSTED_VAULT_SOURCES = [
   {
-    id: "mckinsey-case-studies",
-    name: "McKinsey & Company",
-    domain: "mckinsey.com",
-    listUrl: "https://www.mckinsey.com/about-us/case-studies",
+    id: "accenture-case-studies",
+    name: "Accenture",
+    domain: "accenture.com",
+    listUrl: "https://www.accenture.com/us-en/insights/strategy/reinvented-with-accenture",
+    allowedPathPrefixes: ["/us-en/case-studies/"],
+    extractor: "accenture",
   },
   {
-    id: "bcg-client-impact",
-    name: "BCG",
-    domain: "bcg.com",
-    listUrl: "https://www.bcg.com/about/client-impact",
-  },
-  {
-    id: "bain-client-results",
-    name: "Bain & Company",
-    domain: "bain.com",
-    listUrl: "https://www.bain.com/client-results/",
+    id: "deloitte-operate-case-studies",
+    name: "Deloitte",
+    domain: "deloitte.com",
+    listUrl: "https://www.deloitte.com/us/en/services/consulting/services/operate-case-studies.html",
+    allowedPathPrefixes: ["/content/dam/"],
+    allowedUrlPattern: "case-study",
+    allowedExtensions: [".pdf"],
+    extractor: "deloitte",
   },
 ];
 
@@ -78,6 +79,10 @@ function ensureUploadDir(engagementId) {
     fs.mkdirSync(dir, { recursive: true });
   }
   return dir;
+}
+
+function hashPassword(value) {
+  return createHash("sha256").update(String(value || "")).digest("hex");
 }
 
 function estimatePagesFromText(text) {
@@ -221,18 +226,18 @@ function createSeed() {
   const userId = randomUUID();
   const engagementId = randomUUID();
   const now = new Date().toISOString();
+  const seedPassword = "demo1234";
 
   return {
-    session: {
-      userId,
-      organizationId: orgId,
-    },
+    sessions: [],
     users: [
       {
         id: userId,
         fullName: "Morgan Lee",
         email: "morgan@altitudeadvisory.com",
         title: "Principal Consultant",
+        passwordHash: hashPassword(seedPassword),
+        organizationIds: [orgId],
       },
     ],
     organizations: [
@@ -502,7 +507,22 @@ function ensureVault(db) {
       lastError: match.lastError || null,
     };
   });
+  db.vault.cases = db.vault.cases.filter((item) =>
+    db.vault.sources.some(
+      (source) =>
+        source.id === item.sourceId &&
+        source.domain === item.sourceDomain &&
+        matchesSourceRules(item.url, source)
+    )
+  );
   return db.vault;
+}
+
+function ensureSessions(db) {
+  if (!Array.isArray(db.sessions)) {
+    db.sessions = [];
+  }
+  return db.sessions;
 }
 
 function readDb() {
@@ -517,10 +537,11 @@ function readDb() {
   } catch {
     parsed = null;
   }
-  if (!parsed || !parsed.session || !Array.isArray(parsed.engagements)) {
+  if (!parsed || !Array.isArray(parsed.engagements)) {
     parsed = createSeed();
   }
   ensureVault(parsed);
+  ensureSessions(parsed);
   parsed.engagements.forEach((engagement) => ensureEngagementDefaults(engagement));
   fs.writeFileSync(DB_PATH, JSON.stringify(parsed, null, 2));
   return parsed;
@@ -535,6 +556,16 @@ function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
+  });
+  res.end(body);
+}
+
+function sendJsonWithHeaders(res, statusCode, payload, headers = {}) {
+  const body = JSON.stringify(payload);
+  res.writeHead(statusCode, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Content-Length": Buffer.byteLength(body),
+    ...headers,
   });
   res.end(body);
 }
@@ -575,12 +606,68 @@ function collectBody(req) {
   });
 }
 
-function getCurrentUser(db) {
-  return db.users.find((user) => user.id === db.session.userId) || null;
+function parseCookies(req) {
+  const raw = req.headers.cookie || "";
+  return Object.fromEntries(
+    raw
+      .split(";")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((item) => {
+        const separator = item.indexOf("=");
+        if (separator === -1) return [item, ""];
+        return [item.slice(0, separator), decodeURIComponent(item.slice(separator + 1))];
+      })
+  );
 }
 
-function getCurrentOrg(db) {
-  return db.organizations.find((org) => org.id === db.session.organizationId) || null;
+function createSession(db, userId, organizationId) {
+  ensureSessions(db);
+  const session = {
+    id: randomUUID(),
+    userId,
+    organizationId,
+    createdAt: new Date().toISOString(),
+  };
+  db.sessions = db.sessions.filter((item) => item.userId !== userId);
+  db.sessions.push(session);
+  return session;
+}
+
+function getRequestSession(db, req) {
+  ensureSessions(db);
+  const sessionId = parseCookies(req)[SESSION_COOKIE];
+  if (!sessionId) return null;
+  return db.sessions.find((item) => item.id === sessionId) || null;
+}
+
+function getCurrentUser(db, session) {
+  if (!session) return null;
+  return db.users.find((user) => user.id === session.userId) || null;
+}
+
+function getCurrentOrg(db, session) {
+  if (!session) return null;
+  return db.organizations.find((org) => org.id === session.organizationId) || null;
+}
+
+function sessionCookieHeader(sessionId) {
+  return `${SESSION_COOKIE}=${encodeURIComponent(sessionId)}; Path=/; HttpOnly; SameSite=Lax`;
+}
+
+function clearSessionCookieHeader() {
+  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+}
+
+function requireAuth(db, req, res) {
+  const session = getRequestSession(db, req);
+  const user = getCurrentUser(db, session);
+  const organization = getCurrentOrg(db, session);
+  if (!session || !user || !organization) {
+    sendJson(res, 401, { error: "Authentication required" });
+    return null;
+  }
+  return { session, user, organization };
 }
 
 function getProjectArtifacts(db) {
@@ -600,8 +687,8 @@ function getProjectArtifacts(db) {
     .sort((a, b) => String(b.storedAt || "").localeCompare(String(a.storedAt || "")));
 }
 
-function getDashboard(db) {
-  const org = getCurrentOrg(db);
+function getDashboard(db, session) {
+  const org = getCurrentOrg(db, session);
   const engagements = [...db.engagements].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   return {
     stats: [
@@ -662,12 +749,18 @@ function getVaultSummary(db) {
   };
 }
 
-function buildBootstrap(db) {
+function buildBootstrap(db, session) {
   return {
-    session: db.session,
-    user: getCurrentUser(db),
-    organization: getCurrentOrg(db),
-    dashboard: getDashboard(db),
+    session: session
+      ? {
+          id: session.id,
+          userId: session.userId,
+          organizationId: session.organizationId,
+        }
+      : null,
+    user: getCurrentUser(db, session),
+    organization: getCurrentOrg(db, session),
+    dashboard: session ? getDashboard(db, session) : { stats: [], engagements: [] },
     vault: getVaultSummary(db),
     billing: db.billing,
     settings: db.settings,
@@ -706,7 +799,40 @@ function uniqueBy(items, getKey) {
 function isTrustedUrl(urlString, source) {
   try {
     const parsed = new URL(urlString);
-    return parsed.protocol.startsWith("http") && parsed.hostname.endsWith(source.domain);
+    if (!(parsed.protocol.startsWith("http") && parsed.hostname.endsWith(source.domain))) {
+      return false;
+    }
+    if (Array.isArray(source.allowedPathPrefixes) && source.allowedPathPrefixes.length) {
+      return source.allowedPathPrefixes.some((prefix) => parsed.pathname.startsWith(prefix));
+    }
+    if (source.allowedUrlPattern) {
+      return parsed.pathname.toLowerCase().includes(String(source.allowedUrlPattern).toLowerCase());
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function matchesSourceRules(urlString, source) {
+  try {
+    const parsed = new URL(urlString);
+    if (Array.isArray(source.allowedPathPrefixes) && source.allowedPathPrefixes.length) {
+      if (!source.allowedPathPrefixes.some((prefix) => parsed.pathname.startsWith(prefix))) {
+        return false;
+      }
+    }
+    if (source.allowedUrlPattern) {
+      if (!parsed.pathname.toLowerCase().includes(String(source.allowedUrlPattern).toLowerCase())) {
+        return false;
+      }
+    }
+    if (source.allowedExtensions && source.allowedExtensions.length) {
+      if (!source.allowedExtensions.some((ext) => parsed.pathname.toLowerCase().endsWith(ext.toLowerCase()))) {
+        return false;
+      }
+    }
+    return true;
   } catch {
     return false;
   }
@@ -715,7 +841,7 @@ function isTrustedUrl(urlString, source) {
 function toTrustedAbsoluteUrl(value, source) {
   try {
     const resolved = new URL(value, source.listUrl).toString();
-    return isTrustedUrl(resolved, source) ? resolved : null;
+    return isTrustedUrl(resolved, source) && matchesSourceRules(resolved, source) ? resolved : null;
   } catch {
     return null;
   }
@@ -801,8 +927,14 @@ function extractAnchorCandidates(html, source) {
 }
 
 function normalizeImportedCase(candidate, source) {
-  const title = collapseWhitespace(candidate.title || "");
-  const url = toTrustedAbsoluteUrl(candidate.url, source);
+  const rawUrl = toTrustedAbsoluteUrl(candidate.url, source);
+  const fallbackTitle = rawUrl
+    ? decodeURIComponent(rawUrl.split("/").pop() || "")
+        .replace(/\.[a-z0-9]+$/i, "")
+        .replace(/[-_]+/g, " ")
+    : "";
+  const title = collapseWhitespace(candidate.title || fallbackTitle);
+  const url = rawUrl;
   if (!title || !url) return null;
 
   return {
@@ -813,7 +945,54 @@ function normalizeImportedCase(candidate, source) {
   };
 }
 
+function extractAccentureCandidates(html, source) {
+  const seen = new Set();
+  const candidates = [];
+  const pattern = /href=(["'])(.*?)\1/gi;
+  for (const match of html.matchAll(pattern)) {
+    const url = toTrustedAbsoluteUrl(match[2], source);
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    candidates.push({
+      title: "",
+      url,
+      summary: "",
+      publishedAt: "",
+    });
+  }
+  return candidates;
+}
+
+function extractDeloitteCandidates(html, source) {
+  const seen = new Set();
+  const candidates = [];
+  const pattern = /href=(["'])(.*?)\1/gi;
+  for (const match of html.matchAll(pattern)) {
+    const url = toTrustedAbsoluteUrl(match[2], source);
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    candidates.push({
+      title: "",
+      url,
+      summary: "Imported from Deloitte case-study PDF link.",
+      publishedAt: "",
+    });
+  }
+  return candidates;
+}
+
 function extractListingCandidates(html, source) {
+  if (source.extractor === "accenture") {
+    return extractAccentureCandidates(html, source)
+      .map((item) => normalizeImportedCase(item, source))
+      .filter(Boolean);
+  }
+  if (source.extractor === "deloitte") {
+    return extractDeloitteCandidates(html, source)
+      .map((item) => normalizeImportedCase(item, source))
+      .filter(Boolean);
+  }
+
   const candidates = [];
   for (const jsonLd of extractJsonLdObjects(html)) {
     const extracted = collectJsonLdCandidates(jsonLd).map((item) => normalizeImportedCase(item, source));
@@ -847,6 +1026,9 @@ async function fetchHtml(url) {
 }
 
 async function enrichImportedCase(candidate, source) {
+  if (/\.pdf($|\?)/i.test(candidate.url)) {
+    return candidate;
+  }
   try {
     const html = await fetchHtml(candidate.url);
     const jsonLdCandidates = extractJsonLdObjects(html)
@@ -1326,38 +1508,38 @@ async function handleApi(req, res, url) {
   const pathname = url.pathname;
 
   if (method === "GET" && pathname === "/api/bootstrap") {
-    return sendJson(res, 200, buildBootstrap(db));
+    return sendJson(res, 200, buildBootstrap(db, getRequestSession(db, req)));
   }
 
   if (method === "POST" && pathname === "/api/auth/login") {
     const body = await collectBody(req);
     const email = (body.email || "").trim().toLowerCase();
-    let user = db.users.find((entry) => entry.email.toLowerCase() === email);
-    if (!user) {
-      user = {
-        id: randomUUID(),
-        fullName: body.fullName || "New User",
-        email: email || `user-${Date.now()}@example.com`,
-        title: "Consultant",
-      };
-      db.users.push(user);
+    const passwordHash = hashPassword(body.password || "");
+    const user = db.users.find((entry) => entry.email.toLowerCase() === email);
+    if (!user || user.passwordHash !== passwordHash) {
+      return sendJson(res, 401, { error: "Invalid email or password" });
     }
-    db.session.userId = user.id;
+    const organizationId = user.organizationIds?.[0] || db.organizations[0]?.id || null;
+    const session = createSession(db, user.id, organizationId);
     writeDb(db);
-    return sendJson(res, 200, buildBootstrap(db));
+    return sendJsonWithHeaders(res, 200, buildBootstrap(db, session), {
+      "Set-Cookie": sessionCookieHeader(session.id),
+    });
   }
 
   if (method === "POST" && pathname === "/api/auth/signup") {
     const body = await collectBody(req);
+    const organizationId = db.organizations[0]?.id || null;
     const user = {
       id: randomUUID(),
       fullName: body.fullName || "New User",
       email: (body.email || `user-${Date.now()}@example.com`).trim().toLowerCase(),
       title: body.title || "Consultant",
+      passwordHash: hashPassword(body.password || ""),
+      organizationIds: organizationId ? [organizationId] : [],
     };
     db.users.push(user);
-    db.session.userId = user.id;
-    const org = getCurrentOrg(db);
+    const org = getCurrentOrg(db, organizationId ? { organizationId } : null);
     if (org) {
       org.members.push({
         id: randomUUID(),
@@ -1367,9 +1549,24 @@ async function handleApi(req, res, url) {
         status: "Active",
       });
     }
+    const session = createSession(db, user.id, organizationId);
     writeDb(db);
-    return sendJson(res, 201, buildBootstrap(db));
+    return sendJsonWithHeaders(res, 201, buildBootstrap(db, session), {
+      "Set-Cookie": sessionCookieHeader(session.id),
+    });
   }
+
+  if (method === "POST" && pathname === "/api/auth/logout") {
+    const existingSession = getRequestSession(db, req);
+    if (existingSession) {
+      db.sessions = db.sessions.filter((item) => item.id !== existingSession.id);
+      writeDb(db);
+    }
+    return sendJsonWithHeaders(res, 200, { ok: true }, { "Set-Cookie": clearSessionCookieHeader() });
+  }
+
+  const auth = requireAuth(db, req, res);
+  if (!auth) return;
 
   if (method === "GET" && pathname === "/api/vault") {
     return sendJson(res, 200, { vault: getVaultSummary(db) });
@@ -1393,7 +1590,7 @@ async function handleApi(req, res, url) {
       title: body.title || "Untitled Engagement",
       client: body.client || "New Client",
       type: body.type || "Strategy",
-      owner: body.owner || getCurrentUser(db)?.fullName || "Unassigned",
+      owner: body.owner || auth.user.fullName || "Unassigned",
       stage: "Workspace",
       updatedAt: new Date().toISOString(),
       tags: body.tags || ["New"],
@@ -1421,12 +1618,12 @@ async function handleApi(req, res, url) {
       versions: [],
     };
     db.engagements.unshift(engagement);
-    const org = getCurrentOrg(db);
+    const org = auth.organization;
     if (org) {
       org.monthlyRuns += 1;
     }
     writeDb(db);
-    return sendJson(res, 201, { engagement, dashboard: getDashboard(db) });
+    return sendJson(res, 201, { engagement, dashboard: getDashboard(db, auth.session) });
   }
 
   const engagementMatch = pathname.match(/^\/api\/engagements\/([^/]+)$/);
@@ -1448,7 +1645,7 @@ async function handleApi(req, res, url) {
     snapshotEngagement(engagement, versionLabel || "Workspace edit");
     Object.assign(engagement, updates, { updatedAt: new Date().toISOString() });
     writeDb(db);
-    return sendJson(res, 200, { engagement, dashboard: getDashboard(db) });
+    return sendJson(res, 200, { engagement, dashboard: getDashboard(db, auth.session) });
   }
 
   const generateMatch = pathname.match(/^\/api\/engagements\/([^/]+)\/generate$/);
@@ -1461,14 +1658,14 @@ async function handleApi(req, res, url) {
     snapshotEngagement(engagement, "Regenerated outputs");
     applyGeneratedArtifacts(engagement, generated.artifacts, generated.meta);
     engagement.updatedAt = new Date().toISOString();
-    const org = getCurrentOrg(db);
+    const org = auth.organization;
     if (org) {
       org.monthlyRuns += 1;
     }
     writeDb(db);
     return sendJson(res, 200, {
       engagement,
-      dashboard: getDashboard(db),
+      dashboard: getDashboard(db, auth.session),
       generation: generated.meta,
     });
   }
@@ -1524,7 +1721,7 @@ async function handleApi(req, res, url) {
 
   if (method === "POST" && pathname === "/api/organizations/invite") {
     const body = await collectBody(req);
-    const org = getCurrentOrg(db);
+    const org = auth.organization;
     if (!org) {
       return sendJson(res, 404, { error: "Organization not found" });
     }
@@ -1542,7 +1739,7 @@ async function handleApi(req, res, url) {
   const memberMatch = pathname.match(/^\/api\/organizations\/members\/([^/]+)$/);
   if (memberMatch && method === "PATCH") {
     const body = await collectBody(req);
-    const org = getCurrentOrg(db);
+    const org = auth.organization;
     if (!org) {
       return sendJson(res, 404, { error: "Organization not found" });
     }
@@ -1563,11 +1760,11 @@ async function handleApi(req, res, url) {
   }
 
   if (method === "GET" && pathname === "/api/export") {
-    const dashboard = getDashboard(db);
+    const dashboard = getDashboard(db, auth.session);
     const lines = [
       "AI Consultant Export",
       "",
-      `Organization: ${getCurrentOrg(db)?.name || "Unknown"}`,
+      `Organization: ${auth.organization?.name || "Unknown"}`,
       `Active engagements: ${dashboard.engagements.length}`,
       "",
       ...dashboard.engagements.map(
