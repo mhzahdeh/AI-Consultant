@@ -16,7 +16,7 @@
       "id": "344af24a-9d57-409f-86cc-bc15783aa285",
       "name": "Altitude Advisory",
       "plan": "Team",
-      "monthlyRuns": 42,
+      "monthlyRuns": 45,
       "monthlyLimit": 120,
       "members": [
         {
@@ -64,7 +64,7 @@
       "type": "Pricing and operations strategy",
       "owner": "Morgan Lee",
       "stage": "Workspace",
-      "updatedAt": "2026-04-20T23:32:45.666Z",
+      "updatedAt": "2026-04-22T19:28:49.324Z",
       "tags": [
         "Logistics",
         "Pricing",
@@ -91,90 +91,139 @@
       },
       "businessContext": {
         "industry": "Third-party logistics",
-        "currentSituation": "Margins have compressed 280 bps over 18 months due to contract drift, rising accessorial complexity, and underutilized warehouse labor.",
-        "constraints": "Leadership wants changes that do not disrupt major customer renewals in Q3 and must preserve service levels for strategic accounts."
+        "currentSituation": "Northstar Logistics needs a tighter case for change and a clearer fact base before leadership can commit to a proposal scope.",
+        "constraints": "The team needs a practical plan that sharpens the brief quickly without creating avoidable stakeholder churn or over-analysis."
       },
       "insights": [
-        "Top 15 customers account for 68% of revenue but only 41% of contribution margin.",
-        "Warehouse overtime in the Southeast region is 1.8x peer benchmark.",
-        "Accessorial charges are billed inconsistently across legacy contracts."
+        "Leadership is aligned on urgency, but the current brief for Northstar Logistics is still too broad for immediate execution.",
+        "The strongest early win is to turn \"Identify the top profit levers, quantify impact, and outline a 12-week delivery plan with client and consultant responsibilities.\" into a quantified, time-bound outcome with named owners.",
+        "The proposal will be stronger if the storyline pairs diagnostic evidence with a pragmatic first-90-days plan."
       ],
       "issueTree": [
         {
-          "title": "Revenue quality",
+          "title": "Why now",
           "children": [
-            "Contract repricing",
-            "Accessorial capture",
-            "Customer mix"
+            "Business pressure",
+            "Leadership mandate",
+            "Timing constraints"
           ]
         },
         {
-          "title": "Cost-to-serve",
+          "title": "Where value sits",
           "children": [
-            "Warehouse labor",
-            "Route density",
-            "Exception handling"
+            "Revenue growth",
+            "Cost efficiency",
+            "Operating model"
           ]
         },
         {
-          "title": "Execution risk",
+          "title": "How to execute",
           "children": [
-            "Renewal timing",
-            "Client adoption",
-            "Data quality"
+            "Decision cadence",
+            "Team roles",
+            "Pilot and rollout"
           ]
         }
       ],
       "matchedCases": [
         {
-          "id": "d634822a-869f-4f05-81da-88305c07f46e",
-          "title": "FreightWorks pricing redesign",
-          "fit": 94,
-          "blurb": "Improved EBITDA by $7.8M through repricing and service-tier rationalization across enterprise accounts."
+          "title": "Northstar Logistics Margin Expansion analog: commercial acceleration",
+          "fit": 91,
+          "blurb": "Comparable transformation that combined opportunity sizing, leadership workshops, and a phased workplan to secure executive sign-off.",
+          "id": "a2c01025-baa4-47ce-a4dc-4057ca3c7e10"
         },
         {
-          "id": "918ee0e4-e79e-4201-a548-00741248f9d0",
-          "title": "HarborShip warehouse reset",
-          "fit": 88,
-          "blurb": "Reduced overtime 23% by redesigning labor scheduling and slotting logic across three sites."
+          "title": "Northstar Logistics Margin Expansion analog: operating model redesign",
+          "fit": 86,
+          "blurb": "Case example focused on turning a broad strategic brief into a board-ready proposal with sequenced workstreams and measurable outcomes.",
+          "id": "fb796f60-d3b8-4ec8-8153-b4b8d6f4f4fa"
         }
       ],
       "proposalStarter": {
-        "hook": "Recover 200 to 300 bps of gross margin within two quarters without jeopardizing strategic renewals.",
+        "hook": "A focused consulting sprint for Northstar Logistics to identify the top profit levers, quantify impact, and outline a 12-week delivery plan with client and consultant responsibilities. while keeping leadership aligned on the highest-value decisions.",
         "sections": [
-          "Situation and stakes",
-          "Where value is leaking today",
-          "Workstreams and expected impact",
-          "Delivery cadence and team"
+          "Executive context",
+          "Key problems to solve",
+          "Approach and workstreams",
+          "Indicative timeline and outputs",
+          "Risks, dependencies, and team structure"
         ]
       },
       "workplan": [
         {
-          "week": "Weeks 1-2",
-          "focus": "Diagnostic and data validation",
-          "output": "Profit pool baseline and customer-segment heatmap"
+          "week": "Week 1",
+          "focus": "Clarify scope and success metrics",
+          "output": "Approved problem statement and steering questions"
         },
         {
-          "week": "Weeks 3-6",
-          "focus": "Pricing and operations design",
-          "output": "Repricing playbook and labor reset recommendations"
+          "week": "Weeks 2-4",
+          "focus": "Diagnostic and evidence gathering",
+          "output": "Initial fact base, hypotheses, and opportunity sizing"
         },
         {
-          "week": "Weeks 7-12",
-          "focus": "Pilot and leadership materials",
-          "output": "Pilot results, proposal narrative, implementation plan"
+          "week": "Weeks 5-8",
+          "focus": "Recommendation design",
+          "output": "Draft proposal storyline and workstream architecture"
+        },
+        {
+          "week": "Weeks 9-12",
+          "focus": "Executive alignment and final packaging",
+          "output": "Final proposal starter, implementation roadmap, and risk plan"
         }
       ],
       "keyRisks": [
-        "Renewal calendar may limit repricing speed for top-tier accounts.",
-        "Historical cost allocation is incomplete for two acquired regions.",
-        "Client change capacity is constrained due to ERP migration."
+        "Scope could sprawl if northstar wants a proposal starter focused on gross margin recovery, warehouse productivity, and customer segment repricing over the next two quarters. is not narrowed into explicit choices.",
+        "Stakeholder interviews may reveal competing success metrics across leadership roles.",
+        "The final proposal may over-index on analysis unless deliverables and decision points are locked early."
       ],
       "referenceWork": [
-        "Pricing waterfall diagnostic",
-        "Warehouse labor benchmark pack",
-        "Client interview guide"
-      ]
+        "Executive proposal starter template",
+        "Issue tree workshop guide",
+        "Matched case evidence summary",
+        "12-week workplan blueprint"
+      ],
+      "generationMeta": {
+        "provider": "fallback",
+        "model": "local-template",
+        "generatedAt": "2026-04-22T19:21:02.772Z",
+        "note": "You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+      },
+      "versions": []
     }
-  ]
+  ],
+  "vault": {
+    "cases": [],
+    "sources": [
+      {
+        "id": "mckinsey-case-studies",
+        "name": "McKinsey & Company",
+        "domain": "mckinsey.com",
+        "listUrl": "https://www.mckinsey.com/about-us/case-studies",
+        "enabled": true,
+        "lastImportedAt": null,
+        "lastImportCount": 0,
+        "lastError": null
+      },
+      {
+        "id": "bcg-client-impact",
+        "name": "BCG",
+        "domain": "bcg.com",
+        "listUrl": "https://www.bcg.com/about/client-impact",
+        "enabled": true,
+        "lastImportedAt": null,
+        "lastImportCount": 0,
+        "lastError": null
+      },
+      {
+        "id": "bain-client-results",
+        "name": "Bain & Company",
+        "domain": "bain.com",
+        "listUrl": "https://www.bain.com/client-results/",
+        "enabled": true,
+        "lastImportedAt": null,
+        "lastImportCount": 0,
+        "lastError": null
+      }
+    ]
+  }
 }

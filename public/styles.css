@@ -51,6 +51,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 a {
   color: inherit;
 }
@@ -166,6 +171,12 @@ a {
   align-items: flex-start;
   gap: 18px;
   margin-bottom: 24px;
+}
+
+.workspace-generation-meta {
+  margin-top: 14px;
+  display: grid;
+  gap: 4px;
 }
 
 .hero-grid,
@@ -752,6 +763,39 @@ body {
   gap: 32px;
 }
 
+.clean-dashboard {
+  gap: 44px;
+}
+
+.dashboard-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.dashboard-section-head h3 {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #111;
+}
+
+.clean-section-spacer {
+  margin-top: 4px;
+}
+
+.dashboard-link {
+  padding: 0;
+  background: transparent;
+  color: #7a7a7a;
+  font-size: 16px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 .strategy-heading h2 {
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
@@ -830,6 +874,10 @@ body {
   gap: 16px;
 }
 
+.clean-workflow-grid {
+  gap: 28px;
+}
+
 .workflow-card {
   min-height: 110px;
   display: grid;
@@ -844,6 +892,13 @@ body {
   box-shadow: none;
 }
 
+.clean-workflow-card {
+  min-height: 236px;
+  padding: 40px 42px 36px;
+  border-color: #dfdfdf;
+  gap: 28px;
+}
+
 .workflow-card:hover {
   background: #fafafa;
   border-color: #cfcfcf;
@@ -854,16 +909,36 @@ body {
   font-size: 16px;
 }
 
+.clean-workflow-icon {
+  color: #616161;
+  font-size: 42px;
+  line-height: 1;
+}
+
 .workflow-card strong {
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
 }
 
+.clean-workflow-card strong {
+  font-size: 24px;
+  font-weight: 500;
+  white-space: normal;
+  letter-spacing: -0.02em;
+}
+
 .workflow-card span:last-child {
   max-width: 190px;
   color: #777;
   font-size: 11px;
+  line-height: 1.45;
+}
+
+.clean-workflow-card span:last-child {
+  max-width: none;
+  color: #6f6f6f;
+  font-size: 18px;
   line-height: 1.45;
 }
 
@@ -883,12 +958,21 @@ body {
   gap: 16px;
 }
 
+.clean-project-list {
+  gap: 20px;
+}
+
 .project-card {
   padding: 22px 24px 20px;
   border: 1px solid var(--figma-line);
   background: #fff;
   border-radius: 0;
   box-shadow: none;
+}
+
+.clean-project-card {
+  padding: 34px 28px 28px;
+  border-color: #dedede;
 }
 
 .project-card-head {
@@ -903,11 +987,23 @@ body {
   font-weight: 700;
 }
 
+.clean-project-card-head strong {
+  font-size: 22px;
+  font-weight: 600;
+}
+
 .project-status {
   padding: 5px 9px;
   background: #f4f4f4;
   color: #777;
   font-size: 11px;
+}
+
+.clean-project-status {
+  padding: 8px 14px;
+  background: #f3f3f3;
+  color: #666;
+  font-size: 15px;
 }
 
 .project-label {
@@ -917,6 +1013,12 @@ body {
   font-weight: 700;
 }
 
+.clean-project-card .project-label {
+  margin-top: 14px;
+  font-size: 12px;
+  color: #a0a0a0;
+}
+
 .project-objective {
   margin: 4px 0 16px;
   color: #555;
@@ -924,11 +1026,21 @@ body {
   line-height: 1.45;
 }
 
+.clean-project-objective {
+  margin: 8px 0 22px;
+  font-size: 18px;
+  color: #555;
+}
+
 .project-meta-grid {
   display: grid;
   grid-template-columns: 1fr 230px;
   gap: 24px;
   align-items: end;
+}
+
+.clean-project-meta-grid {
+  grid-template-columns: 1fr 320px;
 }
 
 .project-badges {
@@ -946,10 +1058,21 @@ body {
   font-size: 10px;
 }
 
+.clean-project-badge {
+  padding: 8px 12px;
+  font-size: 12px;
+  border-color: #d9d9d9;
+}
+
 .project-updated {
   margin-top: 6px;
   color: #777;
   font-size: 11px;
+}
+
+.clean-project-updated {
+  font-size: 14px;
+  color: #444;
 }
 
 .project-footer {
@@ -958,6 +1081,29 @@ body {
   gap: 20px;
   align-items: end;
   margin-top: 18px;
+}
+
+.clean-project-progress {
+  height: 5px;
+  margin: 22px 0 22px;
+  background: #efefef;
+}
+
+.clean-project-progress span {
+  display: block;
+  height: 100%;
+  background: #000;
+}
+
+.clean-project-footer {
+  display: block;
+  margin-top: 0;
+}
+
+.clean-project-open-btn {
+  width: 210px;
+  height: 46px;
+  font-size: 14px;
 }
 
 .project-open-btn {
@@ -977,6 +1123,110 @@ body {
   display: block;
   height: 100%;
   background: #000;
+}
+
+.reference-card {
+  padding: 34px 32px;
+  border: 1px solid #dedede;
+  background: #fff;
+}
+
+.reference-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.reference-summary {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.reference-icon {
+  font-size: 28px;
+  color: #666;
+}
+
+.reference-summary strong {
+  display: block;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.reference-summary p {
+  margin: 6px 0 0;
+  font-size: 16px;
+  color: #777;
+}
+
+.reference-action {
+  height: 44px;
+  padding: 0 20px;
+  border: 1px solid #dedede;
+  background: #fff;
+  color: #222;
+  font-size: 14px;
+}
+
+.reference-divider {
+  height: 1px;
+  margin: 22px 0 20px;
+  background: #ececec;
+}
+
+.reference-label {
+  color: #a3a3a3;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
+.reference-doc-list {
+  display: grid;
+  gap: 12px;
+}
+
+.reference-doc {
+  color: #666;
+  font-size: 16px;
+}
+
+.dashboard-usage-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+}
+
+.dashboard-usage-card {
+  min-height: 168px;
+  padding: 30px 32px;
+  border: 1px solid #dedede;
+  background: #fff;
+}
+
+.dashboard-usage-label {
+  color: #a1a1a1;
+  font-size: 15px;
+  margin-bottom: 14px;
+}
+
+.dashboard-usage-value {
+  font-size: 46px;
+  line-height: 1;
+  color: #111;
+  margin-bottom: 12px;
+}
+
+.dashboard-usage-note {
+  color: #6f6f6f;
+  font-size: 16px;
+}
+
+.dashboard-usage-link-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -18px;
 }
 
 .vault-summary-grid {
@@ -1222,6 +1472,16 @@ body {
   line-height: 1.55;
 }
 
+.workspace-source-card {
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.workspace-source-card:hover {
+  background: #fafafa;
+  border-color: #bcbcbc;
+}
+
 .issue-tree-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -1284,10 +1544,54 @@ body {
   margin: 18px 0;
 }
 
+.workspace-upload-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px dashed var(--figma-line);
+  background: #fff;
+  color: #666;
+}
+
+.workspace-upload-picker input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .workspace-upload-form button {
   padding: 0 14px;
   background: #000;
   color: #fff;
+}
+
+.upload-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.upload-preview-panel {
+  margin-top: 18px;
+  max-height: 420px;
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--figma-line);
+  background: #fff;
+}
+
+.upload-preview-panel pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #333;
 }
 
 .billing-plan-card {
@@ -1388,6 +1692,59 @@ body {
   border-radius: 0;
 }
 
+.vault-import-card,
+.vault-case-card,
+.vault-source-card {
+  border: 1px solid var(--figma-line);
+  background: #fff;
+}
+
+.vault-import-head,
+.vault-source-meta,
+.vault-case-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.vault-source-grid,
+.vault-case-list {
+  display: grid;
+  gap: 14px;
+}
+
+.vault-source-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 18px;
+}
+
+.vault-source-card,
+.vault-case-card {
+  padding: 16px;
+}
+
+.vault-source-card p,
+.vault-case-card p {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.vault-case-list {
+  margin-top: 8px;
+}
+
+.vault-case-meta {
+  margin-top: 14px;
+  align-items: flex-start;
+}
+
+.vault-source-error {
+  margin-top: 12px;
+  color: var(--danger);
+  font-size: 0.92rem;
+}
+
 @media (max-width: 900px) {
   .strategy-shell {
     grid-template-columns: 1fr;
@@ -1403,6 +1760,7 @@ body {
   }
 
   .workflow-grid,
+  .dashboard-usage-grid,
   .project-meta-grid,
   .project-footer,
   .vault-summary-grid,
@@ -1415,5 +1773,14 @@ body {
   .strategy-workspace-layout,
   .workspace-command-bar {
     grid-template-columns: 1fr;
+  }
+
+  .reference-card-top,
+  .dashboard-section-head,
+  .vault-import-head,
+  .vault-source-meta,
+  .vault-case-meta {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

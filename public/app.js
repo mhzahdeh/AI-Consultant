@@ -6,6 +6,8 @@ const state = {
   selectedEngagementId: null,
   modal: null,
   toastTimer: null,
+  generatingId: null,
+  selectedUploadId: null,
 };
 
 const app = document.getElementById("app");
@@ -43,8 +45,26 @@ function getEngagements() {
   return state.bootstrap?.dashboard?.engagements || [];
 }
 
+function getVault() {
+  return state.bootstrap?.vault || { cases: [], recentCases: [], sources: [] };
+}
+
+function getVaultCases() {
+  return getVault().cases || [];
+}
+
+function getVaultSources() {
+  return getVault().sources || [];
+}
+
 function getSelectedEngagement() {
   return getEngagements().find((item) => item.id === state.selectedEngagementId) || null;
+}
+
+function getSelectedUpload() {
+  const engagement = getSelectedEngagement();
+  if (!engagement || !state.selectedUploadId) return null;
+  return (engagement.uploads || []).find((item) => item.id === state.selectedUploadId) || null;
 }
 
 function setSelectedEngagement(id) {
@@ -59,6 +79,86 @@ function formatDate(value) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function formatBytes(value) {
+  const bytes = Number(value || 0);
+  if (!bytes) return "Unknown size";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 102.4) / 10} KB`;
+  return `${Math.round(bytes / 104857.6) / 10} MB`;
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      resolve(result.includes(",") ? result.split(",")[1] : result);
+    };
+    reader.onerror = () => reject(reader.error || new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function parseLineItems(value) {
+  return String(value || "")
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseIssueTree(value) {
+  return String(value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [title, children] = line.split(":");
+      return {
+        title: (title || "").trim(),
+        children: String(children || "")
+          .split("|")
+          .map((child) => child.trim())
+          .filter(Boolean),
+      };
+    })
+    .filter((item) => item.title && item.children.length);
+}
+
+function parseWorkplan(value) {
+  return String(value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [week, focus, output] = line.split("|");
+      return {
+        week: String(week || "").trim(),
+        focus: String(focus || "").trim(),
+        output: String(output || "").trim(),
+      };
+    })
+    .filter((item) => item.week && item.focus && item.output);
+}
+
+function getGenerationLabel(engagement) {
+  if (!engagement?.generationMeta) {
+    return "Not generated yet";
+  }
+  if (engagement.generationMeta.provider === "openai") {
+    return `OpenAI • ${engagement.generationMeta.model}`;
+  }
+  return `Local fallback${engagement.generationMeta.note ? ` • ${engagement.generationMeta.note}` : ""}`;
 }
 
 function initials(name) {
@@ -199,6 +299,7 @@ function renderSidebar() {
 
 function renderDashboard() {
   const { dashboard } = state.bootstrap;
+  const vault = getVault();
   const workflows = [
     ["↗", "Go-to-Market Strategy", "Product launch planning, channel strategy, positioning"],
     ["$", "Pricing Strategy", "Price optimization, packaging, competitive analysis"],
@@ -229,32 +330,26 @@ function renderDashboard() {
       progress: 42,
     },
   ];
+  const vaultDocs = vault.recentCases.length
+    ? vault.recentCases.slice(0, 3).map((item) => item.title)
+    : ["No imported cases yet"];
+  const usageCards = [
+    ["Active Projects", String(getEngagements().length), "of Unlimited"],
+    ["Reference Docs", String(vault.caseCount || 0), "trusted case studies"],
+    ["Generations", String(state.bootstrap.organization.monthlyRuns), "of 5,000"],
+  ];
 
   return `
-    <section class="strategy-dashboard">
-      <div class="strategy-heading">
-        <h2>What are you working on?</h2>
-        <p>Generate structured strategy from your business context and institutional knowledge</p>
-      </div>
-
-      <button class="strategy-hero-cta" data-action="navigate" data-view="new">
-        <span class="strategy-cta-plus">+</span>
-        <span class="strategy-cta-copy">
-          <strong>Start New Project</strong>
-          <span>Choose from templates or define your own strategic challenge</span>
-        </span>
-        <span class="strategy-cta-arrow">→</span>
-      </button>
-
-      <div class="strategy-section-head">
+    <section class="strategy-dashboard clean-dashboard">
+      <div class="dashboard-section-head">
         <h3>Common Workflows</h3>
       </div>
-      <div class="workflow-grid">
+      <div class="workflow-grid clean-workflow-grid">
         ${workflows
           .map(
             ([icon, title, text]) => `
-          <button class="workflow-card" data-action="navigate" data-view="new">
-            <span class="workflow-icon">${icon}</span>
+          <button class="workflow-card clean-workflow-card" data-action="navigate" data-view="new">
+            <span class="workflow-icon clean-workflow-icon">${icon}</span>
             <strong>${title}</strong>
             <span>${text}</span>
           </button>
@@ -263,43 +358,86 @@ function renderDashboard() {
           .join("")}
       </div>
 
-      <div class="strategy-section-head recent-projects-head">
+      <div class="dashboard-section-head clean-section-spacer">
         <h3>Recent Projects</h3>
-        <button class="strategy-text-link" data-action="navigate" data-view="workspace">View all</button>
+        <button class="dashboard-link" data-action="navigate" data-view="workspace">View all</button>
       </div>
-      <div class="recent-projects-list">
+      <div class="recent-projects-list clean-project-list">
         ${recentProjects
           .map(
             (project) => `
-          <article class="project-card">
-            <div class="project-card-head">
+          <article class="project-card clean-project-card">
+            <div class="project-card-head clean-project-card-head">
               <div>
                 <strong>${project.title}</strong>
                 <div class="project-label">Business Objective</div>
               </div>
-              <span class="project-status">${project.status}</span>
+              <span class="project-status clean-project-status">${project.status}</span>
             </div>
-            <p class="project-objective">${project.objective}</p>
-            <div class="project-meta-grid">
+            <p class="project-objective clean-project-objective">${project.objective}</p>
+            <div class="project-meta-grid clean-project-meta-grid">
               <div>
                 <div class="project-label">Outputs Generated</div>
                 <div class="project-badges">
-                  ${project.outputs.map((output) => `<span class="project-badge">${output}</span>`).join("")}
+                  ${project.outputs.map((output) => `<span class="project-badge clean-project-badge">${output}</span>`).join("")}
                 </div>
               </div>
               <div>
                 <div class="project-label">Last Updated</div>
-                <div class="project-updated">◔ ${project.updated}</div>
+                <div class="project-updated clean-project-updated">◔ ${project.updated}</div>
               </div>
             </div>
-            <div class="project-footer">
-              <button class="project-open-btn" data-action="open-engagement" data-id="${project.id}">Open Workspace →</button>
-              <div class="project-progress"><span style="width:${project.progress}%"></span></div>
+            <div class="clean-project-progress"><span style="width:${project.progress}%"></span></div>
+            <div class="project-footer clean-project-footer">
+              <button class="project-open-btn clean-project-open-btn" data-action="open-engagement" data-id="${project.id}">Open Workspace →</button>
             </div>
           </article>
         `
           )
           .join("")}
+      </div>
+
+      <div class="dashboard-section-head clean-section-spacer">
+        <h3>Reference Knowledge</h3>
+      </div>
+      <section class="reference-card">
+        <div class="reference-card-top">
+          <div class="reference-summary">
+            <div class="reference-icon">◫</div>
+            <div>
+              <strong>${vault.caseCount || 0} trusted cases in vault</strong>
+              <p>${vault.sourceCount || 0} approved consulting firm sources connected</p>
+            </div>
+          </div>
+          <button class="reference-action" data-action="navigate" data-view="vault">Manage Vault</button>
+        </div>
+        <div class="reference-divider"></div>
+        <div class="reference-recent">
+          <div class="reference-label">Recently Added</div>
+          <div class="reference-doc-list">
+            ${vaultDocs.map((doc) => `<div class="reference-doc">◧ ${doc}</div>`).join("")}
+          </div>
+        </div>
+      </section>
+
+      <div class="dashboard-section-head clean-section-spacer">
+        <h3>Usage This Month</h3>
+      </div>
+      <div class="dashboard-usage-grid">
+        ${usageCards
+          .map(
+            ([label, value, note]) => `
+          <article class="dashboard-usage-card">
+            <div class="dashboard-usage-label">${label}</div>
+            <div class="dashboard-usage-value">${value}</div>
+            <div class="dashboard-usage-note">${note}</div>
+          </article>
+        `
+          )
+          .join("")}
+      </div>
+      <div class="dashboard-usage-link-row">
+        <button class="dashboard-link" data-action="navigate" data-view="usage">View detailed usage</button>
       </div>
     </section>
   `;
@@ -376,6 +514,8 @@ function renderWorkspace() {
     ["reference", "Reference Work"],
   ];
 
+  const isGenerating = state.generatingId === engagement.id;
+
   return `
     <section class="strategy-dashboard project-workspace">
       <div class="workspace-command-bar">
@@ -383,9 +523,15 @@ function renderWorkspace() {
           <div class="project-label">Business Objective</div>
           <h2>${engagement.title}</h2>
           <p>${engagement.brief.summary || engagement.type}</p>
+          <div class="workspace-generation-meta">
+            <span class="project-label">Generation source</span>
+            <strong>${getGenerationLabel(engagement)}</strong>
+          </div>
         </div>
         <div class="workspace-command-actions">
-          <button class="project-open-btn secondary" data-action="generate" data-id="${engagement.id}">Regenerate outputs</button>
+          <button class="project-open-btn secondary" data-action="generate" data-id="${engagement.id}" ${isGenerating ? "disabled" : ""}>
+            ${isGenerating ? "Generating..." : "Regenerate outputs"}
+          </button>
           <button class="project-open-btn" data-action="open-modal" data-modal="export">Export →</button>
         </div>
       </div>
@@ -406,16 +552,19 @@ function renderWorkspace() {
           <div class="project-label">Reference inputs</div>
           <h3>Knowledge used</h3>
           <form id="upload-form" class="workspace-upload-form">
-            <input name="name" placeholder="Add source document" />
-            <button type="submit">Add</button>
+            <label class="workspace-upload-picker">
+              <span>Select files</span>
+              <input type="file" name="files" multiple />
+            </label>
+            <button type="submit">Upload</button>
           </form>
           <div class="workspace-source-list">
             ${engagement.uploads
               .map(
                 (upload) => `
-              <article>
+              <article class="workspace-source-card" data-action="open-upload" data-upload-id="${upload.id}">
                 <strong>${upload.name}</strong>
-                <span>${upload.status} • ${upload.pages} pages</span>
+                <span>${upload.status} • ${upload.pages} pages • ${formatBytes(upload.size)}</span>
               </article>
             `
               )
@@ -477,45 +626,47 @@ function renderWorkspaceTab(engagement) {
       `;
     case "business":
       return `
+        <form id="business-form" class="strategy-form compact">
         <div class="workspace-panel-head">
           <div>
             <div class="project-label">Business Context</div>
             <h3>Situation framing</h3>
           </div>
+          <button class="strategy-text-link" type="submit">Save changes</button>
         </div>
         <div class="metric-grid">
           ${renderMiniMetric("Industry", engagement.businessContext.industry || "Not set")}
           ${renderMiniMetric("Project type", engagement.type)}
         </div>
-        <div class="structured-list">
-          <article>${engagement.businessContext.currentSituation || "Generate outputs to create a current-state narrative."}</article>
-          <article>${engagement.businessContext.constraints || "Add constraints, timing, stakeholders, or decision requirements."}</article>
-        </div>
+        <label>
+          <span>Current situation</span>
+          <textarea name="currentSituation">${engagement.businessContext.currentSituation || ""}</textarea>
+        </label>
+        <label>
+          <span>Constraints</span>
+          <textarea name="constraints">${engagement.businessContext.constraints || ""}</textarea>
+        </label>
+        </form>
       `;
     case "insights":
       return `
-        <div class="workspace-panel-head"><div><div class="project-label">Analysis</div><h3>Key insights</h3></div></div>
-        ${renderStructuredList(engagement.insights)}
+        <form id="insights-form" class="strategy-form compact">
+          <div class="workspace-panel-head"><div><div class="project-label">Analysis</div><h3>Key insights</h3></div><button class="strategy-text-link" type="submit">Save changes</button></div>
+          <label>
+            <span>One insight per line</span>
+            <textarea name="insightsText">${(engagement.insights || []).join("\n")}</textarea>
+          </label>
+        </form>
       `;
     case "issueTree":
       return `
-        <div class="workspace-panel-head"><div><div class="project-label">Analysis Tree</div><h3>Issue tree</h3></div></div>
-        <div class="issue-tree-grid">
-          ${
-            engagement.issueTree.length
-              ? engagement.issueTree
-                  .map(
-                    (branch) => `
-                  <article>
-                    <strong>${branch.title}</strong>
-                    <span>${branch.children.join(" • ")}</span>
-                  </article>
-                `
-                  )
-                  .join("")
-              : `<div class="empty-state strategy-empty">Generate outputs to scaffold an issue tree.</div>`
-          }
-        </div>
+        <form id="issue-tree-form" class="strategy-form compact">
+          <div class="workspace-panel-head"><div><div class="project-label">Analysis Tree</div><h3>Issue tree</h3></div><button class="strategy-text-link" type="submit">Save changes</button></div>
+          <label>
+            <span>Format: Branch title: child one | child two | child three</span>
+            <textarea name="issueTreeText">${(engagement.issueTree || []).map((branch) => `${branch.title}: ${branch.children.join(" | ")}`).join("\n")}</textarea>
+          </label>
+        </form>
       `;
     case "matched":
       return `
@@ -540,48 +691,47 @@ function renderWorkspaceTab(engagement) {
       `;
     case "proposal":
       return `
-        <div class="workspace-panel-head"><div><div class="project-label">Strategy Draft</div><h3>Proposal starter</h3></div></div>
-        ${
-          engagement.proposalStarter.hook
-            ? `
-          <div class="draft-panel">
-            <p>${engagement.proposalStarter.hook}</p>
-            ${engagement.proposalStarter.sections.map((section) => `<div>${section}</div>`).join("")}
-          </div>
-        `
-            : `<div class="empty-state strategy-empty">Generate outputs to draft the strategy narrative.</div>`
-        }
+        <form id="proposal-form" class="strategy-form compact">
+          <div class="workspace-panel-head"><div><div class="project-label">Strategy Draft</div><h3>Proposal starter</h3></div><button class="strategy-text-link" type="submit">Save changes</button></div>
+          <label>
+            <span>Lead narrative</span>
+            <textarea name="hook">${engagement.proposalStarter.hook || ""}</textarea>
+          </label>
+          <label>
+            <span>Section outline, one per line</span>
+            <textarea name="sectionsText">${(engagement.proposalStarter.sections || []).join("\n")}</textarea>
+          </label>
+        </form>
       `;
     case "workplan":
       return `
-        <div class="workspace-panel-head"><div><div class="project-label">Execution Plan</div><h3>Workplan</h3></div></div>
-        <div class="timeline-list strategy-timeline">
-          ${
-            engagement.workplan.length
-              ? engagement.workplan
-                  .map(
-                    (item) => `
-                <article>
-                  <strong>${item.week}</strong>
-                  <span>${item.focus}</span>
-                  <p>${item.output}</p>
-                </article>
-              `
-                  )
-                  .join("")
-              : `<div class="empty-state strategy-empty">Generate outputs to build the execution plan.</div>`
-          }
-        </div>
+        <form id="workplan-form" class="strategy-form compact">
+          <div class="workspace-panel-head"><div><div class="project-label">Execution Plan</div><h3>Workplan</h3></div><button class="strategy-text-link" type="submit">Save changes</button></div>
+          <label>
+            <span>Format: Weeks 1-2 | Focus | Output</span>
+            <textarea name="workplanText">${(engagement.workplan || []).map((item) => `${item.week} | ${item.focus} | ${item.output}`).join("\n")}</textarea>
+          </label>
+        </form>
       `;
     case "risks":
       return `
-        <div class="workspace-panel-head"><div><div class="project-label">Assumptions & Risks</div><h3>Key risks</h3></div></div>
-        ${renderStructuredList(engagement.keyRisks)}
+        <form id="risks-form" class="strategy-form compact">
+          <div class="workspace-panel-head"><div><div class="project-label">Assumptions & Risks</div><h3>Key risks</h3></div><button class="strategy-text-link" type="submit">Save changes</button></div>
+          <label>
+            <span>One risk per line</span>
+            <textarea name="risksText">${(engagement.keyRisks || []).join("\n")}</textarea>
+          </label>
+        </form>
       `;
     case "reference":
       return `
-        <div class="workspace-panel-head"><div><div class="project-label">Institutional Knowledge</div><h3>Reference work</h3></div></div>
-        ${renderStructuredList(engagement.referenceWork)}
+        <form id="reference-form" class="strategy-form compact">
+          <div class="workspace-panel-head"><div><div class="project-label">Institutional Knowledge</div><h3>Reference work</h3></div><button class="strategy-text-link" type="submit">Save changes</button></div>
+          <label>
+            <span>One item per line</span>
+            <textarea name="referenceText">${(engagement.referenceWork || []).join("\n")}</textarea>
+          </label>
+        </form>
       `;
     default:
       return "";
@@ -638,39 +788,79 @@ function renderProjects() {
 }
 
 function renderVault() {
-  const engagement = getSelectedEngagement() || getEngagements()[0];
-  const docs = [
-    "Board strategy memo",
-    "Market sizing workbook",
-    "Operating model reference deck",
-    "Prior pricing study",
-  ];
+  const vault = getVault();
+  const sources = getVaultSources();
+  const cases = getVaultCases();
   return `
     <section class="strategy-dashboard">
       <div class="strategy-heading">
         <h2>Reference Knowledge</h2>
-        <p>Used for matching and context retrieval across strategy projects.</p>
+        <p>Import public case studies from an approved source list and use them as trusted vault references.</p>
       </div>
       <div class="vault-summary-grid">
         <article class="vault-stat-card">
-          <div class="project-label">Documents in vault</div>
-          <strong>${docs.length + (engagement?.uploads?.length || 0)}</strong>
+          <div class="project-label">Cases in vault</div>
+          <strong>${vault.caseCount || 0}</strong>
         </article>
         <article class="vault-stat-card">
-          <div class="project-label">Most recent project</div>
-          <strong>${engagement?.title || "No project selected"}</strong>
+          <div class="project-label">Trusted sources</div>
+          <strong>${vault.sourceCount || 0}</strong>
         </article>
       </div>
-      <div class="project-card">
-        <div class="strategy-section-head" style="margin-bottom:12px;">
-          <h3>Recently added documents</h3>
+      <article class="project-card vault-import-card">
+        <div class="strategy-section-head vault-import-head">
+          <div>
+            <h3>Import from approved firms</h3>
+            <p class="muted">The importer only pulls from whitelisted consulting firm domains.</p>
+          </div>
+          <button class="project-open-btn" data-action="import-vault-source" data-source-id="">Import all sources</button>
         </div>
-        <div class="engagement-list">
-          ${docs
-            .concat((engagement?.uploads || []).map((item) => item.name))
-            .map((doc) => `<article class="engagement-item">${doc}</article>`)
+        <div class="vault-source-grid">
+          ${sources
+            .map(
+              (source) => `
+            <article class="vault-source-card">
+              <div class="project-label">${source.domain}</div>
+              <strong>${source.name}</strong>
+              <p>${source.lastImportedAt ? `Last import ${formatDate(source.lastImportedAt)}` : "Not imported yet"}</p>
+              <div class="vault-source-meta">
+                <span>${source.lastImportCount || 0} new last run</span>
+                <button class="strategy-text-link" data-action="import-vault-source" data-source-id="${source.id}">Import</button>
+              </div>
+              ${source.lastError ? `<div class="vault-source-error">${source.lastError}</div>` : ""}
+            </article>
+          `
+            )
             .join("")}
         </div>
+      </article>
+      <div class="project-card">
+        <div class="strategy-section-head" style="margin-bottom:12px;">
+          <h3>Imported cases</h3>
+        </div>
+        ${
+          cases.length
+            ? `
+          <div class="vault-case-list">
+            ${cases
+              .map(
+                (item) => `
+              <article class="vault-case-card">
+                <div class="project-label">${item.sourceName}</div>
+                <strong>${item.title}</strong>
+                <p>${item.summary || "Summary unavailable from source page."}</p>
+                <div class="vault-case-meta">
+                  <span>${item.publishedAt ? formatDate(item.publishedAt) : "Publication date unavailable"}</span>
+                  <a href="${item.url}" target="_blank" rel="noreferrer">Open source</a>
+                </div>
+              </article>
+            `
+              )
+              .join("")}
+          </div>
+        `
+            : `<div class="empty-state">No imported case studies yet.</div>`
+        }
       </div>
     </section>
   `;
@@ -703,6 +893,7 @@ function renderTopChrome() {
 
 function renderUsage() {
   const org = state.bootstrap.organization;
+  const vault = getVault();
   const usagePct = Math.round((org.monthlyRuns / org.monthlyLimit) * 100);
   return `
     <section class="strategy-dashboard">
@@ -712,7 +903,7 @@ function renderUsage() {
       </div>
       <div class="usage-grid">
         ${renderMiniMetric("Active Projects", getEngagements().length)}
-        ${renderMiniMetric("Reference Docs", 18)}
+        ${renderMiniMetric("Reference Docs", vault.caseCount || 0)}
         ${renderMiniMetric("Generations", org.monthlyRuns)}
       </div>
       <article class="project-card">
@@ -913,6 +1104,39 @@ function renderModal() {
     `;
   }
 
+  if (state.modal === "uploadDetail") {
+    const upload = getSelectedUpload();
+    return `
+      <div class="modal open" id="modal-root">
+        <div class="modal-card strategy-modal-card">
+          <div class="workspace-panel-head">
+            <div>
+              <div class="project-label">Source document</div>
+              <h3>${upload ? upload.name : "Upload not found"}</h3>
+            </div>
+            <button class="strategy-text-link" data-action="close-modal">Close</button>
+          </div>
+          ${
+            upload
+              ? `
+            <div class="upload-detail-grid">
+              <div class="mini-metric"><span>Status</span><strong>${upload.status}</strong></div>
+              <div class="mini-metric"><span>Pages</span><strong>${upload.pages}</strong></div>
+              <div class="mini-metric"><span>Size</span><strong>${formatBytes(upload.size)}</strong></div>
+            </div>
+            <p class="muted">${upload.extractionNote || "Extracted text is available below when supported."}</p>
+            <div class="upload-preview-panel"><pre>${escapeHtml(upload.previewText || "No preview text extracted for this file yet.")}</pre></div>
+            <div class="toolbar-actions" style="margin-top:18px;">
+              <a class="btn btn-secondary" href="/api/engagements/${getSelectedEngagement().id}/uploads/${upload.id}/file">Download file</a>
+            </div>
+          `
+              : `<p class="muted">The selected upload could not be found.</p>`
+          }
+        </div>
+      </div>
+    `;
+  }
+
   return `<div class="modal" id="modal-root"></div>`;
 }
 
@@ -1013,13 +1237,44 @@ document.addEventListener("click", async (event) => {
   }
 
   if (action === "generate") {
+    if (state.generatingId === button.dataset.id) {
+      return;
+    }
     try {
+      state.generatingId = button.dataset.id;
+      render();
       const data = await request(`/api/engagements/${button.dataset.id}/generate`, {
         method: "POST",
       });
       state.bootstrap.dashboard = data.dashboard;
       state.selectedEngagementId = data.engagement.id;
-      showToast("Artifacts generated");
+      const providerLabel =
+        data.generation?.provider === "openai"
+          ? `OpenAI (${data.generation.model})`
+          : `local fallback${data.generation?.note ? `: ${data.generation.note}` : ""}`;
+      showToast(`Artifacts generated with ${providerLabel}`);
+      render();
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      state.generatingId = null;
+      render();
+    }
+    return;
+  }
+
+  if (action === "import-vault-source") {
+    try {
+      const data = await request("/api/vault/import", {
+        method: "POST",
+        body: JSON.stringify({ sourceId: button.dataset.sourceId || "" }),
+      });
+      state.bootstrap.vault = data.vault;
+      showToast(
+        data.importedCount
+          ? `Imported ${data.importedCount} case${data.importedCount === 1 ? "" : "s"}`
+          : "Import finished with no new cases"
+      );
       render();
     } catch (error) {
       showToast(error.message);
@@ -1043,13 +1298,22 @@ document.addEventListener("click", async (event) => {
     if (button.dataset.template) {
       state.selectedTemplate = button.dataset.template;
     }
+    state.selectedUploadId = null;
     state.modal = button.dataset.modal;
+    render();
+    return;
+  }
+
+  if (action === "open-upload") {
+    state.selectedUploadId = button.dataset.uploadId;
+    state.modal = "uploadDetail";
     render();
     return;
   }
 
   if (action === "close-modal") {
     state.modal = null;
+    state.selectedUploadId = null;
     render();
     return;
   }
@@ -1057,6 +1321,7 @@ document.addEventListener("click", async (event) => {
   if (action === "download-export") {
     window.location.href = "/api/export";
     state.modal = null;
+    state.selectedUploadId = null;
     render();
     return;
   }
@@ -1087,6 +1352,7 @@ document.addEventListener("click", async (event) => {
       const data = await request(`/api/engagements/${engagement.id}`, {
         method: "PATCH",
         body: JSON.stringify({
+          versionLabel: "Updated brief",
           brief: {
             ...engagement.brief,
             ...payload,
@@ -1144,15 +1410,30 @@ document.addEventListener("submit", async (event) => {
     const engagement = getSelectedEngagement();
     if (!engagement) return;
     try {
-      const payload = formToObject(event.target);
-      const data = await request(`/api/engagements/${engagement.id}/upload`, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      const input = event.target.querySelector('input[type="file"]');
+      const files = Array.from(input?.files || []);
+      if (!files.length) {
+        showToast("Choose at least one file");
+        return;
+      }
+      let latest = null;
+      for (const file of files) {
+        const base64Data = await readFileAsBase64(file);
+        latest = await request(`/api/engagements/${engagement.id}/upload`, {
+          method: "POST",
+          body: JSON.stringify({
+            name: file.name,
+            mimeType: file.type,
+            size: file.size,
+            base64Data,
+          }),
+        });
+      }
       const selected = getSelectedEngagement();
-      selected.uploads = data.engagement.uploads;
-      selected.updatedAt = data.engagement.updatedAt;
-      showToast("Upload added");
+      selected.uploads = latest.engagement.uploads;
+      selected.updatedAt = latest.engagement.updatedAt;
+      event.target.reset();
+      showToast(`${files.length} file${files.length === 1 ? "" : "s"} uploaded`);
       render();
     } catch (error) {
       showToast(error.message);
@@ -1190,6 +1471,148 @@ document.addEventListener("submit", async (event) => {
       });
       state.bootstrap.settings = data.settings;
       showToast("Settings saved");
+      render();
+    } catch (error) {
+      showToast(error.message);
+    }
+  }
+
+  const engagement = getSelectedEngagement();
+  if (!engagement) return;
+
+  if (event.target.id === "business-form") {
+    try {
+      const payload = formToObject(event.target);
+      const data = await request(`/api/engagements/${engagement.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          versionLabel: "Updated business context",
+          businessContext: {
+            ...engagement.businessContext,
+            currentSituation: payload.currentSituation,
+            constraints: payload.constraints,
+          },
+        }),
+      });
+      state.bootstrap.dashboard = data.dashboard;
+      showToast("Business context saved");
+      render();
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
+
+  if (event.target.id === "insights-form") {
+    try {
+      const payload = formToObject(event.target);
+      const data = await request(`/api/engagements/${engagement.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          versionLabel: "Updated insights",
+          insights: parseLineItems(payload.insightsText),
+        }),
+      });
+      state.bootstrap.dashboard = data.dashboard;
+      showToast("Insights saved");
+      render();
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
+
+  if (event.target.id === "issue-tree-form") {
+    try {
+      const payload = formToObject(event.target);
+      const data = await request(`/api/engagements/${engagement.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          versionLabel: "Updated issue tree",
+          issueTree: parseIssueTree(payload.issueTreeText),
+        }),
+      });
+      state.bootstrap.dashboard = data.dashboard;
+      showToast("Issue tree saved");
+      render();
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
+
+  if (event.target.id === "proposal-form") {
+    try {
+      const payload = formToObject(event.target);
+      const data = await request(`/api/engagements/${engagement.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          versionLabel: "Updated proposal starter",
+          proposalStarter: {
+            hook: payload.hook,
+            sections: parseLineItems(payload.sectionsText),
+          },
+        }),
+      });
+      state.bootstrap.dashboard = data.dashboard;
+      showToast("Proposal starter saved");
+      render();
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
+
+  if (event.target.id === "workplan-form") {
+    try {
+      const payload = formToObject(event.target);
+      const data = await request(`/api/engagements/${engagement.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          versionLabel: "Updated workplan",
+          workplan: parseWorkplan(payload.workplanText),
+        }),
+      });
+      state.bootstrap.dashboard = data.dashboard;
+      showToast("Workplan saved");
+      render();
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
+
+  if (event.target.id === "risks-form") {
+    try {
+      const payload = formToObject(event.target);
+      const data = await request(`/api/engagements/${engagement.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          versionLabel: "Updated risks",
+          keyRisks: parseLineItems(payload.risksText),
+        }),
+      });
+      state.bootstrap.dashboard = data.dashboard;
+      showToast("Risks saved");
+      render();
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
+
+  if (event.target.id === "reference-form") {
+    try {
+      const payload = formToObject(event.target);
+      const data = await request(`/api/engagements/${engagement.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          versionLabel: "Updated reference work",
+          referenceWork: parseLineItems(payload.referenceText),
+        }),
+      });
+      state.bootstrap.dashboard = data.dashboard;
+      showToast("Reference work saved");
       render();
     } catch (error) {
       showToast(error.message);
