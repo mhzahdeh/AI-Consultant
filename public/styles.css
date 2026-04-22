@@ -1693,8 +1693,11 @@ body {
 }
 
 .vault-import-card,
+.vault-foundation-card,
 .vault-case-card,
-.vault-source-card {
+.vault-source-card,
+.vault-layer-card,
+.vault-simple-card {
   border: 1px solid var(--figma-line);
   background: #fff;
 }
@@ -1709,7 +1712,10 @@ body {
 }
 
 .vault-source-grid,
-.vault-case-list {
+.vault-case-list,
+.vault-layer-grid,
+.vault-simple-list,
+.vault-knowledge-grid {
   display: grid;
   gap: 14px;
 }
@@ -1720,17 +1726,40 @@ body {
 }
 
 .vault-source-card,
-.vault-case-card {
+.vault-case-card,
+.vault-layer-card,
+.vault-simple-card {
   padding: 16px;
 }
 
 .vault-source-card p,
-.vault-case-card p {
+.vault-case-card p,
+.vault-layer-card p,
+.vault-simple-card p,
+.vault-positioning-copy p {
   margin: 8px 0 0;
   color: var(--muted);
 }
 
 .vault-case-list {
+  margin-top: 8px;
+}
+
+.vault-layer-grid,
+.vault-knowledge-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.vault-knowledge-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.vault-positioning-copy {
+  display: grid;
+  gap: 18px;
+}
+
+.vault-simple-list {
   margin-top: 8px;
 }
 
@@ -1782,5 +1811,10 @@ body {
   .vault-case-meta {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .vault-layer-grid,
+  .vault-knowledge-grid {
+    grid-template-columns: 1fr;
   }
 }
