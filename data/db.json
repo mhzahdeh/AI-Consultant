@@ -192,7 +192,41 @@
     }
   ],
   "vault": {
-    "cases": [],
+    "cases": [
+      {
+        "id": "c5fe8b19-817d-41d1-b050-5b1e5808d64b",
+        "sourceId": "bain-client-results",
+        "sourceName": "Bain & Company",
+        "sourceDomain": "bain.com",
+        "title": "Firm Strategy & Operations Consulting | Private Equity | Bain & Company",
+        "summary": "Our PE firm strategy & operations consultants can help you articulate your vision, decide where to focus and how to win, and organize the firm to execute.",
+        "url": "https://www.bain.com/industry-expertise/private-equity/firm-strategy-operations/",
+        "publishedAt": null,
+        "importedAt": "2026-04-22T19:32:50.404Z"
+      },
+      {
+        "id": "bd1db2df-c0fc-437f-a16f-98beef15bb38",
+        "sourceId": "bain-client-results",
+        "sourceName": "Bain & Company",
+        "sourceDomain": "bain.com",
+        "title": "Telco CX Transformation",
+        "summary": "Unlock value with a customer-centric business model powered by data and digital",
+        "url": "https://www.bain.com/industry-expertise/telecommunications/digital-customer-experience/",
+        "publishedAt": null,
+        "importedAt": "2026-04-22T19:32:50.404Z"
+      },
+      {
+        "id": "225bf79f-fe9c-49ab-b74d-d0b1f6a9f787",
+        "sourceId": "bain-client-results",
+        "sourceName": "Bain & Company",
+        "sourceDomain": "bain.com",
+        "title": "Supporting Your Growth",
+        "summary": "See how we support your growth with guidance and resources.",
+        "url": "https://www.bain.com/careers/life-at-bain/supporting-your-growth/",
+        "publishedAt": null,
+        "importedAt": "2026-04-22T19:32:50.404Z"
+      }
+    ],
     "sources": [
       {
         "id": "mckinsey-case-studies",
@@ -220,9 +254,46 @@
         "domain": "bain.com",
         "listUrl": "https://www.bain.com/client-results/",
         "enabled": true,
-        "lastImportedAt": null,
-        "lastImportCount": 0,
+        "lastImportedAt": "2026-04-22T19:32:50.404Z",
+        "lastImportCount": 3,
         "lastError": null
+      }
+    ],
+    "internalAssets": [
+      {
+        "id": "e346f03b-f92f-4a3c-af9f-37a1c507644f",
+        "title": "Executive proposal starter template",
+        "type": "Template",
+        "origin": "Internal knowledge",
+        "focus": "Proposal development"
+      },
+      {
+        "id": "334556dd-2094-43aa-b933-51eddd4fee0c",
+        "title": "Issue tree workshop guide",
+        "type": "Playbook",
+        "origin": "Internal knowledge",
+        "focus": "Problem structuring"
+      },
+      {
+        "id": "e4d98fd5-f660-4d57-a3d6-6654f5758eef",
+        "title": "12-week workplan blueprint",
+        "type": "Delivery asset",
+        "origin": "Internal knowledge",
+        "focus": "Program planning"
+      }
+    ],
+    "derivedPatterns": [
+      {
+        "id": "30828599-aa56-41d4-9f25-e24f464fde73",
+        "title": "Commercial acceleration pattern",
+        "type": "Pattern",
+        "description": "Reusable sequence for diagnosing growth leakage, prioritizing interventions, and landing a 90-day recovery plan."
+      },
+      {
+        "id": "f4b532a8-1744-4dfc-8390-c2ef45485e55",
+        "title": "Operating model redesign pattern",
+        "type": "Pattern",
+        "description": "Reusable structure for role clarity, governance reset, and execution cadence design."
       }
     ]
   }
