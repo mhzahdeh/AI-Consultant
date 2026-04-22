@@ -12,7 +12,10 @@ const DB_PATH = path.join(DATA_DIR, "db.json");
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5.2";
+const OPENAI_EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
 const SESSION_COOKIE = "ai_consultant_session";
+const VAULT_PARSER_VERSION = "2026-04-22-v2";
+const LOCAL_EMBEDDING_DIMENSIONS = 16;
 const TRUSTED_VAULT_SOURCES = [
   {
     id: "accenture-case-studies",
@@ -21,6 +24,33 @@ const TRUSTED_VAULT_SOURCES = [
     listUrl: "https://www.accenture.com/us-en/insights/strategy/reinvented-with-accenture",
     allowedPathPrefixes: ["/us-en/case-studies/"],
     extractor: "accenture",
+  },
+  {
+    id: "bcg-client-impact",
+    name: "BCG",
+    domain: "bcg.com",
+    listUrl: "https://www.bcg.com/about/client-impact",
+    sitemapUrl: "https://www.bcg.com/google_sitemap-content.xml",
+    allowedPathPrefixes: ["/about/client-impact/"],
+    extractor: "bcg-sitemap",
+  },
+  {
+    id: "bain-client-results",
+    name: "Bain & Company",
+    domain: "bain.com",
+    listUrl: "https://www.bain.com/client-results/",
+    sitemapUrl: "https://www.bain.com/sitemap.xml",
+    allowedPathPrefixes: ["/client-results/"],
+    extractor: "bain-sitemap",
+  },
+  {
+    id: "mckinsey-case-studies",
+    name: "McKinsey & Company",
+    domain: "mckinsey.com",
+    listUrl: "https://www.mckinsey.com/about-us/case-studies",
+    sitemapUrl: "https://www.mckinsey.com/sitemap.xml",
+    allowedPathPrefixes: ["/about-us/case-studies/"],
+    extractor: "mckinsey-sitemap",
   },
   {
     id: "deloitte-operate-case-studies",
@@ -507,14 +537,16 @@ function ensureVault(db) {
       lastError: match.lastError || null,
     };
   });
-  db.vault.cases = db.vault.cases.filter((item) =>
-    db.vault.sources.some(
-      (source) =>
-        source.id === item.sourceId &&
-        source.domain === item.sourceDomain &&
-        matchesSourceRules(item.url, source)
+  db.vault.cases = db.vault.cases
+    .filter((item) =>
+      db.vault.sources.some(
+        (source) =>
+          source.id === item.sourceId &&
+          source.domain === item.sourceDomain &&
+          matchesSourceRules(item.url, source)
+      )
     )
-  );
+    .map((item) => normalizeVaultCaseRecord(item));
   return db.vault;
 }
 
@@ -523,6 +555,20 @@ function ensureSessions(db) {
     db.sessions = [];
   }
   return db.sessions;
+}
+
+function ensureUsers(db) {
+  const defaultOrgId = db.organizations?.[0]?.id || null;
+  db.users = (db.users || []).map((user) => ({
+    ...user,
+    passwordHash: user.passwordHash || hashPassword("demo1234"),
+    organizationIds:
+      Array.isArray(user.organizationIds) && user.organizationIds.length
+        ? user.organizationIds
+        : defaultOrgId
+          ? [defaultOrgId]
+          : [],
+  }));
 }
 
 function readDb() {
@@ -542,6 +588,7 @@ function readDb() {
   }
   ensureVault(parsed);
   ensureSessions(parsed);
+  ensureUsers(parsed);
   parsed.engagements.forEach((engagement) => ensureEngagementDefaults(engagement));
   fs.writeFileSync(DB_PATH, JSON.stringify(parsed, null, 2));
   return parsed;
@@ -651,6 +698,12 @@ function getCurrentOrg(db, session) {
   return db.organizations.find((org) => org.id === session.organizationId) || null;
 }
 
+function serializeUser(user) {
+  if (!user) return null;
+  const { passwordHash, ...safeUser } = user;
+  return safeUser;
+}
+
 function sessionCookieHeader(sessionId) {
   return `${SESSION_COOKIE}=${encodeURIComponent(sessionId)}; Path=/; HttpOnly; SameSite=Lax`;
 }
@@ -719,9 +772,12 @@ function getDashboard(db, session) {
 
 function getVaultSummary(db) {
   const vault = ensureVault(db);
-  const cases = [...vault.cases].sort((a, b) => {
+  const allCases = [...vault.cases].sort((a, b) => {
     return String(b.importedAt || "").localeCompare(String(a.importedAt || ""));
   });
+  const approvedCases = allCases.filter((item) => item.reviewStatus === "approved" && item.searchable);
+  const pendingCases = allCases.filter((item) => item.reviewStatus === "pending");
+  const rejectedCases = allCases.filter((item) => item.reviewStatus === "rejected");
   const internalAssets = [...vault.internalAssets];
   const derivedPatterns = [...vault.derivedPatterns];
   const projectArtifacts = getProjectArtifacts(db);
@@ -734,18 +790,23 @@ function getVaultSummary(db) {
     },
     totals: {
       internalAssetCount: internalAssets.length,
-      publicCaseCount: cases.length,
+      publicCaseCount: allCases.length,
+      approvedCaseCount: approvedCases.length,
+      pendingReviewCount: pendingCases.length,
       projectArtifactCount: projectArtifacts.length,
       derivedPatternCount: derivedPatterns.length,
-      knowledgeObjectCount: internalAssets.length + cases.length + projectArtifacts.length,
+      knowledgeObjectCount: internalAssets.length + allCases.length + projectArtifacts.length,
     },
     sourceCount: vault.sources.filter((source) => source.enabled).length,
     sources: vault.sources,
     internalAssets,
     derivedPatterns,
     projectArtifacts,
-    recentCases: cases.slice(0, 8),
-    cases,
+    recentCases: approvedCases.slice(0, 8),
+    approvedCases,
+    pendingCases,
+    rejectedCases,
+    cases: allCases,
   };
 }
 
@@ -758,7 +819,7 @@ function buildBootstrap(db, session) {
           organizationId: session.organizationId,
         }
       : null,
-    user: getCurrentUser(db, session),
+    user: serializeUser(getCurrentUser(db, session)),
     organization: getCurrentOrg(db, session),
     dashboard: session ? getDashboard(db, session) : { stats: [], engagements: [] },
     vault: getVaultSummary(db),
@@ -794,6 +855,283 @@ function uniqueBy(items, getKey) {
     seen.add(key);
     return true;
   });
+}
+
+function canonicalizeUrl(urlString) {
+  try {
+    const parsed = new URL(urlString);
+    parsed.hash = "";
+    if ((parsed.protocol === "https:" && parsed.port === "443") || (parsed.protocol === "http:" && parsed.port === "80")) {
+      parsed.port = "";
+    }
+    parsed.pathname = parsed.pathname.replace(/\/+$/, "") || "/";
+    return parsed.toString();
+  } catch {
+    return String(urlString || "").trim();
+  }
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function round(value, decimals = 3) {
+  const factor = 10 ** decimals;
+  return Math.round(Number(value || 0) * factor) / factor;
+}
+
+function splitIntoSentences(value) {
+  return String(value || "")
+    .split(/(?<=[.!?])\s+/)
+    .map((item) => collapseWhitespace(item))
+    .filter(Boolean);
+}
+
+function titleCaseFromSlug(value) {
+  return String(value || "")
+    .replace(/\.[a-z0-9]+$/i, "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function detectByKeyword(text, mapping, fallback = "General") {
+  const haystack = String(text || "").toLowerCase();
+  for (const [label, keywords] of mapping) {
+    if (keywords.some((keyword) => haystack.includes(keyword))) {
+      return label;
+    }
+  }
+  return fallback;
+}
+
+function extractFirstMatchingSentence(text, pattern) {
+  return splitIntoSentences(text).find((sentence) => pattern.test(sentence)) || "";
+}
+
+function extractCaseMetadata(candidate) {
+  const title = collapseWhitespace(candidate.title || "");
+  const summary = collapseWhitespace(candidate.summary || "");
+  const url = String(candidate.url || "");
+  const text = `${title}. ${summary}`.toLowerCase();
+  const pathText = (() => {
+    try {
+      return new URL(url).pathname.toLowerCase();
+    } catch {
+      return "";
+    }
+  })();
+  const combined = `${text} ${pathText}`;
+  const industry = detectByKeyword(combined, [
+    ["Financial Services", ["bank", "banking", "payment", "payments", "insurance", "insurer", "financial", "private equity", "asset management", "wealth fund", "investor"]],
+    ["Healthcare", ["healthcare", "medical", "pharma", "biopharma", "payer", "provider", "hospital", "life sciences"]],
+    ["Telecom & Media", ["telecom", "telco", "media", "communications", "wireless", "broadband", "streaming"]],
+    ["Retail & Consumer", ["retail", "consumer", "cpg", "food", "grocery", "store", "ecommerce", "consumer products"]],
+    ["Technology", ["technology", "software", "semiconductor", "tech company", "erp", "cybersecurity"]],
+    ["Industrial Goods", ["industrial", "manufactur", "factory", "mining", "metals", "chemicals", "logistics", "airline", "appliance"]],
+    ["Energy & Utilities", ["energy", "utility", "utilities", "power", "oil", "gas", "decarbon", "climate"]],
+    ["Public Sector", ["government", "public sector", "education", "metro", "city", "state", "ministry"]],
+  ]);
+  const capability = detectByKeyword(combined, [
+    ["AI & Data", ["gen ai", "artificial intelligence", "advanced analytics", "analytics", "machine learning", "data science"]],
+    ["Commercial Strategy", ["growth", "pricing", "sales", "marketing", "go to market", "customer", "commercial"]],
+    ["Operations", ["operations", "supply chain", "procurement", "manufactur", "factory", "cost", "working capital", "productivity"]],
+    ["Transformation", ["transform", "reinvent", "turnaround", "operating model", "restructuring", "performance improvement"]],
+    ["Technology Delivery", ["cloud", "platform", "engineering", "technology architecture", "erp", "it foundation", "digital platform", "system"]],
+    ["Sustainability", ["climate", "sustainab", "circular", "decarbon", "carbon", "esg"]],
+  ]);
+  const geo = detectByKeyword(text, [
+    ["Global", ["global", "worldwide", "international"]],
+    ["North America", ["united states", "north america", "canada"]],
+    ["Europe", ["europe", "european", "italy", "germany", "france", "spain", "uk ", "united kingdom"]],
+    ["Middle East", ["uae", "abu dhabi", "dubai", "saudi", "middle east"]],
+    ["Asia-Pacific", ["asia", "asian", "india", "japan", "australia", "singapore", "malaysia"]],
+    ["Latin America", ["latin america", "latam", "brazil", "argentina", "mexico", "chile"]],
+  ], "Regional / Unspecified");
+  const quantifiedOutcome =
+    extractFirstMatchingSentence(summary, /(\d+[%x]|million|billion|\$\d+)/i) ||
+    extractFirstMatchingSentence(title, /(\d+[%x]|million|billion|\$\d+)/i);
+  const problem =
+    extractFirstMatchingSentence(summary, /\b(needed|challenge|erosion|pressure|inefficien|lag|complex|shift)\b/i) ||
+    splitIntoSentences(summary)[0] ||
+    title;
+  const intervention =
+    extractFirstMatchingSentence(summary, /\b(helped|partnered|transformed|built|launched|redesigned|reinvent|implemented|optimized)\b/i) ||
+    `Advised on ${capability.toLowerCase()}`;
+  const outcome =
+    quantifiedOutcome ||
+    extractFirstMatchingSentence(summary, /\b(improv|boost|reduc|accelerat|growth|efficien|scale|ahead)\b/i) ||
+    summary;
+  const evidenceStrength = clamp(
+    40 +
+      (quantifiedOutcome ? 20 : 0) +
+      (/case study|client results|client impact/i.test(title) ? 5 : 0) +
+      (summary.length > 110 ? 10 : 0) +
+      (/\.pdf($|\?)/i.test(url) ? 10 : 0) +
+      (/[A-Z][a-z]+/.test(title) ? 5 : 0),
+    40,
+    95
+  );
+
+  return {
+    industry,
+    capability,
+    problem: collapseWhitespace(problem).slice(0, 220),
+    intervention: collapseWhitespace(intervention).slice(0, 220),
+    outcome: collapseWhitespace(outcome).slice(0, 220),
+    geo,
+    evidenceStrength,
+  };
+}
+
+function synthesizeCaseSummary(candidate, metadata) {
+  return collapseWhitespace(
+    [
+      candidate.title,
+      metadata.industry,
+      metadata.capability,
+      metadata.problem,
+      metadata.intervention,
+      metadata.outcome,
+      metadata.geo,
+      candidate.summary,
+      candidate.sourceName || "",
+    ].join(". ")
+  );
+}
+
+function createLocalEmbedding(text) {
+  const dimensions = Array.from({ length: LOCAL_EMBEDDING_DIMENSIONS }, () => 0);
+  const tokens = String(text || "").toLowerCase().match(/[a-z0-9]{2,}/g) || [];
+  if (!tokens.length) {
+    return dimensions;
+  }
+  for (const token of tokens) {
+    const digest = createHash("sha256").update(token).digest();
+    const dim = digest[0] % LOCAL_EMBEDDING_DIMENSIONS;
+    const sign = digest[1] % 2 === 0 ? 1 : -1;
+    const weight = 1 + (digest[2] % 5) / 10;
+    dimensions[dim] += sign * weight;
+  }
+  const norm = Math.sqrt(dimensions.reduce((sum, value) => sum + value * value, 0)) || 1;
+  return dimensions.map((value) => round(value / norm, 4));
+}
+
+async function createEmbedding(text) {
+  if (!OPENAI_API_KEY) {
+    return {
+      provider: "local",
+      model: "local-hash-v1",
+      vector: createLocalEmbedding(text),
+    };
+  }
+  try {
+    const response = await fetch("https://api.openai.com/v1/embeddings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: OPENAI_EMBEDDING_MODEL,
+        input: text,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Embedding request failed with status ${response.status}`);
+    }
+    const payload = await response.json();
+    return {
+      provider: "openai",
+      model: payload.model || OPENAI_EMBEDDING_MODEL,
+      vector: Array.isArray(payload.data?.[0]?.embedding)
+        ? payload.data[0].embedding.map((value) => round(value, 6))
+        : createLocalEmbedding(text),
+    };
+  } catch {
+    return {
+      provider: "local",
+      model: "local-hash-v1",
+      vector: createLocalEmbedding(text),
+    };
+  }
+}
+
+function cosineSimilarity(vectorA, vectorB) {
+  if (!Array.isArray(vectorA) || !Array.isArray(vectorB) || !vectorA.length || !vectorB.length) {
+    return 0;
+  }
+  const length = Math.min(vectorA.length, vectorB.length);
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let index = 0; index < length; index += 1) {
+    const a = Number(vectorA[index] || 0);
+    const b = Number(vectorB[index] || 0);
+    dot += a * b;
+    normA += a * a;
+    normB += b * b;
+  }
+  if (!normA || !normB) return 0;
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+function snapshotVaultCase(caseItem, label) {
+  if (!Array.isArray(caseItem.versions)) {
+    caseItem.versions = [];
+  }
+  caseItem.versions.unshift({
+    id: randomUUID(),
+    label,
+    createdAt: new Date().toISOString(),
+    snapshot: {
+      title: caseItem.title,
+      summary: caseItem.summary,
+      synthesizedSummary: caseItem.synthesizedSummary,
+      metadata: caseItem.metadata,
+      reviewStatus: caseItem.reviewStatus,
+      searchable: caseItem.searchable,
+      embeddingMeta: caseItem.embeddingMeta,
+    },
+  });
+  caseItem.versions = caseItem.versions.slice(0, 10);
+}
+
+function normalizeVaultCaseRecord(item) {
+  const metadata = {
+    industry: item.metadata?.industry || "General",
+    capability: item.metadata?.capability || "General",
+    problem: item.metadata?.problem || collapseWhitespace(item.summary || item.title || ""),
+    intervention: item.metadata?.intervention || "Advisory intervention not yet reviewed",
+    outcome: item.metadata?.outcome || collapseWhitespace(item.summary || item.title || ""),
+    geo: item.metadata?.geo || "Regional / Unspecified",
+    evidenceStrength: clamp(Number(item.metadata?.evidenceStrength || item.evidenceStrength || 50), 40, 95),
+  };
+  const synthesizedSummary =
+    item.synthesizedSummary ||
+    synthesizeCaseSummary(
+      {
+        title: item.title,
+        summary: item.summary,
+        sourceName: item.sourceName,
+      },
+      metadata
+    );
+  return {
+    ...item,
+    canonicalUrl: canonicalizeUrl(item.canonicalUrl || item.url),
+    metadata,
+    synthesizedSummary,
+    embedding: Array.isArray(item.embedding) ? item.embedding : createLocalEmbedding(synthesizedSummary),
+    embeddingMeta: item.embeddingMeta || { provider: "local", model: "local-hash-v1" },
+    reviewStatus: item.reviewStatus || "pending",
+    searchable: item.reviewStatus === "approved" ? item.searchable !== false : false,
+    importCount: Number(item.importCount || 1),
+    versions: Array.isArray(item.versions) ? item.versions : [],
+    reviewHistory: Array.isArray(item.reviewHistory) ? item.reviewHistory : [],
+    firstImportedAt: item.firstImportedAt || item.importedAt || new Date().toISOString(),
+    lastImportedAt: item.lastImportedAt || item.importedAt || new Date().toISOString(),
+    parserVersion: item.parserVersion || VAULT_PARSER_VERSION,
+  };
 }
 
 function isTrustedUrl(urlString, source) {
@@ -929,13 +1267,26 @@ function extractAnchorCandidates(html, source) {
 function normalizeImportedCase(candidate, source) {
   const rawUrl = toTrustedAbsoluteUrl(candidate.url, source);
   const fallbackTitle = rawUrl
-    ? decodeURIComponent(rawUrl.split("/").pop() || "")
-        .replace(/\.[a-z0-9]+$/i, "")
-        .replace(/[-_]+/g, " ")
+    ? (() => {
+        try {
+          const segments = new URL(rawUrl).pathname.split("/").filter(Boolean);
+          return decodeURIComponent(segments[segments.length - 1] || "")
+            .replace(/\.[a-z0-9]+$/i, "")
+            .replace(/[-_]+/g, " ");
+        } catch {
+          return "";
+        }
+      })()
     : "";
   const title = collapseWhitespace(candidate.title || fallbackTitle);
   const url = rawUrl;
   if (!title || !url) return null;
+  if (source.id === "bain-client-results") {
+    const segments = new URL(url).pathname.split("/").filter(Boolean);
+    if (segments.length < 3) {
+      return null;
+    }
+  }
 
   return {
     title,
@@ -981,7 +1332,29 @@ function extractDeloitteCandidates(html, source) {
   return candidates;
 }
 
+function extractSitemapCandidates(xml, source) {
+  return uniqueBy(
+    [...xml.matchAll(/<url>\s*<loc>(.*?)<\/loc>(?:[\s\S]*?<lastmod>(.*?)<\/lastmod>)?[\s\S]*?<\/url>/gi)]
+      .map((match) =>
+        normalizeImportedCase(
+          {
+            title: "",
+            url: decodeHtmlEntities(match[1]),
+            summary: "",
+            publishedAt: collapseWhitespace(match[2] || ""),
+          },
+          source
+        )
+      )
+      .filter(Boolean),
+    (item) => item.url
+  ).sort((a, b) => String(b.publishedAt || "").localeCompare(String(a.publishedAt || "")));
+}
+
 function extractListingCandidates(html, source) {
+  if (source.extractor === "bcg-sitemap" || source.extractor === "bain-sitemap" || source.extractor === "mckinsey-sitemap") {
+    return extractSitemapCandidates(html, source);
+  }
   if (source.extractor === "accenture") {
     return extractAccentureCandidates(html, source)
       .map((item) => normalizeImportedCase(item, source))
@@ -1017,12 +1390,19 @@ async function fetchHtml(url) {
     headers: {
       "User-Agent": "AI-Consultant-Vault/1.0 (+local prototype)",
       Accept: "text/html,application/xhtml+xml",
+      "Accept-Language": "en-US,en;q=0.9",
     },
   });
   if (!response.ok) {
     throw new Error(`Request failed with status ${response.status}`);
   }
   return response.text();
+}
+
+async function fetchSourceListing(source) {
+  const targetUrl = source.sitemapUrl || source.listUrl;
+  const payload = await fetchHtml(targetUrl);
+  return extractListingCandidates(payload, source);
 }
 
 async function enrichImportedCase(candidate, source) {
@@ -1052,6 +1432,133 @@ async function enrichImportedCase(candidate, source) {
   }
 }
 
+async function prepareVaultCaseRecord(candidate, source) {
+  const metadata = extractCaseMetadata(candidate);
+  const synthesizedSummary = synthesizeCaseSummary(
+    {
+      title: candidate.title,
+      summary: candidate.summary,
+      sourceName: source.name,
+    },
+    metadata
+  );
+  const embedding = await createEmbedding(synthesizedSummary);
+
+  return normalizeVaultCaseRecord({
+    id: randomUUID(),
+    sourceId: source.id,
+    sourceName: source.name,
+    sourceDomain: source.domain,
+    title: candidate.title,
+    summary: candidate.summary,
+    url: candidate.url,
+    canonicalUrl: canonicalizeUrl(candidate.url),
+    publishedAt: candidate.publishedAt || null,
+    importedAt: new Date().toISOString(),
+    firstImportedAt: new Date().toISOString(),
+    lastImportedAt: new Date().toISOString(),
+    importCount: 1,
+    metadata,
+    synthesizedSummary,
+    embedding: embedding.vector,
+    embeddingMeta: {
+      provider: embedding.provider,
+      model: embedding.model,
+    },
+    parserVersion: VAULT_PARSER_VERSION,
+    reviewStatus: "pending",
+    searchable: false,
+  });
+}
+
+function casesDiffer(existing, nextRecord) {
+  return (
+    existing.title !== nextRecord.title ||
+    existing.summary !== nextRecord.summary ||
+    existing.synthesizedSummary !== nextRecord.synthesizedSummary ||
+    JSON.stringify(existing.metadata) !== JSON.stringify(nextRecord.metadata) ||
+    existing.publishedAt !== nextRecord.publishedAt
+  );
+}
+
+function upsertVaultCase(vault, record) {
+  const existing = vault.cases.find((item) => item.canonicalUrl === record.canonicalUrl);
+  if (!existing) {
+    vault.cases.unshift(record);
+    return { caseRecord: record, created: true, updated: false };
+  }
+
+  let changed = false;
+  if (casesDiffer(existing, record)) {
+    snapshotVaultCase(existing, "Importer refresh");
+    existing.title = record.title;
+    existing.summary = record.summary;
+    existing.publishedAt = record.publishedAt;
+    existing.metadata = record.metadata;
+    existing.synthesizedSummary = record.synthesizedSummary;
+    existing.embedding = record.embedding;
+    existing.embeddingMeta = record.embeddingMeta;
+    existing.parserVersion = record.parserVersion;
+    changed = true;
+  }
+
+  existing.lastImportedAt = new Date().toISOString();
+  existing.importCount = Number(existing.importCount || 0) + 1;
+  existing.url = record.url;
+  existing.sourceName = record.sourceName;
+  existing.sourceDomain = record.sourceDomain;
+  existing.sourceId = record.sourceId;
+
+  return { caseRecord: existing, created: false, updated: changed };
+}
+
+function rankVaultCaseForEngagement(caseItem, engagementSummary, engagementEmbedding, engagement) {
+  const overlapTerms = [
+    engagement.businessContext?.industry || "",
+    engagement.type || "",
+    engagement.client || "",
+    ...(engagement.tags || []),
+  ]
+    .join(" ")
+    .toLowerCase();
+  const caseText = `${caseItem.title} ${caseItem.synthesizedSummary} ${caseItem.metadata.industry} ${caseItem.metadata.capability}`.toLowerCase();
+  const overlapScore = uniqueBy(
+    overlapTerms.match(/[a-z0-9]{3,}/g) || [],
+    (item) => item
+  ).reduce((sum, token) => sum + (caseText.includes(token) ? 1 : 0), 0);
+  const keywordScore = Math.min(1, overlapScore / 6);
+  const similarityScore = Math.max(0, cosineSimilarity(engagementEmbedding, caseItem.embedding));
+  const industryBoost =
+    engagement.businessContext?.industry &&
+    caseItem.metadata.industry.toLowerCase().includes(String(engagement.businessContext.industry).toLowerCase())
+      ? 0.1
+      : 0;
+  const analogyFit = clamp(Math.round((similarityScore * 0.65 + keywordScore * 0.25 + industryBoost) * 100), 45, 99);
+  return {
+    id: randomUUID(),
+    vaultCaseId: caseItem.id,
+    title: caseItem.title,
+    blurb: caseItem.synthesizedSummary.slice(0, 240),
+    analogyFit,
+    evidenceStrength: caseItem.metadata.evidenceStrength,
+    sourceName: caseItem.sourceName,
+    url: caseItem.url,
+  };
+}
+
+async function buildApprovedMatchedCases(db, engagement) {
+  const approvedCases = ensureVault(db).cases.filter((item) => item.reviewStatus === "approved" && item.searchable);
+  if (!approvedCases.length) {
+    return [];
+  }
+  const engagementSummary = buildGenerationPrompt(engagement);
+  const engagementEmbedding = (await createEmbedding(engagementSummary)).vector;
+  return approvedCases
+    .map((caseItem) => rankVaultCaseForEngagement(caseItem, engagementSummary, engagementEmbedding, engagement))
+    .sort((a, b) => b.analogyFit - a.analogyFit || b.evidenceStrength - a.evidenceStrength)
+    .slice(0, 3);
+}
+
 async function importVaultCases(db, sourceId, limit = 12) {
   const vault = ensureVault(db);
   const selectedSources = vault.sources.filter((source) => source.enabled && (!sourceId || source.id === sourceId));
@@ -1060,34 +1567,32 @@ async function importVaultCases(db, sourceId, limit = 12) {
   }
 
   const imported = [];
+  let createdCount = 0;
+  let updatedCount = 0;
   for (const source of selectedSources) {
     try {
-      const html = await fetchHtml(source.listUrl);
-      const candidates = extractListingCandidates(html, source).slice(0, Math.max(1, Math.min(limit, 8)));
+      const candidates = (await fetchSourceListing(source)).slice(0, Math.max(1, Math.min(limit, 12)));
       const enriched = [];
       for (const candidate of candidates) {
         enriched.push(await enrichImportedCase(candidate, source));
       }
 
-      const fresh = uniqueBy(enriched, (item) => item.url)
-        .filter((item) => !vault.cases.some((entry) => entry.url === item.url))
-        .map((item) => ({
-          id: randomUUID(),
-          sourceId: source.id,
-          sourceName: source.name,
-          sourceDomain: source.domain,
-          title: item.title,
-          summary: item.summary,
-          url: item.url,
-          publishedAt: item.publishedAt || null,
-          importedAt: new Date().toISOString(),
-        }));
+      const prepared = [];
+      for (const item of uniqueBy(enriched, (entry) => canonicalizeUrl(entry.url))) {
+        prepared.push(await prepareVaultCaseRecord(item, source));
+      }
 
-      vault.cases.unshift(...fresh);
+      const batch = [];
+      for (const record of prepared) {
+        const result = upsertVaultCase(vault, record);
+        if (result.created) createdCount += 1;
+        if (result.updated) updatedCount += 1;
+        batch.push(result.caseRecord);
+      }
       source.lastImportedAt = new Date().toISOString();
-      source.lastImportCount = fresh.length;
+      source.lastImportCount = batch.length;
       source.lastError = null;
-      imported.push(...fresh);
+      imported.push(...batch);
     } catch (error) {
       source.lastImportedAt = new Date().toISOString();
       source.lastImportCount = 0;
@@ -1095,10 +1600,10 @@ async function importVaultCases(db, sourceId, limit = 12) {
     }
   }
 
-  vault.cases = uniqueBy(vault.cases, (item) => item.url).sort((a, b) =>
-    String(b.importedAt || "").localeCompare(String(a.importedAt || ""))
+  vault.cases = uniqueBy(vault.cases, (item) => item.canonicalUrl).sort((a, b) =>
+    String(b.lastImportedAt || b.importedAt || "").localeCompare(String(a.lastImportedAt || a.importedAt || ""))
   );
-  return imported;
+  return { imported, createdCount, updatedCount };
 }
 
 function buildFallbackArtifacts(engagement) {
@@ -1136,12 +1641,16 @@ function buildFallbackArtifacts(engagement) {
       {
         title: `${title} analog: commercial acceleration`,
         fit: 91,
+        analogyFit: 91,
+        evidenceStrength: 72,
         blurb:
           "Comparable transformation that combined opportunity sizing, leadership workshops, and a phased workplan to secure executive sign-off.",
       },
       {
         title: `${title} analog: operating model redesign`,
         fit: 86,
+        analogyFit: 86,
+        evidenceStrength: 68,
         blurb:
           "Case example focused on turning a broad strategic brief into a board-ready proposal with sequenced workstreams and measurable outcomes.",
       },
@@ -1382,6 +1891,8 @@ function normalizeGeneratedArtifacts(payload, engagement) {
               id: randomUUID(),
               title: String(item?.title || "").trim(),
               fit: Math.max(60, Math.min(99, Number(item?.fit || 80))),
+              analogyFit: Math.max(60, Math.min(99, Number(item?.analogyFit || item?.fit || 80))),
+              evidenceStrength: clamp(Number(item?.evidenceStrength || 65), 40, 95),
               blurb: String(item?.blurb || "").trim(),
             }))
             .filter((item) => item.title && item.blurb)
@@ -1574,13 +2085,41 @@ async function handleApi(req, res, url) {
 
   if (method === "POST" && pathname === "/api/vault/import") {
     const body = await collectBody(req);
-    const imported = await importVaultCases(db, body.sourceId || "", Number(body.limit || 4));
+    const result = await importVaultCases(db, body.sourceId || "", Number(body.limit || 4));
     writeDb(db);
     return sendJson(res, 200, {
-      importedCount: imported.length,
-      imported,
+      importedCount: result.imported.length,
+      createdCount: result.createdCount,
+      updatedCount: result.updatedCount,
+      imported: result.imported,
       vault: getVaultSummary(db),
     });
+  }
+
+  const vaultCaseReviewMatch = pathname.match(/^\/api\/vault\/cases\/([^/]+)\/review$/);
+  if (vaultCaseReviewMatch && method === "PATCH") {
+    const body = await collectBody(req);
+    const vaultCase = ensureVault(db).cases.find((item) => item.id === vaultCaseReviewMatch[1]);
+    if (!vaultCase) {
+      return sendJson(res, 404, { error: "Vault case not found" });
+    }
+    const nextStatus = ["approved", "rejected", "pending"].includes(body.reviewStatus)
+      ? body.reviewStatus
+      : "pending";
+    if (vaultCase.reviewStatus !== nextStatus) {
+      snapshotVaultCase(vaultCase, `Review set to ${nextStatus}`);
+    }
+    vaultCase.reviewStatus = nextStatus;
+    vaultCase.searchable = nextStatus === "approved";
+    vaultCase.reviewHistory.unshift({
+      id: randomUUID(),
+      reviewStatus: nextStatus,
+      reviewedAt: new Date().toISOString(),
+      reviewerId: auth.user.id,
+    });
+    vaultCase.reviewHistory = vaultCase.reviewHistory.slice(0, 12);
+    writeDb(db);
+    return sendJson(res, 200, { vault: getVaultSummary(db), caseRecord: vaultCase });
   }
 
   if (method === "POST" && pathname === "/api/engagements") {
@@ -1657,6 +2196,10 @@ async function handleApi(req, res, url) {
     const generated = await generateArtifactsForEngagement(engagement);
     snapshotEngagement(engagement, "Regenerated outputs");
     applyGeneratedArtifacts(engagement, generated.artifacts, generated.meta);
+    const rankedVaultCases = await buildApprovedMatchedCases(db, engagement);
+    if (rankedVaultCases.length) {
+      engagement.matchedCases = rankedVaultCases;
+    }
     engagement.updatedAt = new Date().toISOString();
     const org = auth.organization;
     if (org) {

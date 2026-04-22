@@ -8,7 +8,11 @@
       "id": "1962e705-a2a1-4e7b-a20e-f53549daae77",
       "fullName": "Morgan Lee",
       "email": "morgan@altitudeadvisory.com",
-      "title": "Principal Consultant"
+      "title": "Principal Consultant",
+      "passwordHash": "0ead2060b65992dca4769af601a1b3a35ef38cfad2c2c465bb160ea764157c5d",
+      "organizationIds": [
+        "344af24a-9d57-409f-86cc-bc15783aa285"
+      ]
     }
   ],
   "organizations": [
@@ -16,7 +20,7 @@
       "id": "344af24a-9d57-409f-86cc-bc15783aa285",
       "name": "Altitude Advisory",
       "plan": "Team",
-      "monthlyRuns": 45,
+      "monthlyRuns": 46,
       "monthlyLimit": 120,
       "members": [
         {
@@ -64,7 +68,7 @@
       "type": "Pricing and operations strategy",
       "owner": "Morgan Lee",
       "stage": "Workspace",
-      "updatedAt": "2026-04-22T19:28:49.324Z",
+      "updatedAt": "2026-04-22T19:52:43.440Z",
       "tags": [
         "Logistics",
         "Pricing",
@@ -127,16 +131,14 @@
       ],
       "matchedCases": [
         {
-          "title": "Northstar Logistics Margin Expansion analog: commercial acceleration",
-          "fit": 91,
-          "blurb": "Comparable transformation that combined opportunity sizing, leadership workshops, and a phased workplan to secure executive sign-off.",
-          "id": "a2c01025-baa4-47ce-a4dc-4057ca3c7e10"
-        },
-        {
-          "title": "Northstar Logistics Margin Expansion analog: operating model redesign",
-          "fit": 86,
-          "blurb": "Case example focused on turning a broad strategic brief into a board-ready proposal with sequenced workstreams and measurable outcomes.",
-          "id": "fb796f60-d3b8-4ec8-8153-b4b8d6f4f4fa"
+          "id": "c2464376-3640-4ad5-bb78-cf3694eb3845",
+          "vaultCaseId": "45e62651-8091-44d4-9fa1-a51096ed6688",
+          "title": "Using AI to Finance Sustainability",
+          "blurb": "Using AI to Finance Sustainability. Financial Services. Technology Delivery. A unique collaboration enables First Abu Dhabi Bank to pioneer a powerful AI-based platform.&#xA;. Advised on technology delivery. A unique collaboration enables F",
+          "analogyFit": 45,
+          "evidenceStrength": 45,
+          "sourceName": "Bain & Company",
+          "url": "https://www.bain.com/client-results/ai/first-abu-dhabi-bank/"
         }
       ],
       "proposalStarter": {
@@ -185,14 +187,517 @@
       "generationMeta": {
         "provider": "fallback",
         "model": "local-template",
-        "generatedAt": "2026-04-22T19:21:02.772Z",
-        "note": "You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+        "generatedAt": "2026-04-22T19:52:43.331Z",
+        "note": "Project `proj_G9PRFlD6fEQwjKlMxVFHxuVr` does not have access to model `gpt-5.2`"
       },
-      "versions": []
+      "versions": [
+        {
+          "id": "0d9538d4-dc6b-4281-bca0-317bb2ed95ea",
+          "label": "Regenerated outputs",
+          "createdAt": "2026-04-22T19:52:43.331Z",
+          "snapshot": {
+            "brief": {
+              "summary": "Northstar wants a proposal starter focused on gross margin recovery, warehouse productivity, and customer segment repricing over the next two quarters.",
+              "goal": "Identify the top profit levers, quantify impact, and outline a 12-week delivery plan with client and consultant responsibilities.",
+              "ask": "Prepare an executive-ready proposal starter and workplan with supporting evidence from prior cases."
+            },
+            "businessContext": {
+              "industry": "Third-party logistics",
+              "currentSituation": "Northstar Logistics needs a tighter case for change and a clearer fact base before leadership can commit to a proposal scope.",
+              "constraints": "The team needs a practical plan that sharpens the brief quickly without creating avoidable stakeholder churn or over-analysis."
+            },
+            "insights": [
+              "Leadership is aligned on urgency, but the current brief for Northstar Logistics is still too broad for immediate execution.",
+              "The strongest early win is to turn \"Identify the top profit levers, quantify impact, and outline a 12-week delivery plan with client and consultant responsibilities.\" into a quantified, time-bound outcome with named owners.",
+              "The proposal will be stronger if the storyline pairs diagnostic evidence with a pragmatic first-90-days plan."
+            ],
+            "issueTree": [
+              {
+                "title": "Why now",
+                "children": [
+                  "Business pressure",
+                  "Leadership mandate",
+                  "Timing constraints"
+                ]
+              },
+              {
+                "title": "Where value sits",
+                "children": [
+                  "Revenue growth",
+                  "Cost efficiency",
+                  "Operating model"
+                ]
+              },
+              {
+                "title": "How to execute",
+                "children": [
+                  "Decision cadence",
+                  "Team roles",
+                  "Pilot and rollout"
+                ]
+              }
+            ],
+            "proposalStarter": {
+              "hook": "A focused consulting sprint for Northstar Logistics to identify the top profit levers, quantify impact, and outline a 12-week delivery plan with client and consultant responsibilities. while keeping leadership aligned on the highest-value decisions.",
+              "sections": [
+                "Executive context",
+                "Key problems to solve",
+                "Approach and workstreams",
+                "Indicative timeline and outputs",
+                "Risks, dependencies, and team structure"
+              ]
+            },
+            "workplan": [
+              {
+                "week": "Week 1",
+                "focus": "Clarify scope and success metrics",
+                "output": "Approved problem statement and steering questions"
+              },
+              {
+                "week": "Weeks 2-4",
+                "focus": "Diagnostic and evidence gathering",
+                "output": "Initial fact base, hypotheses, and opportunity sizing"
+              },
+              {
+                "week": "Weeks 5-8",
+                "focus": "Recommendation design",
+                "output": "Draft proposal storyline and workstream architecture"
+              },
+              {
+                "week": "Weeks 9-12",
+                "focus": "Executive alignment and final packaging",
+                "output": "Final proposal starter, implementation roadmap, and risk plan"
+              }
+            ],
+            "keyRisks": [
+              "Scope could sprawl if northstar wants a proposal starter focused on gross margin recovery, warehouse productivity, and customer segment repricing over the next two quarters. is not narrowed into explicit choices.",
+              "Stakeholder interviews may reveal competing success metrics across leadership roles.",
+              "The final proposal may over-index on analysis unless deliverables and decision points are locked early."
+            ],
+            "referenceWork": [
+              "Executive proposal starter template",
+              "Issue tree workshop guide",
+              "Matched case evidence summary",
+              "12-week workplan blueprint"
+            ],
+            "uploads": [
+              {
+                "id": "ca8350c9-7363-4c5e-93cc-63c29805c0e9",
+                "name": "northstar-board-deck.pdf",
+                "status": "Processed",
+                "pages": 34
+              },
+              {
+                "id": "53de2472-6e89-4be7-bc2c-6a4e2f8ea9dd",
+                "name": "customer-segmentation.xlsx",
+                "status": "Processed",
+                "pages": 6
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "vault": {
     "cases": [
+      {
+        "id": "342aa776-26c7-435b-8f3b-91aedce5d822",
+        "sourceId": "bain-client-results",
+        "sourceName": "Bain & Company",
+        "sourceDomain": "bain.com",
+        "title": "Banca Investis Transforms Customer Dialogue with a Generative AI Engine",
+        "summary": "The bank&#x2019;s AI-powered chatbot offers tailored insights and real-time answers.",
+        "url": "https://www.bain.com/client-results/ai/banca-investis/",
+        "canonicalUrl": "https://www.bain.com/client-results/ai/banca-investis",
+        "publishedAt": "2025-11-14T14:48:07+00:00",
+        "importedAt": "2026-04-22T19:52:22.807Z",
+        "firstImportedAt": "2026-04-22T19:52:22.807Z",
+        "lastImportedAt": "2026-04-22T19:52:22.807Z",
+        "importCount": 1,
+        "metadata": {
+          "industry": "Financial Services",
+          "capability": "Commercial Strategy",
+          "problem": "The bank&#x2019;s AI-powered chatbot offers tailored insights and real-time answers.",
+          "intervention": "Advised on commercial strategy",
+          "outcome": "The bank&#x2019;s AI-powered chatbot offers tailored insights and real-time answers.",
+          "geo": "Regional / Unspecified",
+          "evidenceStrength": 45
+        },
+        "synthesizedSummary": "Banca Investis Transforms Customer Dialogue with a Generative AI Engine. Financial Services. Commercial Strategy. The bank&#x2019;s AI-powered chatbot offers tailored insights and real-time answers.. Advised on commercial strategy. The bank&#x2019;s AI-powered chatbot offers tailored insights and real-time answers.. Regional / Unspecified. The bank&#x2019;s AI-powered chatbot offers tailored insights and real-time answers.. Bain & Company",
+        "embedding": [
+          0.2169,
+          0.282,
+          -0.3253,
+          -0.2277,
+          -0.1518,
+          0,
+          0.0217,
+          -0.1301,
+          0.3145,
+          -0.4555,
+          -0.4229,
+          0.2494,
+          0.1193,
+          -0.1193,
+          0.141,
+          -0.282
+        ],
+        "embeddingMeta": {
+          "provider": "local",
+          "model": "local-hash-v1"
+        },
+        "parserVersion": "2026-04-22-v2",
+        "reviewStatus": "pending",
+        "searchable": false,
+        "versions": [],
+        "reviewHistory": []
+      },
+      {
+        "id": "834d7bd0-5e88-4606-8499-1c5083805b41",
+        "sourceId": "bain-client-results",
+        "sourceName": "Bain & Company",
+        "sourceDomain": "bain.com",
+        "title": "How NatWest Is Scaling Customer Engagement with AI",
+        "summary": "The bank partnered with us to transform its idea-to-value process from 60&#x2B; days to just one day.",
+        "url": "https://www.bain.com/client-results/ai/natwest-group/",
+        "canonicalUrl": "https://www.bain.com/client-results/ai/natwest-group",
+        "publishedAt": "2025-12-16T13:26:21+00:00",
+        "importedAt": "2026-04-22T19:52:22.720Z",
+        "firstImportedAt": "2026-04-22T19:52:22.720Z",
+        "lastImportedAt": "2026-04-22T19:52:22.720Z",
+        "importCount": 1,
+        "metadata": {
+          "industry": "Financial Services",
+          "capability": "Commercial Strategy",
+          "problem": "The bank partnered with us to transform its idea-to-value process from 60&#x2B; days to just one day.",
+          "intervention": "The bank partnered with us to transform its idea-to-value process from 60&#x2B; days to just one day.",
+          "outcome": "The bank partnered with us to transform its idea-to-value process from 60&#x2B; days to just one day.",
+          "geo": "Regional / Unspecified",
+          "evidenceStrength": 45
+        },
+        "synthesizedSummary": "How NatWest Is Scaling Customer Engagement with AI. Financial Services. Commercial Strategy. The bank partnered with us to transform its idea-to-value process from 60&#x2B; days to just one day.. The bank partnered with us to transform its idea-to-value process from 60&#x2B; days to just one day.. The bank partnered with us to transform its idea-to-value process from 60&#x2B; days to just one day.. Regional / Unspecified. The bank partnered with us to transform its idea-to-value process from 60&#x2B; days to just one day.. Bain & Company",
+        "embedding": [
+          0.0799,
+          0.1038,
+          0.2716,
+          -0.2077,
+          0.0399,
+          -0.1917,
+          0.5592,
+          0,
+          0,
+          -0.4953,
+          -0.0839,
+          -0.3675,
+          0,
+          0.2237,
+          0.2756,
+          0.0399
+        ],
+        "embeddingMeta": {
+          "provider": "local",
+          "model": "local-hash-v1"
+        },
+        "parserVersion": "2026-04-22-v2",
+        "reviewStatus": "pending",
+        "searchable": false,
+        "versions": [],
+        "reviewHistory": []
+      },
+      {
+        "id": "9007aca4-8b81-4bb8-995d-c3cc2d3eba68",
+        "sourceId": "bain-client-results",
+        "sourceName": "Bain & Company",
+        "sourceDomain": "bain.com",
+        "title": "K&#xE1;yana Ignites AI-Driven Innovation by Unifying Its Data Ecosystem",
+        "summary": "K&#xE1;yana harnessed the Philippines&#x2019; most comprehensive dataset to spur AI-driven transformation across multiple sectors.",
+        "url": "https://www.bain.com/client-results/ai/kayana/",
+        "canonicalUrl": "https://www.bain.com/client-results/ai/kayana",
+        "publishedAt": "2025-12-16T13:44:29+00:00",
+        "importedAt": "2026-04-22T19:52:22.399Z",
+        "firstImportedAt": "2026-04-22T19:52:22.399Z",
+        "lastImportedAt": "2026-04-22T19:52:22.399Z",
+        "importCount": 1,
+        "metadata": {
+          "industry": "General",
+          "capability": "Transformation",
+          "problem": "K&#xE1;yana harnessed the Philippines&#x2019; most comprehensive dataset to spur AI-driven transformation across multiple sectors.",
+          "intervention": "Advised on transformation",
+          "outcome": "K&#xE1;yana harnessed the Philippines&#x2019; most comprehensive dataset to spur AI-driven transformation across multiple sectors.",
+          "geo": "Regional / Unspecified",
+          "evidenceStrength": 55
+        },
+        "synthesizedSummary": "K&#xE1;yana Ignites AI-Driven Innovation by Unifying Its Data Ecosystem. General. Transformation. K&#xE1;yana harnessed the Philippines&#x2019; most comprehensive dataset to spur AI-driven transformation across multiple sectors.. Advised on transformation. K&#xE1;yana harnessed the Philippines&#x2019; most comprehensive dataset to spur AI-driven transformation across multiple sectors.. Regional / Unspecified. K&#xE1;yana harnessed the Philippines&#x2019; most comprehensive dataset to spur AI-driven transformation across multiple sectors.. Bain & Company",
+        "embedding": [
+          -0.0689,
+          0.0965,
+          0.062,
+          -0.2342,
+          0.2411,
+          0.3858,
+          0.1378,
+          -0.0069,
+          -0.2962,
+          -0.0207,
+          -0.0758,
+          0.5305,
+          0,
+          0,
+          -0.2274,
+          0.5236
+        ],
+        "embeddingMeta": {
+          "provider": "local",
+          "model": "local-hash-v1"
+        },
+        "parserVersion": "2026-04-22-v2",
+        "reviewStatus": "pending",
+        "searchable": false,
+        "versions": [],
+        "reviewHistory": []
+      },
+      {
+        "id": "45e62651-8091-44d4-9fa1-a51096ed6688",
+        "sourceId": "bain-client-results",
+        "sourceName": "Bain & Company",
+        "sourceDomain": "bain.com",
+        "title": "Using AI to Finance Sustainability",
+        "summary": "A unique collaboration enables First Abu Dhabi Bank to pioneer a powerful AI-based platform.&#xA;",
+        "url": "https://www.bain.com/client-results/ai/first-abu-dhabi-bank/",
+        "canonicalUrl": "https://www.bain.com/client-results/ai/first-abu-dhabi-bank",
+        "publishedAt": "2026-04-08T18:38:13+00:00",
+        "importedAt": "2026-04-22T19:52:22.334Z",
+        "firstImportedAt": "2026-04-22T19:52:22.334Z",
+        "lastImportedAt": "2026-04-22T19:52:22.334Z",
+        "importCount": 1,
+        "metadata": {
+          "industry": "Financial Services",
+          "capability": "Technology Delivery",
+          "problem": "A unique collaboration enables First Abu Dhabi Bank to pioneer a powerful AI-based platform.&#xA;",
+          "intervention": "Advised on technology delivery",
+          "outcome": "A unique collaboration enables First Abu Dhabi Bank to pioneer a powerful AI-based platform.&#xA;",
+          "geo": "Middle East",
+          "evidenceStrength": 45
+        },
+        "synthesizedSummary": "Using AI to Finance Sustainability. Financial Services. Technology Delivery. A unique collaboration enables First Abu Dhabi Bank to pioneer a powerful AI-based platform.&#xA;. Advised on technology delivery. A unique collaboration enables First Abu Dhabi Bank to pioneer a powerful AI-based platform.&#xA;. Middle East. A unique collaboration enables First Abu Dhabi Bank to pioneer a powerful AI-based platform.&#xA;. Bain & Company",
+        "embedding": [
+          0.1554,
+          0.0604,
+          0.7726,
+          0.1468,
+          -0.0475,
+          0,
+          0.1899,
+          -0.1683,
+          0.1381,
+          -0.1122,
+          -0.0561,
+          -0.0043,
+          0,
+          0.3237,
+          0.0561,
+          0.3798
+        ],
+        "embeddingMeta": {
+          "provider": "local",
+          "model": "local-hash-v1"
+        },
+        "parserVersion": "2026-04-22-v2",
+        "reviewStatus": "approved",
+        "searchable": true,
+        "versions": [
+          {
+            "id": "9847e05d-1429-4d52-80d3-b19fe1be1e6e",
+            "label": "Review set to approved",
+            "createdAt": "2026-04-22T19:52:32.848Z",
+            "snapshot": {
+              "title": "Using AI to Finance Sustainability",
+              "summary": "A unique collaboration enables First Abu Dhabi Bank to pioneer a powerful AI-based platform.&#xA;",
+              "synthesizedSummary": "Using AI to Finance Sustainability. Financial Services. Technology Delivery. A unique collaboration enables First Abu Dhabi Bank to pioneer a powerful AI-based platform.&#xA;. Advised on technology delivery. A unique collaboration enables First Abu Dhabi Bank to pioneer a powerful AI-based platform.&#xA;. Middle East. A unique collaboration enables First Abu Dhabi Bank to pioneer a powerful AI-based platform.&#xA;. Bain & Company",
+              "metadata": {
+                "industry": "Financial Services",
+                "capability": "Technology Delivery",
+                "problem": "A unique collaboration enables First Abu Dhabi Bank to pioneer a powerful AI-based platform.&#xA;",
+                "intervention": "Advised on technology delivery",
+                "outcome": "A unique collaboration enables First Abu Dhabi Bank to pioneer a powerful AI-based platform.&#xA;",
+                "geo": "Middle East",
+                "evidenceStrength": 45
+              },
+              "reviewStatus": "pending",
+              "searchable": false,
+              "embeddingMeta": {
+                "provider": "local",
+                "model": "local-hash-v1"
+              }
+            }
+          }
+        ],
+        "reviewHistory": [
+          {
+            "id": "da8dd0c5-7bda-4df3-a233-49de3f5a81d4",
+            "reviewStatus": "approved",
+            "reviewedAt": "2026-04-22T19:52:32.848Z",
+            "reviewerId": "1962e705-a2a1-4e7b-a20e-f53549daae77"
+          }
+        ]
+      },
+      {
+        "id": "674ac396-edcc-49d9-a86e-b5f468ceb335",
+        "sourceId": "bcg-client-impact",
+        "sourceName": "BCG",
+        "sourceDomain": "bcg.com",
+        "title": "Transforming AVID with New Digital and Data Capabilities",
+        "summary": "When COVID-19 hit, a top education nonprofit’s digital and data investments were vital. Read to discover how BCG’s experts helped amplify the impact.",
+        "url": "https://www.bcg.com/about/client-impact/transforming-with-new-digital-data-capabilities",
+        "canonicalUrl": "https://www.bcg.com/about/client-impact/transforming-with-new-digital-data-capabilities",
+        "publishedAt": null,
+        "importedAt": "2026-04-22T19:47:30.445Z",
+        "firstImportedAt": "2026-04-22T19:47:30.445Z",
+        "lastImportedAt": "2026-04-22T19:47:30.445Z",
+        "importCount": 1,
+        "metadata": {
+          "industry": "Technology",
+          "capability": "AI & Data",
+          "problem": "When COVID-19 hit, a top education nonprofit’s digital and data investments were vital.",
+          "intervention": "Read to discover how BCG’s experts helped amplify the impact.",
+          "outcome": "When COVID-19 hit, a top education nonprofit’s digital and data investments were vital. Read to discover how BCG’s experts helped amplify the impact.",
+          "geo": "Regional / Unspecified",
+          "evidenceStrength": 55
+        },
+        "synthesizedSummary": "Transforming AVID with New Digital and Data Capabilities. Technology. AI & Data. When COVID-19 hit, a top education nonprofit’s digital and data investments were vital.. Read to discover how BCG’s experts helped amplify the impact.. When COVID-19 hit, a top education nonprofit’s digital and data investments were vital. Read to discover how BCG’s experts helped amplify the impact.. Regional / Unspecified. When COVID-19 hit, a top education nonprofit’s digital and data investments were vital. Read to discover how BCG’s experts helped amplify the impact.. BCG",
+        "embedding": [
+          0.0068,
+          0.3465,
+          -0.2446,
+          0.4144,
+          0.2921,
+          0.2446,
+          0.231,
+          0,
+          0.0408,
+          0.3601,
+          0.3737,
+          0.2446,
+          -0.0951,
+          -0.2718,
+          0,
+          -0.1902
+        ],
+        "embeddingMeta": {
+          "provider": "local",
+          "model": "local-hash-v1"
+        },
+        "parserVersion": "2026-04-22-v2",
+        "reviewStatus": "pending",
+        "searchable": false,
+        "versions": [],
+        "reviewHistory": []
+      },
+      {
+        "id": "7a5f443f-2b16-4edc-aa32-dc4447e45138",
+        "sourceId": "bcg-client-impact",
+        "sourceName": "BCG",
+        "sourceDomain": "bcg.com",
+        "title": "How BCG Helped an Electric Utility Slash Costs",
+        "summary": "A rural, publicly owned, vertically integrated power utility was facing a seismic shift: the loss of government subsidies. To prepare itself to weather this new environment, the company sought to make a step-change reduction in costs and boost its operating efficiency. Working with BCG, the utility…",
+        "url": "https://www.bcg.com/about/client-impact/how-bcg-helped-electric-utility-slash-costs",
+        "canonicalUrl": "https://www.bcg.com/about/client-impact/how-bcg-helped-electric-utility-slash-costs",
+        "publishedAt": null,
+        "importedAt": "2026-04-22T19:47:30.363Z",
+        "firstImportedAt": "2026-04-22T19:47:30.363Z",
+        "lastImportedAt": "2026-04-22T19:47:30.363Z",
+        "importCount": 1,
+        "metadata": {
+          "industry": "Energy & Utilities",
+          "capability": "General",
+          "problem": "A rural, publicly owned, vertically integrated power utility was facing a seismic shift: the loss of government subsidies.",
+          "intervention": "Advised on general",
+          "outcome": "To prepare itself to weather this new environment, the company sought to make a step-change reduction in costs and boost its operating efficiency.",
+          "geo": "Regional / Unspecified",
+          "evidenceStrength": 55
+        },
+        "synthesizedSummary": "How BCG Helped an Electric Utility Slash Costs. Energy & Utilities. General. A rural, publicly owned, vertically integrated power utility was facing a seismic shift: the loss of government subsidies.. Advised on general. To prepare itself to weather this new environment, the company sought to make a step-change reduction in costs and boost its operating efficiency.. Regional / Unspecified. A rural, publicly owned, vertically integrated power utility was facing a seismic shift: the loss of government subsidies. To prepare itself to weather this new environment, the company sought to make a step-change reduction in costs and boost its operating efficiency. Working with BCG, the utility…. BCG",
+        "embedding": [
+          0.3249,
+          0.2639,
+          0.1523,
+          -0.2893,
+          -0.0102,
+          0.1421,
+          0.2893,
+          -0.5177,
+          -0.269,
+          -0.2944,
+          0.2893,
+          0.2487,
+          0.1523,
+          0.0558,
+          -0.0914,
+          0.0812
+        ],
+        "embeddingMeta": {
+          "provider": "local",
+          "model": "local-hash-v1"
+        },
+        "parserVersion": "2026-04-22-v2",
+        "reviewStatus": "pending",
+        "searchable": false,
+        "versions": [],
+        "reviewHistory": []
+      },
+      {
+        "id": "75d504fd-7f26-4746-9e75-7e96da75a4d1",
+        "sourceId": "bcg-client-impact",
+        "sourceName": "BCG",
+        "sourceDomain": "bcg.com",
+        "title": "Becoming Number One",
+        "summary": "As ad revenues and readers shifted away from print newspapers, the UK’s Daily Mail and General Trust quickly saw an erosion of profits. Instead of merely protecting the value of its content and brands, the company opted to become more diversified in order to dominate its space.",
+        "url": "https://www.bcg.com/about/client-impact/becoming-number-one",
+        "canonicalUrl": "https://www.bcg.com/about/client-impact/becoming-number-one",
+        "publishedAt": null,
+        "importedAt": "2026-04-22T19:47:30.234Z",
+        "firstImportedAt": "2026-04-22T19:47:30.234Z",
+        "lastImportedAt": "2026-04-22T19:47:30.234Z",
+        "importCount": 1,
+        "metadata": {
+          "industry": "Technology",
+          "capability": "AI & Data",
+          "problem": "As ad revenues and readers shifted away from print newspapers, the UK’s Daily Mail and General Trust quickly saw an erosion of profits.",
+          "intervention": "Advised on ai & data",
+          "outcome": "As ad revenues and readers shifted away from print newspapers, the UK’s Daily Mail and General Trust quickly saw an erosion of profits. Instead of merely protecting the value of its content and brands, the company opted ",
+          "geo": "North America",
+          "evidenceStrength": 55
+        },
+        "synthesizedSummary": "Becoming Number One. Technology. AI & Data. As ad revenues and readers shifted away from print newspapers, the UK’s Daily Mail and General Trust quickly saw an erosion of profits.. Advised on ai & data. As ad revenues and readers shifted away from print newspapers, the UK’s Daily Mail and General Trust quickly saw an erosion of profits. Instead of merely protecting the value of its content and brands, the company opted . North America. As ad revenues and readers shifted away from print newspapers, the UK’s Daily Mail and General Trust quickly saw an erosion of profits. Instead of merely protecting the value of its content and brands, the company opted to become more diversified in order to dominate its space.. BCG",
+        "embedding": [
+          0.2352,
+          0.1155,
+          -0.3755,
+          -0.1362,
+          -0.1279,
+          -0.1486,
+          0.2228,
+          0.1609,
+          -0.3054,
+          -0.359,
+          0.3054,
+          0.0495,
+          -0.1857,
+          0.2146,
+          -0.5076,
+          -0.0413
+        ],
+        "embeddingMeta": {
+          "provider": "local",
+          "model": "local-hash-v1"
+        },
+        "parserVersion": "2026-04-22-v2",
+        "reviewStatus": "pending",
+        "searchable": false,
+        "versions": [],
+        "reviewHistory": []
+      },
       {
         "id": "84418aa0-867e-44c6-9aad-23e2c95f5a2e",
         "sourceId": "deloitte-operate-case-studies",
@@ -202,7 +707,48 @@
         "summary": "Imported from Deloitte case-study PDF link.",
         "url": "https://www.deloitte.com/content/dam/assets-zone3/us/en/docs/services/consulting/2024/us-bissell-ams-case-study.pdf",
         "publishedAt": null,
-        "importedAt": "2026-04-22T19:36:48.294Z"
+        "importedAt": "2026-04-22T19:36:48.294Z",
+        "canonicalUrl": "https://www.deloitte.com/content/dam/assets-zone3/us/en/docs/services/consulting/2024/us-bissell-ams-case-study.pdf",
+        "metadata": {
+          "industry": "General",
+          "capability": "General",
+          "problem": "Imported from Deloitte case-study PDF link.",
+          "intervention": "Advisory intervention not yet reviewed",
+          "outcome": "Imported from Deloitte case-study PDF link.",
+          "geo": "Regional / Unspecified",
+          "evidenceStrength": 50
+        },
+        "synthesizedSummary": "us bissell ams case study. General. General. Imported from Deloitte case-study PDF link.. Advisory intervention not yet reviewed. Imported from Deloitte case-study PDF link.. Regional / Unspecified. Imported from Deloitte case-study PDF link.. Deloitte",
+        "embedding": [
+          0,
+          -0.3376,
+          0,
+          -0.4019,
+          0.1929,
+          -0.3698,
+          0,
+          0.0965,
+          0,
+          -0.1045,
+          0,
+          0.3858,
+          -0.3858,
+          0,
+          0.3858,
+          0.2894
+        ],
+        "embeddingMeta": {
+          "provider": "local",
+          "model": "local-hash-v1"
+        },
+        "reviewStatus": "pending",
+        "searchable": false,
+        "importCount": 1,
+        "versions": [],
+        "reviewHistory": [],
+        "firstImportedAt": "2026-04-22T19:36:48.294Z",
+        "lastImportedAt": "2026-04-22T19:36:48.294Z",
+        "parserVersion": "2026-04-22-v2"
       },
       {
         "id": "5609dfdf-886b-4510-8611-902ada20230f",
@@ -213,7 +759,48 @@
         "summary": "Imported from Deloitte case-study PDF link.",
         "url": "https://www.deloitte.com/content/dam/assets-zone3/us/en/docs/industries/technology-media-telecommunications/2024/us-cchs-ams-case-study-vf.pdf",
         "publishedAt": null,
-        "importedAt": "2026-04-22T19:36:48.294Z"
+        "importedAt": "2026-04-22T19:36:48.294Z",
+        "canonicalUrl": "https://www.deloitte.com/content/dam/assets-zone3/us/en/docs/industries/technology-media-telecommunications/2024/us-cchs-ams-case-study-vf.pdf",
+        "metadata": {
+          "industry": "General",
+          "capability": "General",
+          "problem": "Imported from Deloitte case-study PDF link.",
+          "intervention": "Advisory intervention not yet reviewed",
+          "outcome": "Imported from Deloitte case-study PDF link.",
+          "geo": "Regional / Unspecified",
+          "evidenceStrength": 50
+        },
+        "synthesizedSummary": "us cchs ams case study vf. General. General. Imported from Deloitte case-study PDF link.. Advisory intervention not yet reviewed. Imported from Deloitte case-study PDF link.. Regional / Unspecified. Imported from Deloitte case-study PDF link.. Deloitte",
+        "embedding": [
+          0.0978,
+          -0.3424,
+          0,
+          -0.4076,
+          0.0978,
+          -0.375,
+          0,
+          -0.0082,
+          0,
+          -0.106,
+          0,
+          0.3913,
+          -0.3913,
+          0,
+          0.3913,
+          0.2935
+        ],
+        "embeddingMeta": {
+          "provider": "local",
+          "model": "local-hash-v1"
+        },
+        "reviewStatus": "pending",
+        "searchable": false,
+        "importCount": 1,
+        "versions": [],
+        "reviewHistory": [],
+        "firstImportedAt": "2026-04-22T19:36:48.294Z",
+        "lastImportedAt": "2026-04-22T19:36:48.294Z",
+        "parserVersion": "2026-04-22-v2"
       },
       {
         "id": "25374429-515c-488b-9992-4e97c28d1dff",
@@ -224,7 +811,48 @@
         "summary": "Imported from Deloitte case-study PDF link.",
         "url": "https://www.deloitte.com/content/dam/assets-zone3/us/en/docs/services/consulting/2024/us-carle-health-manda-case-study.pdf",
         "publishedAt": null,
-        "importedAt": "2026-04-22T19:36:48.294Z"
+        "importedAt": "2026-04-22T19:36:48.294Z",
+        "canonicalUrl": "https://www.deloitte.com/content/dam/assets-zone3/us/en/docs/services/consulting/2024/us-carle-health-manda-case-study.pdf",
+        "metadata": {
+          "industry": "General",
+          "capability": "General",
+          "problem": "Imported from Deloitte case-study PDF link.",
+          "intervention": "Advisory intervention not yet reviewed",
+          "outcome": "Imported from Deloitte case-study PDF link.",
+          "geo": "Regional / Unspecified",
+          "evidenceStrength": 50
+        },
+        "synthesizedSummary": "us carle health manda case study. General. General. Imported from Deloitte case-study PDF link.. Advisory intervention not yet reviewed. Imported from Deloitte case-study PDF link.. Regional / Unspecified. Imported from Deloitte case-study PDF link.. Deloitte",
+        "embedding": [
+          0,
+          -0.3141,
+          0.0972,
+          -0.3739,
+          0.0897,
+          -0.344,
+          0,
+          0.187,
+          0,
+          -0.0972,
+          0,
+          0.4412,
+          -0.359,
+          0,
+          0.359,
+          0.359
+        ],
+        "embeddingMeta": {
+          "provider": "local",
+          "model": "local-hash-v1"
+        },
+        "reviewStatus": "pending",
+        "searchable": false,
+        "importCount": 1,
+        "versions": [],
+        "reviewHistory": [],
+        "firstImportedAt": "2026-04-22T19:36:48.294Z",
+        "lastImportedAt": "2026-04-22T19:36:48.294Z",
+        "parserVersion": "2026-04-22-v2"
       },
       {
         "id": "f59068b4-5560-4fc7-8e5f-40158b51d97e",
@@ -235,7 +863,48 @@
         "summary": "Imported from Deloitte case-study PDF link.",
         "url": "https://www.deloitte.com/content/dam/assets-zone3/us/en/docs/services/consulting/2024/us-northwell-health-testing-foundry-case-study.pdf",
         "publishedAt": null,
-        "importedAt": "2026-04-22T19:36:48.294Z"
+        "importedAt": "2026-04-22T19:36:48.294Z",
+        "canonicalUrl": "https://www.deloitte.com/content/dam/assets-zone3/us/en/docs/services/consulting/2024/us-northwell-health-testing-foundry-case-study.pdf",
+        "metadata": {
+          "industry": "General",
+          "capability": "General",
+          "problem": "Imported from Deloitte case-study PDF link.",
+          "intervention": "Advisory intervention not yet reviewed",
+          "outcome": "Imported from Deloitte case-study PDF link.",
+          "geo": "Regional / Unspecified",
+          "evidenceStrength": 50
+        },
+        "synthesizedSummary": "us northwell health testing foundry case study. General. General. Imported from Deloitte case-study PDF link.. Advisory intervention not yet reviewed. Imported from Deloitte case-study PDF link.. Regional / Unspecified. Imported from Deloitte case-study PDF link.. Deloitte",
+        "embedding": [
+          0,
+          -0.3168,
+          0.0981,
+          -0.3772,
+          0.0905,
+          -0.347,
+          0,
+          0.0905,
+          0,
+          -0.0981,
+          0,
+          0.3621,
+          -0.4677,
+          0,
+          0.3621,
+          0.347
+        ],
+        "embeddingMeta": {
+          "provider": "local",
+          "model": "local-hash-v1"
+        },
+        "reviewStatus": "pending",
+        "searchable": false,
+        "importCount": 1,
+        "versions": [],
+        "reviewHistory": [],
+        "firstImportedAt": "2026-04-22T19:36:48.294Z",
+        "lastImportedAt": "2026-04-22T19:36:48.294Z",
+        "parserVersion": "2026-04-22-v2"
       },
       {
         "id": "4845264a-cfe8-45f8-8340-973a2ad98669",
@@ -246,7 +915,48 @@
         "summary": "Accenture partnered with the NFL to transform data usage, streamline operations, and expand global reach. Read more.",
         "url": "https://www.accenture.com/us-en/case-studies/data-ai/nfl-gameplan-reinventing-future-football",
         "publishedAt": null,
-        "importedAt": "2026-04-22T19:36:05.923Z"
+        "importedAt": "2026-04-22T19:36:05.923Z",
+        "canonicalUrl": "https://www.accenture.com/us-en/case-studies/data-ai/nfl-gameplan-reinventing-future-football",
+        "metadata": {
+          "industry": "General",
+          "capability": "General",
+          "problem": "Accenture partnered with the NFL to transform data usage, streamline operations, and expand global reach. Read more.",
+          "intervention": "Advisory intervention not yet reviewed",
+          "outcome": "Accenture partnered with the NFL to transform data usage, streamline operations, and expand global reach. Read more.",
+          "geo": "Regional / Unspecified",
+          "evidenceStrength": 50
+        },
+        "synthesizedSummary": "Reinventing the future of football | I NFL Case Study | Accenture. General. General. Accenture partnered with the NFL to transform data usage, streamline operations, and expand global reach. Read more.. Advisory intervention not yet reviewed. Accenture partnered with the NFL to transform data usage, streamline operations, and expand global reach. Read more.. Regional / Unspecified. Accenture partnered with the NFL to transform data usage, streamline operations, and expand global reach. Read more.. Accenture",
+        "embedding": [
+          -0.4107,
+          0,
+          -0.4498,
+          0.3618,
+          0.0587,
+          -0.0978,
+          0,
+          -0.264,
+          0.1858,
+          -0.4889,
+          0.264,
+          0,
+          -0.1173,
+          0.2347,
+          0,
+          0.0587
+        ],
+        "embeddingMeta": {
+          "provider": "local",
+          "model": "local-hash-v1"
+        },
+        "reviewStatus": "pending",
+        "searchable": false,
+        "importCount": 1,
+        "versions": [],
+        "reviewHistory": [],
+        "firstImportedAt": "2026-04-22T19:36:05.923Z",
+        "lastImportedAt": "2026-04-22T19:36:05.923Z",
+        "parserVersion": "2026-04-22-v2"
       },
       {
         "id": "5106e705-c9e6-49ed-8576-2570039ed4b6",
@@ -257,7 +967,48 @@
         "summary": "Poste Italiane with Accenture, transformed into Italy's largest integrated service platform, delivering essential services to 45 million citizens. Read more.",
         "url": "https://www.accenture.com/us-en/case-studies/data-ai/poste-italianes-pivot-postal-service-platform-powerhouse",
         "publishedAt": null,
-        "importedAt": "2026-04-22T19:36:05.923Z"
+        "importedAt": "2026-04-22T19:36:05.923Z",
+        "canonicalUrl": "https://www.accenture.com/us-en/case-studies/data-ai/poste-italianes-pivot-postal-service-platform-powerhouse",
+        "metadata": {
+          "industry": "General",
+          "capability": "General",
+          "problem": "Poste Italiane with Accenture, transformed into Italy's largest integrated service platform, delivering essential services to 45 million citizens. Read more.",
+          "intervention": "Advisory intervention not yet reviewed",
+          "outcome": "Poste Italiane with Accenture, transformed into Italy's largest integrated service platform, delivering essential services to 45 million citizens. Read more.",
+          "geo": "Regional / Unspecified",
+          "evidenceStrength": 50
+        },
+        "synthesizedSummary": "Poste Italiane's Pivot to Platform Powerhouse. General. General. Poste Italiane with Accenture, transformed into Italy's largest integrated service platform, delivering essential services to 45 million citizens. Read more.. Advisory intervention not yet reviewed. Poste Italiane with Accenture, transformed into Italy's largest integrated service platform, delivering essential services to 45 million citizens. Read more.. Regional / Unspecified. Poste Italiane with Accenture, transformed into Italy's largest integrated service platform, delivering essential services to 45 million citizens. Read more.. Accenture",
+        "embedding": [
+          0,
+          0,
+          0.5276,
+          -0.0558,
+          0.1624,
+          -0.4312,
+          0.1218,
+          0.0609,
+          0.3196,
+          -0.1826,
+          0,
+          0.1826,
+          0,
+          0.411,
+          -0.071,
+          0.3805
+        ],
+        "embeddingMeta": {
+          "provider": "local",
+          "model": "local-hash-v1"
+        },
+        "reviewStatus": "pending",
+        "searchable": false,
+        "importCount": 1,
+        "versions": [],
+        "reviewHistory": [],
+        "firstImportedAt": "2026-04-22T19:36:05.923Z",
+        "lastImportedAt": "2026-04-22T19:36:05.923Z",
+        "parserVersion": "2026-04-22-v2"
       },
       {
         "id": "94d64c28-4311-412b-8a48-77837646e111",
@@ -268,7 +1019,48 @@
         "summary": "Accenture helped with the Aani Instant Payment Platform by leading the integration of over 40 solutions. Read more.",
         "url": "https://www.accenture.com/us-en/case-studies/data-ai/revolutionizing-uae-payment-systems",
         "publishedAt": null,
-        "importedAt": "2026-04-22T19:36:05.923Z"
+        "importedAt": "2026-04-22T19:36:05.923Z",
+        "canonicalUrl": "https://www.accenture.com/us-en/case-studies/data-ai/revolutionizing-uae-payment-systems",
+        "metadata": {
+          "industry": "General",
+          "capability": "General",
+          "problem": "Accenture helped with the Aani Instant Payment Platform by leading the integration of over 40 solutions. Read more.",
+          "intervention": "Advisory intervention not yet reviewed",
+          "outcome": "Accenture helped with the Aani Instant Payment Platform by leading the integration of over 40 solutions. Read more.",
+          "geo": "Regional / Unspecified",
+          "evidenceStrength": 50
+        },
+        "synthesizedSummary": "Revolutionizing the UAE’s Payment Systems | AEP Case Study | Accenture. General. General. Accenture helped with the Aani Instant Payment Platform by leading the integration of over 40 solutions. Read more.. Advisory intervention not yet reviewed. Accenture helped with the Aani Instant Payment Platform by leading the integration of over 40 solutions. Read more.. Regional / Unspecified. Accenture helped with the Aani Instant Payment Platform by leading the integration of over 40 solutions. Read more.. Accenture",
+        "embedding": [
+          -0.2255,
+          -0.3989,
+          0.1445,
+          0.4683,
+          -0.2312,
+          0.133,
+          -0.1908,
+          0.2428,
+          0.0173,
+          -0.289,
+          0,
+          0.3122,
+          -0.0694,
+          0.3469,
+          0,
+          0.2775
+        ],
+        "embeddingMeta": {
+          "provider": "local",
+          "model": "local-hash-v1"
+        },
+        "reviewStatus": "pending",
+        "searchable": false,
+        "importCount": 1,
+        "versions": [],
+        "reviewHistory": [],
+        "firstImportedAt": "2026-04-22T19:36:05.923Z",
+        "lastImportedAt": "2026-04-22T19:36:05.923Z",
+        "parserVersion": "2026-04-22-v2"
       },
       {
         "id": "e70534fb-93f4-4733-a01c-cd5824c7b5b4",
@@ -279,7 +1071,48 @@
         "summary": "Vodafone and Accenture partner to reinvent Vodafone’s shared services to deliver intelligent solutions for Telco. Read more.",
         "url": "https://www.accenture.com/us-en/case-studies/communications-media/vodafone-pioneers-commercialized-shared-services-operations",
         "publishedAt": null,
-        "importedAt": "2026-04-22T19:36:05.923Z"
+        "importedAt": "2026-04-22T19:36:05.923Z",
+        "canonicalUrl": "https://www.accenture.com/us-en/case-studies/communications-media/vodafone-pioneers-commercialized-shared-services-operations",
+        "metadata": {
+          "industry": "General",
+          "capability": "General",
+          "problem": "Vodafone and Accenture partner to reinvent Vodafone’s shared services to deliver intelligent solutions for Telco. Read more.",
+          "intervention": "Advisory intervention not yet reviewed",
+          "outcome": "Vodafone and Accenture partner to reinvent Vodafone’s shared services to deliver intelligent solutions for Telco. Read more.",
+          "geo": "Regional / Unspecified",
+          "evidenceStrength": 50
+        },
+        "synthesizedSummary": "Telco Shared Services | Vodafone Case Study | Accenture. General. General. Vodafone and Accenture partner to reinvent Vodafone’s shared services to deliver intelligent solutions for Telco. Read more.. Advisory intervention not yet reviewed. Vodafone and Accenture partner to reinvent Vodafone’s shared services to deliver intelligent solutions for Telco. Read more.. Regional / Unspecified. Vodafone and Accenture partner to reinvent Vodafone’s shared services to deliver intelligent solutions for Telco. Read more.. Accenture",
+        "embedding": [
+          -0.2803,
+          0,
+          -0.1941,
+          0.3612,
+          0.593,
+          -0.0539,
+          0.3558,
+          0.0647,
+          0.1779,
+          0,
+          -0.3504,
+          0.0647,
+          -0.0647,
+          0.3235,
+          0,
+          0.0216
+        ],
+        "embeddingMeta": {
+          "provider": "local",
+          "model": "local-hash-v1"
+        },
+        "reviewStatus": "pending",
+        "searchable": false,
+        "importCount": 1,
+        "versions": [],
+        "reviewHistory": [],
+        "firstImportedAt": "2026-04-22T19:36:05.923Z",
+        "lastImportedAt": "2026-04-22T19:36:05.923Z",
+        "parserVersion": "2026-04-22-v2"
       }
     ],
     "sources": [
@@ -295,6 +1128,51 @@
         "enabled": true,
         "lastImportedAt": "2026-04-22T19:36:05.923Z",
         "lastImportCount": 4,
+        "lastError": null
+      },
+      {
+        "id": "bcg-client-impact",
+        "name": "BCG",
+        "domain": "bcg.com",
+        "listUrl": "https://www.bcg.com/about/client-impact",
+        "sitemapUrl": "https://www.bcg.com/google_sitemap-content.xml",
+        "allowedPathPrefixes": [
+          "/about/client-impact/"
+        ],
+        "extractor": "bcg-sitemap",
+        "enabled": true,
+        "lastImportedAt": "2026-04-22T19:47:30.445Z",
+        "lastImportCount": 3,
+        "lastError": null
+      },
+      {
+        "id": "bain-client-results",
+        "name": "Bain & Company",
+        "domain": "bain.com",
+        "listUrl": "https://www.bain.com/client-results/",
+        "sitemapUrl": "https://www.bain.com/sitemap.xml",
+        "allowedPathPrefixes": [
+          "/client-results/"
+        ],
+        "extractor": "bain-sitemap",
+        "enabled": true,
+        "lastImportedAt": "2026-04-22T19:52:22.808Z",
+        "lastImportCount": 4,
+        "lastError": null
+      },
+      {
+        "id": "mckinsey-case-studies",
+        "name": "McKinsey & Company",
+        "domain": "mckinsey.com",
+        "listUrl": "https://www.mckinsey.com/about-us/case-studies",
+        "sitemapUrl": "https://www.mckinsey.com/sitemap.xml",
+        "allowedPathPrefixes": [
+          "/about-us/case-studies/"
+        ],
+        "extractor": "mckinsey-sitemap",
+        "enabled": true,
+        "lastImportedAt": null,
+        "lastImportCount": 0,
         "lastError": null
       },
       {
@@ -354,5 +1232,12 @@
       }
     ]
   },
-  "sessions": []
+  "sessions": [
+    {
+      "id": "9ab79410-dae2-47c4-953c-018e605b2871",
+      "userId": "1962e705-a2a1-4e7b-a20e-f53549daae77",
+      "organizationId": "344af24a-9d57-409f-86cc-bc15783aa285",
+      "createdAt": "2026-04-22T19:52:19.620Z"
+    }
+  ]
 }

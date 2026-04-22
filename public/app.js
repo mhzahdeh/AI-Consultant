@@ -15,10 +15,15 @@ const app = document.getElementById("app");
 async function request(url, options = {}) {
   const response = await fetch(url, {
     headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
     ...options,
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({ error: "Request failed" }));
+    if (response.status === 401) {
+      state.bootstrap = { session: null };
+      render();
+    }
     throw new Error(payload.error || "Request failed");
   }
   const contentType = response.headers.get("content-type") || "";
@@ -48,6 +53,9 @@ function getEngagements() {
 function getVault() {
   return state.bootstrap?.vault || {
     cases: [],
+    approvedCases: [],
+    pendingCases: [],
+    rejectedCases: [],
     recentCases: [],
     sources: [],
     internalAssets: [],
@@ -56,6 +64,8 @@ function getVault() {
     totals: {
       internalAssetCount: 0,
       publicCaseCount: 0,
+      approvedCaseCount: 0,
+      pendingReviewCount: 0,
       projectArtifactCount: 0,
       derivedPatternCount: 0,
       knowledgeObjectCount: 0,
@@ -68,7 +78,7 @@ function getVault() {
 }
 
 function getVaultCases() {
-  return getVault().cases || [];
+  return getVault().approvedCases || [];
 }
 
 function getVaultSources() {
@@ -314,6 +324,7 @@ function renderSidebar() {
         <div class="strategy-plan-label">Current plan</div>
         <div class="strategy-plan-name">${org.plan}</div>
         <div class="strategy-plan-meta">${user.fullName}</div>
+        <button class="strategy-text-link" data-action="logout" style="margin-top:12px;">Log out</button>
       </div>
     </aside>
   `;
@@ -703,7 +714,7 @@ function renderWorkspaceTab(engagement) {
                 <article>
                   <strong>${item.title}</strong>
                   <p>${item.blurb}</p>
-                  <span>${item.fit}% fit</span>
+                  <span>${item.analogyFit || item.fit}% analogy fit • ${item.evidenceStrength || 0} evidence strength</span>
                 </article>
               `
                   )
@@ -814,7 +825,8 @@ function renderVault() {
   const vault = getVault();
   const totals = getVaultTotals();
   const sources = getVaultSources();
-  const cases = getVaultCases();
+  const cases = getVault().approvedCases || [];
+  const pendingCases = vault.pendingCases || [];
   const internalAssets = vault.internalAssets || [];
   const derivedPatterns = vault.derivedPatterns || [];
   const projectArtifacts = vault.projectArtifacts || [];
@@ -832,6 +844,10 @@ function renderVault() {
         <article class="vault-stat-card">
           <div class="project-label">Public analog cases</div>
           <strong>${totals.publicCaseCount || 0}</strong>
+        </article>
+        <article class="vault-stat-card">
+          <div class="project-label">Pending review</div>
+          <strong>${totals.pendingReviewCount || 0}</strong>
         </article>
         <article class="vault-stat-card">
           <div class="project-label">Project artifacts</div>
@@ -941,6 +957,43 @@ function renderVault() {
       </article>
       <div class="project-card">
         <div class="strategy-section-head" style="margin-bottom:12px;">
+          <h3>Review queue</h3>
+        </div>
+        ${
+          pendingCases.length
+            ? `
+          <div class="vault-case-list">
+            ${pendingCases
+              .map(
+                (item) => `
+              <article class="vault-case-card">
+                <div class="project-label">${item.sourceName} • Pending review</div>
+                <strong>${item.title}</strong>
+                <p>${item.synthesizedSummary || item.summary || "Summary unavailable from source page."}</p>
+                <div class="vault-chip-row">
+                  <span class="project-badge">${item.metadata?.industry || "General"}</span>
+                  <span class="project-badge">${item.metadata?.capability || "General"}</span>
+                  <span class="project-badge">Evidence ${item.metadata?.evidenceStrength || 0}</span>
+                </div>
+                <div class="vault-case-meta">
+                  <span>${item.publishedAt ? formatDate(item.publishedAt) : "Publication date unavailable"}</span>
+                  <div class="vault-inline-actions">
+                    <button class="strategy-text-link" data-action="review-vault-case" data-case-id="${item.id}" data-review-status="approved">Approve</button>
+                    <button class="strategy-text-link" data-action="review-vault-case" data-case-id="${item.id}" data-review-status="rejected">Reject</button>
+                    <a href="${item.url}" target="_blank" rel="noreferrer">Open source</a>
+                  </div>
+                </div>
+              </article>
+            `
+              )
+              .join("")}
+          </div>
+        `
+            : `<div class="empty-state">No cases waiting for review.</div>`
+        }
+      </div>
+      <div class="project-card">
+        <div class="strategy-section-head" style="margin-bottom:12px;">
           <h3>Imported public analog cases</h3>
         </div>
         ${
@@ -951,12 +1004,21 @@ function renderVault() {
               .map(
                 (item) => `
               <article class="vault-case-card">
-                <div class="project-label">${item.sourceName}</div>
+                <div class="project-label">${item.sourceName} • Approved</div>
                 <strong>${item.title}</strong>
-                <p>${item.summary || "Summary unavailable from source page."}</p>
+                <p>${item.synthesizedSummary || item.summary || "Summary unavailable from source page."}</p>
+                <div class="vault-chip-row">
+                  <span class="project-badge">${item.metadata?.industry || "General"}</span>
+                  <span class="project-badge">${item.metadata?.capability || "General"}</span>
+                  <span class="project-badge">${item.metadata?.geo || "Regional / Unspecified"}</span>
+                  <span class="project-badge">Evidence ${item.metadata?.evidenceStrength || 0}</span>
+                </div>
                 <div class="vault-case-meta">
                   <span>${item.publishedAt ? formatDate(item.publishedAt) : "Publication date unavailable"}</span>
-                  <a href="${item.url}" target="_blank" rel="noreferrer">Open source</a>
+                  <div class="vault-inline-actions">
+                    <button class="strategy-text-link" data-action="review-vault-case" data-case-id="${item.id}" data-review-status="pending">Move to review</button>
+                    <a href="${item.url}" target="_blank" rel="noreferrer">Open source</a>
+                  </div>
                 </div>
               </article>
             `
@@ -1332,13 +1394,25 @@ document.addEventListener("click", async (event) => {
     try {
       state.bootstrap = await request("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email: "morgan@altitudeadvisory.com" }),
+        body: JSON.stringify({ email: "morgan@altitudeadvisory.com", password: "demo1234" }),
       });
       showToast("Logged into demo workspace");
       render();
     } catch (error) {
       showToast(error.message);
     }
+    return;
+  }
+
+  if (action === "logout") {
+    try {
+      await request("/api/auth/logout", { method: "POST", body: JSON.stringify({}) });
+    } catch {
+      // Even if the backend session is already gone, reset the local shell.
+    }
+    state.bootstrap = { session: null };
+    state.view = "dashboard";
+    render();
     return;
   }
 
@@ -1395,9 +1469,24 @@ document.addEventListener("click", async (event) => {
       state.bootstrap.vault = data.vault;
       showToast(
         data.importedCount
-          ? `Imported ${data.importedCount} case${data.importedCount === 1 ? "" : "s"}`
+          ? `Synced ${data.importedCount} case${data.importedCount === 1 ? "" : "s"} (${data.createdCount} new, ${data.updatedCount} updated)`
           : "Import finished with no new cases"
       );
+      render();
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
+
+  if (action === "review-vault-case") {
+    try {
+      const data = await request(`/api/vault/cases/${button.dataset.caseId}/review`, {
+        method: "PATCH",
+        body: JSON.stringify({ reviewStatus: button.dataset.reviewStatus }),
+      });
+      state.bootstrap.vault = data.vault;
+      showToast(`Case moved to ${button.dataset.reviewStatus}`);
       render();
     } catch (error) {
       showToast(error.message);

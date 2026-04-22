@@ -1745,6 +1745,18 @@ body {
   margin-top: 8px;
 }
 
+.vault-chip-row,
+.vault-inline-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.vault-chip-row {
+  margin-top: 12px;
+}
+
 .vault-layer-grid,
 .vault-knowledge-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
