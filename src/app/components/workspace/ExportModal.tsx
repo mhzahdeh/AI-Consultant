@@ -15,7 +15,7 @@ type ExportStatus = 'idle' | 'exporting' | 'success' | 'error';
 export function ExportModal({ isOpen, onClose, engagement }: ExportModalProps) {
   const { markExport } = useAppData();
   const [exportStatus, setExportStatus] = useState<ExportStatus>('idle');
-  const [exportFormat, setExportFormat] = useState<'docx' | 'pdf' | null>(null);
+  const [exportFormat, setExportFormat] = useState<'html' | 'md' | null>(null);
 
   const exportBody = engagement
     ? [
@@ -42,7 +42,35 @@ export function ExportModal({ isOpen, onClose, engagement }: ExportModalProps) {
       ].join('\n')
     : '';
 
-  const handleExport = (format: 'docx' | 'pdf') => {
+  const exportHtml = engagement
+    ? `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>${engagement.title}</title>
+    <style>
+      body { font-family: Georgia, serif; margin: 48px auto; max-width: 860px; color: #111; line-height: 1.6; }
+      h1, h2, h3 { font-family: "Helvetica Neue", Arial, sans-serif; }
+      h1 { margin-bottom: 0.25rem; }
+      .meta { color: #555; margin-bottom: 2rem; }
+      section { margin: 2rem 0; }
+      ul { padding-left: 1.25rem; }
+      .card { border: 1px solid #ddd; padding: 16px; margin: 12px 0; }
+    </style>
+  </head>
+  <body>
+    <h1>${engagement.title}</h1>
+    <div class="meta">Client: ${engagement.client} | Problem Type: ${engagement.problemType} | Status: ${engagement.status}</div>
+    <section><h2>Executive Brief</h2><p>${engagement.brief.replace(/\n/g, '<br />')}</p></section>
+    <section><h2>Proposal Starter</h2>${engagement.workspace.proposalStarter.content.sections.map((section) => `<div class="card"><h3>${section.label}</h3><p>${section.body.replace(/\n/g, '<br />')}</p></div>`).join('')}</section>
+    <section><h2>Issue Tree</h2><div class="card"><h3>Root Question</h3><p>${engagement.workspace.issueTree.content.rootQuestion}</p></div>${engagement.workspace.issueTree.content.branches.map((branch) => `<div class="card"><h3>${branch.title}</h3><p><strong>Hypotheses:</strong><br />${branch.hypotheses.join('<br />')}</p><p><strong>Required Data:</strong><br />${branch.requiredData.join('<br />')}</p></div>`).join('')}</section>
+    <section><h2>Workplan</h2>${engagement.workspace.workplan.content.phases.map((phase) => `<div class="card"><h3>${phase.name}</h3><p>${phase.weeks}</p><ul>${phase.deliverables.map((item) => `<li>${item}</li>`).join('')}</ul></div>`).join('')}</section>
+    <section><h2>Selected Analog Cases</h2>${engagement.matchedCases.filter((item) => item.included).map((item) => `<div class="card"><h3>${item.engagementTitle}</h3><p>${item.rationale}</p></div>`).join('')}</section>
+  </body>
+</html>`
+    : '';
+
+  const handleExport = (format: 'html' | 'md') => {
     setExportFormat(format);
     setExportStatus('exporting');
 
@@ -50,7 +78,9 @@ export function ExportModal({ isOpen, onClose, engagement }: ExportModalProps) {
       try {
         if (engagement) {
           await markExport(engagement.id);
-          const blob = new Blob([exportBody], { type: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+          const blob = new Blob([format === 'html' ? exportHtml : exportBody], {
+            type: format === 'html' ? 'text/html' : 'text/markdown',
+          });
           const url = URL.createObjectURL(blob);
           const anchor = document.createElement('a');
           anchor.href = url;
@@ -132,30 +162,30 @@ export function ExportModal({ isOpen, onClose, engagement }: ExportModalProps) {
             {exportStatus === 'idle' && (
               <div className="space-y-4">
                 <button
-                  onClick={() => handleExport('docx')}
+                  onClick={() => handleExport('html')}
                   className="flex w-full items-center justify-between border border-black/10 bg-white p-4 text-left transition-all hover:border-black/20 hover:bg-black/[0.01]"
                 >
                   <div>
                     <div className="mb-1 text-sm" style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>
-                      Export as DOCX
+                      Export Client HTML
                     </div>
                     <div className="text-xs text-black/60">
-                      Microsoft Word format, fully editable
+                      Styled document for browser review or PDF printing
                     </div>
                   </div>
                   <FileDown className="h-5 w-5 text-black/40" />
                 </button>
 
                 <button
-                  onClick={() => handleExport('pdf')}
+                  onClick={() => handleExport('md')}
                   className="flex w-full items-center justify-between border border-black/10 bg-white p-4 text-left transition-all hover:border-black/20 hover:bg-black/[0.01]"
                 >
                   <div>
                     <div className="mb-1 text-sm" style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>
-                      Export as PDF
+                      Export Markdown
                     </div>
                     <div className="text-xs text-black/60">
-                      Portable document format, read-only
+                      Clean working draft for editing in docs or notes tools
                     </div>
                   </div>
                   <FileDown className="h-5 w-5 text-black/40" />

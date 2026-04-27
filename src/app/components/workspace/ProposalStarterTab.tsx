@@ -6,7 +6,7 @@ interface ProposalStarterTabProps {
   onExport: () => void;
   onVersionHistory: () => void;
   onRegenerateSection: (section: string) => void;
-  onSaveArtifact: (payload: { title: string; content: { sections: ProposalSection[] } }) => Promise<void>;
+  onSaveArtifact: (payload: { title: string; content: { sections: ProposalSection[]; provenance?: Record<string, SourceTrace[]> } }) => Promise<void>;
   engagement: Engagement;
 }
 
@@ -23,6 +23,7 @@ export function ProposalStarterTab({
   const [savedNotice, setSavedNotice] = useState('');
   const selectedCases = engagement.matchedCases.filter((item) => item.included);
   const topUploads = engagement.uploads.slice(0, 3);
+  const persistedProvenance = engagement.workspace.proposalStarter.content.provenance || {};
 
   const buildSourceTrace = (sectionKey: string): SourceTrace[] => {
     const traces: SourceTrace[] = [
@@ -60,7 +61,7 @@ export function ProposalStarterTab({
 
   const handleSave = async () => {
     setIsSaving(true);
-    await onSaveArtifact({ title, content: { sections } });
+    await onSaveArtifact({ title, content: { sections, provenance: persistedProvenance } });
     setIsSaving(false);
     setSavedNotice('Saved');
     window.setTimeout(() => setSavedNotice(''), 2000);
@@ -163,7 +164,7 @@ export function ProposalStarterTab({
               <div className="border border-black/10 bg-black/[0.015] px-4 py-4">
                 <div className="mb-3 text-xs uppercase tracking-wider text-black/40">Source Trace</div>
                 <div className="space-y-3">
-                  {buildSourceTrace(section.key).map((trace) => (
+                  {(persistedProvenance[section.key] || buildSourceTrace(section.key)).map((trace) => (
                     <div key={`${section.key}-${trace.label}`} className="text-sm text-black/70">
                       <div className="font-medium text-black">{trace.label}</div>
                       <div>{trace.detail}</div>

@@ -90,6 +90,8 @@ export interface UploadItem {
 export interface SourceTrace {
   label: string;
   detail: string;
+  sourceType?: "brief" | "case" | "upload" | "system";
+  sourceId?: string | null;
 }
 
 export interface MatchedCase {
@@ -157,6 +159,7 @@ export interface ProposalSection {
 
 export interface ProposalArtifactContent {
   sections: ProposalSection[];
+  provenance?: Record<string, SourceTrace[]>;
 }
 
 export interface IssueTreeBranch {
@@ -168,6 +171,10 @@ export interface IssueTreeBranch {
 export interface IssueTreeArtifactContent {
   rootQuestion: string;
   branches: IssueTreeBranch[];
+  provenance?: {
+    rootQuestion?: SourceTrace[];
+    branches?: Record<string, SourceTrace[]>;
+  };
 }
 
 export interface WorkplanPhase {
@@ -178,6 +185,7 @@ export interface WorkplanPhase {
 
 export interface WorkplanArtifactContent {
   phases: WorkplanPhase[];
+  provenance?: Record<string, SourceTrace[]>;
 }
 
 export interface BriefArtifactContent {

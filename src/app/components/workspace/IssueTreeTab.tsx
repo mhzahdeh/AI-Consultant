@@ -17,6 +17,7 @@ export function IssueTreeTab({ onExport, onVersionHistory, onSaveArtifact, engag
   const [savedNotice, setSavedNotice] = useState('');
   const selectedCases = engagement.matchedCases.filter((item) => item.included);
   const topUploads = engagement.uploads.slice(0, 2);
+  const persistedProvenance = engagement.workspace.issueTree.content.provenance;
 
   const buildBranchTrace = (branchTitle: string): SourceTrace[] => [
     {
@@ -41,7 +42,7 @@ export function IssueTreeTab({ onExport, onVersionHistory, onSaveArtifact, engag
 
   const handleSave = async () => {
     setIsSaving(true);
-    await onSaveArtifact({ title, content: { rootQuestion, branches } });
+    await onSaveArtifact({ title, content: { rootQuestion, branches, provenance: persistedProvenance } });
     setIsSaving(false);
     setSavedNotice('Saved');
     window.setTimeout(() => setSavedNotice(''), 2000);
@@ -107,7 +108,7 @@ export function IssueTreeTab({ onExport, onVersionHistory, onSaveArtifact, engag
             <div className="mt-4 border border-black/10 bg-black/[0.015] px-4 py-4">
               <div className="mb-3 text-xs uppercase tracking-wider text-black/40">Evidence In Use</div>
               <div className="space-y-3">
-                {buildBranchTrace('root question').map((trace) => (
+                {(persistedProvenance?.rootQuestion || buildBranchTrace('root question')).map((trace) => (
                   <div key={`root-${trace.label}`} className="text-sm text-black/70">
                     <div className="font-medium text-black">{trace.label}</div>
                     <div>{trace.detail}</div>
@@ -170,7 +171,7 @@ export function IssueTreeTab({ onExport, onVersionHistory, onSaveArtifact, engag
               <div className="mt-4 border border-black/10 bg-black/[0.015] px-4 py-4">
                 <div className="mb-3 text-xs uppercase tracking-wider text-black/40">Source Trace</div>
                 <div className="space-y-3">
-                  {buildBranchTrace(branch.title).map((trace) => (
+                  {((persistedProvenance?.branches && persistedProvenance.branches[branch.title]) || buildBranchTrace(branch.title)).map((trace) => (
                     <div key={`${branch.title}-${trace.label}`} className="text-sm text-black/70">
                       <div className="font-medium text-black">{trace.label}</div>
                       <div>{trace.detail}</div>

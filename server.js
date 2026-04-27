@@ -8,6 +8,12 @@ import { DatabaseSync } from "node:sqlite";
 import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
 import {
+  buildIssueTreeArtifactContent as buildIssueTreeArtifactContentModule,
+  buildProposalArtifactContent as buildProposalArtifactContentModule,
+  buildProposalProvenanceForRegeneration,
+  buildWorkplanArtifactContent as buildWorkplanArtifactContentModule,
+} from "./server/artifacts.js";
+import {
   buildContextualMatchedCases,
   buildSelectedMatchedCases,
   buildVaultOverview,
@@ -37,6 +43,7 @@ db.exec("PRAGMA foreign_keys = ON;");
 initializeDatabase();
 syncVaultCaseSeed({ db, seedPath: VAULT_CASE_SEED_PATH, isoNow, runTransaction });
 seedDatabaseIfEmpty();
+backfillArtifactProvenance();
 
 function initializeDatabase() {
   db.exec(`
@@ -391,17 +398,17 @@ function buildLegacyArtifactSeed(engagement) {
     proposal: {
       title: workspace.proposalStarter?.title || `${engagement.title} - Proposal Starter`,
       generatedFrom: workspace.proposalStarter?.generatedFrom || 0,
-      content: buildProposalArtifactContent(engagement),
+        content: buildProposalArtifactContentModule(engagement),
     },
     issueTree: {
       title: workspace.issueTree?.title || `${engagement.title} - Issue Tree`,
       generatedFrom: 0,
-      content: buildIssueTreeArtifactContent(engagement),
+        content: buildIssueTreeArtifactContentModule(engagement),
     },
     workplan: {
       title: workspace.workplan?.title || `${engagement.title} - 12 Week Workplan`,
       generatedFrom: 0,
-      content: buildWorkplanArtifactContent(engagement),
+        content: buildWorkplanArtifactContentModule(engagement),
     },
   };
 }
@@ -993,31 +1000,37 @@ function serializeEngagement(engagementId) {
         id: "",
         title: `${engagement.title} - Proposal Starter`,
         generatedFrom: matchedCases.filter((item) => item.included).length,
-        content: buildProposalArtifactContent({
+        content: buildProposalArtifactContentModule({
           title: engagement.title,
           client: engagement.client,
           brief: artifacts.brief?.content?.text || "",
           problemType: engagement.problem_type,
+          matchedCases,
+          uploads,
         }),
       },
       issueTree: artifacts.issue_tree || {
         id: "",
         title: `${engagement.title} - Issue Tree`,
         generatedFrom: 0,
-        content: buildIssueTreeArtifactContent({
+        content: buildIssueTreeArtifactContentModule({
           title: engagement.title,
           client: engagement.client,
           brief: artifacts.brief?.content?.text || "",
+          matchedCases,
+          uploads,
         }),
       },
       workplan: artifacts.workplan || {
         id: "",
         title: `${engagement.title} - 12 Week Workplan`,
         generatedFrom: 0,
-        content: buildWorkplanArtifactContent({
+        content: buildWorkplanArtifactContentModule({
           title: engagement.title,
           client: engagement.client,
           brief: artifacts.brief?.content?.text || "",
+          uploads,
+          matchedCases,
         }),
       },
       regenerationLog: db.prepare(
@@ -1057,6 +1070,7 @@ function humanizeAuditAction(action) {
     "engagement.archived": "Engagement archived",
     "engagement.duplicated": "Engagement duplicated",
     "engagement.deleted": "Engagement deleted",
+    "engagement.promoted_to_vault": "Saved to vault",
     "artifact.regenerated": "Section regenerated",
     "workspace.saved": "Workspace saved",
     "version.restored": "Version restored",
@@ -1065,6 +1079,36 @@ function humanizeAuditAction(action) {
     "member.removed": "Member removed",
     "artifact.exported": "Artifact exported",
   }[action] || action;
+}
+
+function backfillArtifactProvenance() {
+  const engagementIds = db.prepare(`SELECT id FROM engagements ORDER BY created_at ASC`).all().map((row) => row.id);
+  for (const engagementId of engagementIds) {
+    const serialized = serializeEngagement(engagementId);
+    if (!serialized) continue;
+    const proposalContent = serialized.workspace.proposalStarter.content;
+    const issueTreeContent = serialized.workspace.issueTree.content;
+    const workplanContent = serialized.workspace.workplan.content;
+    const proposalTemplate = buildProposalArtifactContentModule(serialized);
+    const issueTemplate = buildIssueTreeArtifactContentModule(serialized);
+    const workplanTemplate = buildWorkplanArtifactContentModule(serialized);
+
+    if (!proposalContent.provenance) {
+      db.prepare(
+        `UPDATE artifacts SET content_json = ?, updated_at = ? WHERE engagement_id = ? AND kind = 'proposal'`
+      ).run(JSON.stringify({ ...proposalContent, provenance: proposalTemplate.provenance }), isoNow(), engagementId);
+    }
+    if (!issueTreeContent.provenance) {
+      db.prepare(
+        `UPDATE artifacts SET content_json = ?, updated_at = ? WHERE engagement_id = ? AND kind = 'issue_tree'`
+      ).run(JSON.stringify({ ...issueTreeContent, provenance: issueTemplate.provenance }), isoNow(), engagementId);
+    }
+    if (!workplanContent.provenance) {
+      db.prepare(
+        `UPDATE artifacts SET content_json = ?, updated_at = ? WHERE engagement_id = ? AND kind = 'workplan'`
+      ).run(JSON.stringify({ ...workplanContent, provenance: workplanTemplate.provenance }), isoNow(), engagementId);
+    }
+  }
 }
 
 function createSession(userId, activeOrganizationId = null) {
@@ -1394,8 +1438,7 @@ function createEngagementRecord({
 }) {
   const engagementId = nextId("eng");
   const now = isoNow();
-  const selectedMatchedCases = buildSelectedMatchedCases({
-    db,
+  const selectedMatchedCases = buildSelectedMatchedCases(db, {
     selectedVaultCaseIds,
     title,
     client,
@@ -1417,17 +1460,17 @@ function createEngagementRecord({
     proposal: {
       title: `${title} - Proposal Starter`,
       generatedFrom: resolvedMatchedCases.filter((item) => item.included).length,
-      content: buildProposalArtifactContent({ title, client, problemType, brief, matchedCases: resolvedMatchedCases }),
+      content: buildProposalArtifactContentModule({ title, client, problemType, brief, matchedCases: resolvedMatchedCases, uploads }),
     },
     issueTree: {
       title: `${title} - Issue Tree`,
       generatedFrom: 0,
-      content: buildIssueTreeArtifactContent({ title, client, brief }),
+      content: buildIssueTreeArtifactContentModule({ title, client, brief, matchedCases: resolvedMatchedCases, uploads }),
     },
     workplan: {
       title: `${title} - 12 Week Workplan`,
       generatedFrom: 0,
-      content: buildWorkplanArtifactContent({ title, client, brief, matchedCases: resolvedMatchedCases }),
+      content: buildWorkplanArtifactContentModule({ title, client, brief, matchedCases: resolvedMatchedCases, uploads }),
     },
   };
 
@@ -2181,11 +2224,16 @@ async function requestHandler(req, res) {
       ).get(engagementId);
       const content = JSON.parse(artifact.content_json);
       const evidenceContext = buildEvidenceContext(engagementId, evidenceMode);
+      const serializedEngagement = serializeEngagement(engagementId);
+      const nextProvenance = {
+        ...(content.provenance || {}),
+        [section]: buildProposalProvenanceForRegeneration(serializedEngagement, section, evidenceMode),
+      };
       const nextSections = content.sections.map((item) =>
         item.key === section || item.label.toLowerCase().replace(/\s+/g, "_") === section
           ? {
               ...item,
-              body: `${item.body}\n\nRefined for this engagement${body.instructions ? ` with direction: ${body.instructions}` : "."}\n\nEvidence mode: ${evidenceContext}`,
+              body: `${item.body}\n\nRefined for this engagement${body.instructions ? ` with direction: ${body.instructions}` : "."}\n\nEvidence mode: ${evidenceContext}\n\nUpdated source emphasis: ${nextProvenance[section].map((trace) => trace.label).join(", ") || "client brief"}.`,
             }
           : item
       );
@@ -2195,7 +2243,7 @@ async function requestHandler(req, res) {
         actorUserId: context.session.user_id,
         organizationId: context.membership.organization_id,
         title: artifact.title,
-        content: { ...content, sections: nextSections },
+        content: { ...content, sections: nextSections, provenance: nextProvenance },
         source: "Section regeneration",
         description: `Regenerated "${section}" section${body.instructions ? " with targeted instructions" : ""} using ${evidenceMode}`,
       });

@@ -112,6 +112,8 @@ export function scoreVaultCase(row, context) {
   const tokens = tokenizeContext(
     [context.query, context.title, context.client, context.problemType, context.industry, context.capability, context.brief].join(" ")
   );
+  const tagTokens = JSON.parse(row.tags_json).map((item) => String(item).toLowerCase());
+  const outcomeTokens = JSON.parse(row.outcomes_json).map((item) => String(item).toLowerCase());
   const haystack = [
     row.title,
     row.client_name,
@@ -128,12 +130,23 @@ export function scoreVaultCase(row, context) {
     .join(" ")
     .toLowerCase();
 
-  let score = row.evidence_strength * 8 + Number(row.use_again_count || 0) * 4 + (row.is_favorite ? 10 : 0);
+  let score =
+    row.evidence_strength * 8 +
+    Number(row.use_again_count || 0) * 4 +
+    (row.is_favorite ? 10 : 0) +
+    (row.is_internal ? 12 : 0) +
+    (row.year ? Math.max(0, row.year - 2022) : 0);
   const matchedSignals = [];
 
   for (const token of tokens) {
     if (haystack.includes(token)) {
       score += token.length >= 7 ? 6 : 3;
+    }
+    if (tagTokens.some((item) => item.includes(token))) {
+      score += 5;
+    }
+    if (outcomeTokens.some((item) => item.includes(token))) {
+      score += 4;
     }
   }
 
@@ -153,8 +166,21 @@ export function scoreVaultCase(row, context) {
     score += 8;
     matchedSignals.push(`source: ${row.source_firm}`);
   }
+  if (context.client && row.client_name.toLowerCase().includes(String(context.client).toLowerCase())) {
+    score += 6;
+    matchedSignals.push(`client analog: ${row.client_name}`);
+  }
+  if (row.is_internal) {
+    matchedSignals.push("internal reusable case");
+  }
+  if (row.is_favorite) {
+    matchedSignals.push("team favorite");
+  }
+  if (Number(row.use_again_count || 0) > 0) {
+    matchedSignals.push(`used again ${row.use_again_count}x`);
+  }
 
-  return { score, matchedSignals };
+  return { score, matchedSignals: [...new Set(matchedSignals)].slice(0, 5) };
 }
 
 export function listVaultCases(db, context = {}) {
@@ -170,6 +196,7 @@ export function listVaultCases(db, context = {}) {
     if (context.capability && row.capability.toLowerCase() !== String(context.capability).toLowerCase()) return false;
     if (context.sourceFirm && row.source_firm.toLowerCase() !== String(context.sourceFirm).toLowerCase()) return false;
     if (context.favoriteOnly && !row.is_favorite) return false;
+    if (context.internalOnly && !row.is_internal) return false;
     return true;
   });
 
