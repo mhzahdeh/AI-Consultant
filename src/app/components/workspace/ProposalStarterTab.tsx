@@ -85,6 +85,22 @@ export function ProposalStarterTab({
             </div>
           </div>
 
+          {engagement.matchedCases.filter((item) => item.included).length > 0 && (
+            <div className="border-l-2 border-black bg-black/[0.02] p-5">
+              <div className="mb-2 text-xs uppercase tracking-wider text-black/40">Case Influence</div>
+              <p className="text-sm leading-relaxed text-black/70">
+                This draft is currently grounded in {engagement.matchedCases.filter((item) => item.included).length} selected analog case
+                {engagement.matchedCases.filter((item) => item.included).length === 1 ? "" : "s"}.
+                {" "}
+                {engagement.matchedCases
+                  .filter((item) => item.included)
+                  .slice(0, 3)
+                  .map((item) => item.engagementTitle)
+                  .join(", ")}
+              </p>
+            </div>
+          )}
+
           {sections.map((section) => (
             <section key={section.key} className="space-y-4">
               <div className="flex items-center justify-between">

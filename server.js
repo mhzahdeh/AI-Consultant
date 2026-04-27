@@ -7,11 +7,20 @@ import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
+import {
+  buildContextualMatchedCases,
+  buildSelectedMatchedCases,
+  buildVaultOverview,
+  listVaultCases,
+  syncVaultCaseSeed,
+  updateVaultCaseFeedback,
+} from "./server/vault.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, "data");
 const DB_PATH = path.join(DATA_DIR, "app.db");
 const LEGACY_DB_PATH = path.join(DATA_DIR, "db.json");
+const VAULT_CASE_SEED_PATH = path.join(DATA_DIR, "vault_cases.seed.json");
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const PORT = Number(process.env.PORT || 3001);
 const SESSION_COOKIE = "aic_session";
@@ -25,6 +34,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec("PRAGMA foreign_keys = ON;");
 
 initializeDatabase();
+syncVaultCaseSeed({ db, seedPath: VAULT_CASE_SEED_PATH, isoNow, runTransaction });
 seedDatabaseIfEmpty();
 
 function initializeDatabase() {
@@ -137,6 +147,27 @@ function initializeDatabase() {
       FOREIGN KEY (engagement_id) REFERENCES engagements(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS vault_cases (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      client_name TEXT NOT NULL,
+      source_firm TEXT NOT NULL,
+      source_url TEXT NOT NULL,
+      industry TEXT NOT NULL,
+      business_function TEXT NOT NULL,
+      problem_type TEXT NOT NULL,
+      capability TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      outcomes_json TEXT NOT NULL,
+      tags_json TEXT NOT NULL,
+      region TEXT NOT NULL,
+      year INTEGER,
+      evidence_strength INTEGER NOT NULL DEFAULT 3,
+      review_status TEXT NOT NULL DEFAULT 'approved',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS artifacts (
       id TEXT PRIMARY KEY,
       engagement_id TEXT NOT NULL,
@@ -175,6 +206,23 @@ function initializeDatabase() {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     );
   `);
+
+  ensureVaultCaseFeedbackColumns();
+}
+
+function ensureVaultCaseFeedbackColumns() {
+  const columns = new Set(
+    db.prepare(`PRAGMA table_info(vault_cases)`).all().map((column) => column.name)
+  );
+  if (!columns.has("is_favorite")) {
+    db.exec(`ALTER TABLE vault_cases ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0`);
+  }
+  if (!columns.has("is_hidden")) {
+    db.exec(`ALTER TABLE vault_cases ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0`);
+  }
+  if (!columns.has("use_again_count")) {
+    db.exec(`ALTER TABLE vault_cases ADD COLUMN use_again_count INTEGER NOT NULL DEFAULT 0`);
+  }
 }
 
 function seedDatabaseIfEmpty() {
@@ -216,6 +264,16 @@ function seedDatabaseIfEmpty() {
     }
   });
 }
+
+function loadVaultCaseSeed() {
+  if (!existsSync(VAULT_CASE_SEED_PATH)) return [];
+  const parsed = JSON.parse(readFileSync(VAULT_CASE_SEED_PATH, "utf8"));
+  if (Array.isArray(parsed)) return parsed;
+  if (Array.isArray(parsed?.cases)) return parsed.cases;
+  return [];
+}
+
+function syncVaultCaseSeedLegacyStub() {}
 
 function migrateLegacyOrganization(legacy, organizationId, ownerUserId) {
   const members = Array.isArray(legacy.members) ? legacy.members : [];
@@ -815,6 +873,8 @@ function toDashboardEngagement(engagement) {
   };
 }
 
+// Vault retrieval, ranking, and seed synchronization live in ./server/vault.js.
+
 function artifactLabel(kind) {
   return {
     brief: "Brief",
@@ -1015,6 +1075,7 @@ function buildProposalArtifactContent(engagement) {
   const title = engagement.title || "Proposal Starter";
   const client = engagement.client || "Client";
   const problemType = engagement.problemType || "Strategy";
+  const caseEvidence = Array.isArray(engagement.matchedCases) ? engagement.matchedCases.filter((item) => item.included).slice(0, 3) : [];
   return {
     sections: [
       {
@@ -1036,6 +1097,18 @@ function buildProposalArtifactContent(engagement) {
         key: "deliverables",
         label: "Deliverables",
         body: `Executive recommendation memo\nAnalysis tree and supporting evidence\nDecision-ready workplan\nImplementation roadmap and risk register`,
+      },
+      {
+        key: "case_evidence",
+        label: "Analog Case Evidence",
+        body: caseEvidence.length
+          ? caseEvidence
+              .map(
+                (item, index) =>
+                  `${index + 1}. ${item.engagementTitle} (${item.confidence}% ${item.confidenceLabel.toLowerCase()} match)\nWhy it matters: ${item.rationale}`
+              )
+              .join("\n\n")
+          : `No analog cases were explicitly selected. This draft should be refined against additional reference material as it becomes available.`,
       },
       {
         key: "timeline",
@@ -1102,6 +1175,7 @@ function buildIssueTreeArtifactContent(engagement) {
 }
 
 function buildWorkplanArtifactContent(engagement) {
+  const caseEvidence = Array.isArray(engagement.matchedCases) ? engagement.matchedCases.filter((item) => item.included).slice(0, 2) : [];
   return {
     phases: [
       {
@@ -1111,6 +1185,7 @@ function buildWorkplanArtifactContent(engagement) {
           "Problem framing and success criteria",
           "Source material synthesis",
           "Initial fact base",
+          ...(caseEvidence[0] ? [`Analog scan anchored in ${caseEvidence[0].engagementTitle}`] : []),
         ],
       },
       {
@@ -1120,6 +1195,7 @@ function buildWorkplanArtifactContent(engagement) {
           "Issue tree and hypotheses",
           "Option analysis",
           "Economics and risk assessment",
+          ...(caseEvidence[1] ? [`Cross-case comparison with ${caseEvidence[1].engagementTitle}`] : []),
         ],
       },
       {
@@ -1129,6 +1205,7 @@ function buildWorkplanArtifactContent(engagement) {
           "Recommendation narrative",
           "Executive deck and memo",
           "Leadership alignment session",
+          "Explicit rationale for where analog case evidence influenced the recommendation",
         ],
       },
       {
@@ -1295,7 +1372,8 @@ function createEngagementRecord({
   objective,
   progress = 18,
   status = "Draft",
-  matchedCases = seedMatchedCases(problemType),
+  matchedCases = null,
+  selectedVaultCaseIds = [],
   artifactSeed,
   migrateUploads = [],
   seedVersions = [],
@@ -1303,6 +1381,20 @@ function createEngagementRecord({
 }) {
   const engagementId = nextId("eng");
   const now = isoNow();
+  const selectedMatchedCases = buildSelectedMatchedCases({
+    db,
+    selectedVaultCaseIds,
+    title,
+    client,
+    problemType,
+    brief,
+  });
+  const resolvedMatchedCases =
+    Array.isArray(matchedCases) && matchedCases.length
+      ? matchedCases
+      : Array.isArray(selectedMatchedCases) && selectedMatchedCases.length
+      ? selectedMatchedCases
+      : buildContextualMatchedCases(db, { title, client, problemType, brief });
   const artifacts = artifactSeed || {
     brief: {
       title: "Canonical Brief",
@@ -1311,8 +1403,8 @@ function createEngagementRecord({
     },
     proposal: {
       title: `${title} - Proposal Starter`,
-      generatedFrom: matchedCases.filter((item) => item.included).length,
-      content: buildProposalArtifactContent({ title, client, problemType, brief }),
+      generatedFrom: resolvedMatchedCases.filter((item) => item.included).length,
+      content: buildProposalArtifactContent({ title, client, problemType, brief, matchedCases: resolvedMatchedCases }),
     },
     issueTree: {
       title: `${title} - Issue Tree`,
@@ -1322,7 +1414,7 @@ function createEngagementRecord({
     workplan: {
       title: `${title} - 12 Week Workplan`,
       generatedFrom: 0,
-      content: buildWorkplanArtifactContent({ title, client, brief }),
+      content: buildWorkplanArtifactContent({ title, client, brief, matchedCases: resolvedMatchedCases }),
     },
   };
 
@@ -1349,7 +1441,7 @@ function createEngagementRecord({
     createArtifact(engagementId, "issue_tree", artifacts.issueTree.title, artifacts.issueTree.generatedFrom || 0, artifacts.issueTree.content);
     createArtifact(engagementId, "workplan", artifacts.workplan.title, artifacts.workplan.generatedFrom || 0, artifacts.workplan.content);
 
-    for (const item of matchedCases) {
+    for (const item of resolvedMatchedCases) {
       db.prepare(
         `INSERT INTO matched_cases (id, engagement_id, file_title, engagement_title, confidence, confidence_label, rationale, reusable_elements_json, included)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -1709,6 +1801,62 @@ async function requestHandler(req, res) {
       return;
     }
 
+    if (url.pathname === "/api/vault/cases" && req.method === "GET") {
+      const context = requireOrganizationContext(req, res);
+      if (!context) return;
+      const cases = listVaultCases(db, {
+        query: url.searchParams.get("query") || "",
+        title: url.searchParams.get("title") || "",
+        client: url.searchParams.get("client") || "",
+        brief: url.searchParams.get("brief") || "",
+        problemType: url.searchParams.get("problemType") || "",
+        industry: url.searchParams.get("industry") || "",
+        capability: url.searchParams.get("capability") || "",
+        sourceFirm: url.searchParams.get("sourceFirm") || "",
+        limit: url.searchParams.get("limit") || 20,
+      });
+      json(res, 200, { cases, total: cases.length });
+      return;
+    }
+
+    if (url.pathname === "/api/vault/overview" && req.method === "GET") {
+      const context = requireOrganizationContext(req, res);
+      if (!context) return;
+      const overview = buildVaultOverview(
+        db,
+        { relativeTimeFrom },
+        {
+          query: url.searchParams.get("query") || "",
+          problemType: url.searchParams.get("problemType") || "",
+          industry: url.searchParams.get("industry") || "",
+          capability: url.searchParams.get("capability") || "",
+          sourceFirm: url.searchParams.get("sourceFirm") || "",
+          limit: url.searchParams.get("limit") || 20,
+        }
+      );
+      json(res, 200, overview);
+      return;
+    }
+
+    if (url.pathname.match(/^\/api\/vault\/cases\/[^/]+\/feedback$/) && req.method === "PATCH") {
+      const context = requireOrganizationContext(req, res);
+      if (!context) return;
+      const caseId = url.pathname.split("/")[4];
+      const body = await parseBody(req);
+      const action = String(body.action || "");
+      if (!["favorite", "hide", "use_again"].includes(action)) {
+        json(res, 400, { error: "Invalid feedback action" });
+        return;
+      }
+      const updated = updateVaultCaseFeedback(db, caseId, action);
+      if (!updated) {
+        json(res, 404, { error: "Vault case not found" });
+        return;
+      }
+      json(res, 200, { ok: true, caseId, action });
+      return;
+    }
+
     if (url.pathname === "/api/engagements" && req.method === "POST") {
       const context = requireOrganizationContext(req, res);
       if (!context) return;
@@ -1723,6 +1871,7 @@ async function requestHandler(req, res) {
         brief: body.brief || "",
         notes: body.notes || "",
         uploads: Array.isArray(body.uploads) ? body.uploads : [],
+        selectedVaultCaseIds: Array.isArray(body.selectedVaultCaseIds) ? body.selectedVaultCaseIds : [],
       });
       json(res, 201, serializeEngagement(engagementId));
       return;

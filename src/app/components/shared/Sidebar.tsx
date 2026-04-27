@@ -12,7 +12,7 @@ export function Sidebar({ activeItem = 'dashboard' }: SidebarProps) {
   const items = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
     { id: 'engagements', label: 'Engagements', icon: FolderOpen, to: '/workspace' },
-    { id: 'vault', label: 'Vault', icon: Database, to: '/dashboard#vault' },
+    { id: 'vault', label: 'Vault', icon: Database, to: '/vault' },
     { id: 'usage', label: 'Usage', icon: BarChart3, to: '/usage' },
     { id: 'billing', label: 'Billing', icon: CreditCard, to: '/billing' },
     { id: 'settings', label: 'Settings', icon: Settings, to: '/settings' },

@@ -9,6 +9,7 @@ import OrganizationSelection from "./components/OrganizationSelection";
 import AcceptInvite from "./components/AcceptInvite";
 import MembersAndInvites from "./components/MembersAndInvites";
 import Dashboard from "./components/Dashboard";
+import VaultPage from "./components/VaultPage";
 import NewEngagement from "./components/NewEngagement";
 import BriefReview from "./components/BriefReview";
 import EngagementWorkspace from "./components/EngagementWorkspace";
@@ -98,6 +99,14 @@ function AppRoutes() {
         element={
           <RequireWorkspace>
             <MembersAndInvites />
+          </RequireWorkspace>
+        }
+      />
+      <Route
+        path="/vault"
+        element={
+          <RequireWorkspace>
+            <VaultPage />
           </RequireWorkspace>
         }
       />

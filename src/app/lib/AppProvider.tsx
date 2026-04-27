@@ -8,6 +8,8 @@ import type {
   Role,
   SessionState,
   UploadDraft,
+  VaultCase,
+  VaultOverview,
 } from "./types";
 
 interface CreateEngagementInput {
@@ -17,6 +19,7 @@ interface CreateEngagementInput {
   brief: string;
   notes: string;
   uploads: UploadDraft[];
+  selectedVaultCaseIds?: string[];
 }
 
 interface AppContextValue {
@@ -34,6 +37,26 @@ interface AppContextValue {
   selectOrganization: (organizationId: string) => Promise<void>;
   getInvite: (token: string) => Promise<InviteDetail>;
   acceptInvite: (token: string, payload: { fullName?: string; password?: string }) => Promise<void>;
+  listVaultCases: (params?: {
+    query?: string;
+    title?: string;
+    client?: string;
+    brief?: string;
+    problemType?: string;
+    industry?: string;
+    capability?: string;
+    sourceFirm?: string;
+    limit?: number;
+  }) => Promise<VaultCase[]>;
+  getVaultOverview: (params?: {
+    query?: string;
+    problemType?: string;
+    industry?: string;
+    capability?: string;
+    sourceFirm?: string;
+    limit?: number;
+  }) => Promise<VaultOverview>;
+  updateVaultCaseFeedback: (caseId: string, action: "favorite" | "hide" | "use_again") => Promise<void>;
   selectEngagement: (engagementId: string | null) => Promise<void>;
   createEngagement: (input: CreateEngagementInput) => Promise<Engagement>;
   saveBrief: (engagementId: string, brief: string) => Promise<void>;
@@ -178,6 +201,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await refreshWorkspace();
   }, [refreshWorkspace]);
 
+  const listVaultCases = useCallback(async (params?: {
+    query?: string;
+    title?: string;
+    client?: string;
+    brief?: string;
+    problemType?: string;
+    industry?: string;
+    capability?: string;
+    sourceFirm?: string;
+    limit?: number;
+  }) => {
+    const result = await api.listVaultCases(params);
+    return result.cases;
+  }, []);
+
+  const getVaultOverview = useCallback(async (params?: {
+    query?: string;
+    problemType?: string;
+    industry?: string;
+    capability?: string;
+    sourceFirm?: string;
+    limit?: number;
+  }) => api.vaultOverview(params), []);
+
+  const updateVaultCaseFeedback = useCallback(async (caseId: string, action: "favorite" | "hide" | "use_again") => {
+    await api.updateVaultCaseFeedback(caseId, action);
+  }, []);
+
   const selectEngagement = useCallback(async (engagementId: string | null) => {
     if (!engagementId) {
       setCurrentEngagement(null);
@@ -290,6 +341,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       selectOrganization,
       getInvite,
       acceptInvite,
+      listVaultCases,
+      getVaultOverview,
+      updateVaultCaseFeedback,
       selectEngagement,
       createEngagement,
       saveBrief,
@@ -321,6 +375,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       selectOrganization,
       getInvite,
       acceptInvite,
+      listVaultCases,
+      getVaultOverview,
+      updateVaultCaseFeedback,
       selectEngagement,
       createEngagement,
       saveBrief,

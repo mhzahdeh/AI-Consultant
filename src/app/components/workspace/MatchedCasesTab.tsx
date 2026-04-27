@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { FileText, CheckCircle2, X, Eye, Loader2, AlertCircle, TrendingUp } from 'lucide-react';
+import { FileText, CheckCircle2, X, Eye, Loader2, AlertCircle, TrendingUp, Heart, RefreshCw } from 'lucide-react';
 import { useAppData } from '../../lib/AppProvider';
 import type { Engagement } from '../../lib/types';
 
@@ -10,9 +10,10 @@ interface MatchedCasesTabProps {
 }
 
 export function MatchedCasesTab({ engagement, onPreview }: MatchedCasesTabProps) {
-  const { toggleMatchedCase } = useAppData();
+  const { toggleMatchedCase, listVaultCases, updateVaultCaseFeedback } = useAppData();
   const [matchingStatus] = useState<'loading' | 'completed' | 'empty'>('completed');
   const [sortBy, setSortBy] = useState('confidence');
+  const [feedbackNotice, setFeedbackNotice] = useState('');
   const cases = engagement.matchedCases;
 
   const toggleInclude = async (id: string, included: boolean) => {
@@ -20,6 +21,19 @@ export function MatchedCasesTab({ engagement, onPreview }: MatchedCasesTabProps)
   };
 
   const selectedCount = cases.filter(c => c.included).length;
+
+  const handleCaseFeedback = async (matchedCase: Engagement["matchedCases"][number], action: "favorite" | "use_again") => {
+    const libraryCases = await listVaultCases({ title: matchedCase.engagementTitle, limit: 10 });
+    const source = libraryCases.find((item) => item.title === matchedCase.engagementTitle);
+    if (!source) {
+      setFeedbackNotice('This case is not linked to a curated vault record yet.');
+      window.setTimeout(() => setFeedbackNotice(''), 2200);
+      return;
+    }
+    await updateVaultCaseFeedback(source.id, action);
+    setFeedbackNotice(action === 'favorite' ? 'Saved to vault favorites' : 'Marked as use again');
+    window.setTimeout(() => setFeedbackNotice(''), 2200);
+  };
 
   if (matchingStatus === 'loading') {
     return (
@@ -79,6 +93,7 @@ export function MatchedCasesTab({ engagement, onPreview }: MatchedCasesTabProps)
                 <p className="text-sm text-black/60">
                   Generation will reuse structure, frameworks, and patterns from selected materials
                 </p>
+                {feedbackNotice && <p className="mt-2 text-xs text-black/50">{feedbackNotice}</p>}
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -146,6 +161,17 @@ export function MatchedCasesTab({ engagement, onPreview }: MatchedCasesTabProps)
                 </p>
               </div>
 
+              {matchedCase.included && (
+                <div className="mb-4 border border-black/10 bg-black/[0.02] p-4">
+                  <div className="mb-2 text-xs uppercase tracking-wider text-black/40">
+                    How this will influence outputs
+                  </div>
+                  <p className="text-sm leading-relaxed text-black/70">
+                    This case can shape the proposal storyline, the structure of the issue tree, and the sequencing of the workplan. If it is not relevant enough, exclude it before generation.
+                  </p>
+                </div>
+              )}
+
               <div className="mb-6">
                 <div className="mb-2 text-xs uppercase tracking-wider text-black/40">
                   Reusable elements
@@ -163,13 +189,29 @@ export function MatchedCasesTab({ engagement, onPreview }: MatchedCasesTabProps)
               </div>
 
               <div className="flex items-center justify-between border-t border-black/5 pt-4">
-                <button
-                  onClick={() => onPreview(matchedCase.id)}
-                  className="inline-flex items-center gap-2 text-sm text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black"
-                >
-                  <Eye className="h-4 w-4" />
-                  Preview Case
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => onPreview(matchedCase.id)}
+                    className="inline-flex items-center gap-2 text-sm text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Preview Case
+                  </button>
+                  <button
+                    onClick={() => void handleCaseFeedback(matchedCase, 'favorite')}
+                    className="inline-flex items-center gap-1 border border-black/10 px-3 py-1.5 text-xs text-black/70 hover:border-black/20"
+                  >
+                    <Heart className="h-3 w-3" />
+                    Favorite
+                  </button>
+                  <button
+                    onClick={() => void handleCaseFeedback(matchedCase, 'use_again')}
+                    className="inline-flex items-center gap-1 border border-black/10 px-3 py-1.5 text-xs text-black/70 hover:border-black/20"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Use Again
+                  </button>
+                </div>
 
                 <button
                   onClick={() => void toggleInclude(matchedCase.id, !matchedCase.included)}

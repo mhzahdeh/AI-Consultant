@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { motion } from 'motion/react';
-import { Plus, ArrowRight, FileText, Clock, FolderOpen } from 'lucide-react';
+import { Plus, ArrowRight, FileText, Clock, FolderOpen, Database } from 'lucide-react';
 import { Sidebar } from './shared/Sidebar';
 import { useAppData } from '../lib/AppProvider';
 
@@ -198,6 +198,31 @@ export default function Dashboard() {
                         className="border border-black/10 bg-white px-5 py-2 text-sm text-black transition-all hover:border-black/20"
                       >
                         Create Engagement
+                      </Link>
+                    </div>
+                  </div>
+                </section>
+
+                <section>
+                  <div className="border border-black/10 bg-white p-6">
+                    <div className="flex items-center justify-between gap-6">
+                      <div className="flex items-center gap-4">
+                        <Database className="h-6 w-6 text-black/60" />
+                        <div>
+                          <h3 className="mb-1 text-base text-black" style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>
+                            Vault Knowledge Layer
+                          </h3>
+                          <p className="text-sm text-black/60">
+                            Browse curated analog cases and uploaded artifacts across the organization.
+                          </p>
+                        </div>
+                      </div>
+                      <Link
+                        to="/vault"
+                        className="inline-flex items-center gap-2 border border-black/10 bg-white px-5 py-2 text-sm text-black transition-all hover:border-black/20"
+                      >
+                        Open Vault
+                        <ArrowRight className="h-4 w-4" />
                       </Link>
                     </div>
                   </div>

@@ -7,6 +7,7 @@ import type {
   Role,
   SessionState,
   UploadDraft,
+  VaultCase,
 } from "./types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -72,6 +73,48 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   bootstrap: () => request<Bootstrap>("/api/bootstrap"),
+  listVaultCases: (params?: {
+    query?: string;
+    title?: string;
+    client?: string;
+    brief?: string;
+    problemType?: string;
+    industry?: string;
+    capability?: string;
+    sourceFirm?: string;
+    limit?: number;
+  }) => {
+    const search = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && String(value).trim() !== "") {
+        search.set(key, String(value));
+      }
+    });
+    const query = search.toString();
+    return request<{ cases: VaultCase[]; total: number }>(`/api/vault/cases${query ? `?${query}` : ""}`);
+  },
+  vaultOverview: (params?: {
+    query?: string;
+    problemType?: string;
+    industry?: string;
+    capability?: string;
+    sourceFirm?: string;
+    limit?: number;
+  }) => {
+    const search = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && String(value).trim() !== "") {
+        search.set(key, String(value));
+      }
+    });
+    const query = search.toString();
+    return request<import("./types").VaultOverview>(`/api/vault/overview${query ? `?${query}` : ""}`);
+  },
+  updateVaultCaseFeedback: (caseId: string, action: "favorite" | "hide" | "use_again") =>
+    request<{ ok: true; caseId: string; action: string }>(`/api/vault/cases/${caseId}/feedback`, {
+      method: "PATCH",
+      body: JSON.stringify({ action }),
+    }),
   getEngagement: (engagementId: string) => request<Engagement>(`/api/engagements/${engagementId}`),
   createEngagement: (payload: {
     title: string;
@@ -80,6 +123,7 @@ export const api = {
     brief: string;
     notes: string;
     uploads: UploadDraft[];
+    selectedVaultCaseIds?: string[];
   }) =>
     request<Engagement>("/api/engagements", {
       method: "POST",

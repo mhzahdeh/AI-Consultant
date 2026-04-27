@@ -76,6 +76,15 @@ export function WorkplanTab({ onExport, onVersionHistory, onSaveArtifact, engage
             <div className="mt-2 text-sm text-black/40">Workplan • Persisted workspace artifact</div>
           </div>
 
+          {engagement.matchedCases.filter((item) => item.included).length > 0 && (
+            <div className="border-l-2 border-black bg-black/[0.02] p-5">
+              <div className="mb-2 text-xs uppercase tracking-wider text-black/40">Execution Notes</div>
+              <p className="text-sm leading-relaxed text-black/70">
+                The current plan includes sequencing shaped by selected analogs. Review phase deliverables and make sure they reflect the client context rather than copying prior work too literally.
+              </p>
+            </div>
+          )}
+
           {phases.map((phase, phaseIndex) => (
             <div key={`${phase.name}-${phaseIndex}`} className="border border-black/10 bg-white p-6">
               <div className="grid gap-4 md:grid-cols-[1fr_180px]">

@@ -50,6 +50,19 @@ export interface Vault {
   recentlyAdded: string[];
 }
 
+export interface VaultArtifact {
+  id: string;
+  name: string;
+  engagementId: string;
+  engagementTitle: string;
+  client: string;
+  problemType: string;
+  uploadedAt: string;
+  uploadedAtIso: string;
+  status: UploadStatus;
+  pages?: number;
+}
+
 export interface Member {
   id: string;
   name: string;
@@ -83,6 +96,41 @@ export interface MatchedCase {
   rationale: string;
   reusableElements: string[];
   included: boolean;
+}
+
+export interface VaultCase {
+  id: string;
+  title: string;
+  clientName: string;
+  sourceFirm: string;
+  sourceUrl: string;
+  industry: string;
+  businessFunction: string;
+  problemType: string;
+  capability: string;
+  summary: string;
+  outcomes: string[];
+  tags: string[];
+  region: string;
+  year: number | null;
+  evidenceStrength: number;
+  reviewStatus: string;
+  matchScore?: number;
+  matchedSignals?: string[];
+  isFavorite: boolean;
+  isHidden: boolean;
+  useAgainCount: number;
+}
+
+export interface VaultOverview {
+  totals: {
+    totalCases: number;
+    totalArtifacts: number;
+    totalSources: number;
+  };
+  highlightedCapabilities: string[];
+  cases: VaultCase[];
+  artifacts: VaultArtifact[];
 }
 
 export interface VersionEntry {

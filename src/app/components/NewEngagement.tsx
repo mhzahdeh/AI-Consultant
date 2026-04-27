@@ -1,15 +1,24 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { Upload, Lock, FileText, X, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, Lock, FileText, X, CheckCircle2, Loader2, AlertCircle, Search, ExternalLink, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import { Sidebar } from './shared/Sidebar';
 import { useAppData } from '../lib/AppProvider';
 import { BackButton } from './shared/BackButton';
-import type { UploadDraft } from '../lib/types';
+import type { UploadDraft, VaultCase } from '../lib/types';
 
 type UploadStatus = 'idle' | 'uploading' | 'completed' | 'parsing' | 'parsed' | 'failed';
 
 type UploadedFile = UploadDraft & { status: UploadStatus };
+
+const PROBLEM_TYPE_OPTIONS = [
+  { value: 'Market Entry Strategy', label: 'Market Entry Strategy' },
+  { value: 'Digital Transformation', label: 'Digital Transformation' },
+  { value: 'Operations Optimization', label: 'Operations Optimization' },
+  { value: 'Growth Strategy', label: 'Growth Strategy' },
+  { value: 'Cost Reduction', label: 'Cost Reduction' },
+  { value: 'Organization Design', label: 'Organization Design' },
+];
 
 function fileToBase64(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -25,7 +34,7 @@ function fileToBase64(file: File) {
 
 export default function NewEngagement() {
   const navigate = useNavigate();
-  const { createEngagement } = useAppData();
+  const { createEngagement, listVaultCases } = useAppData();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [engagementTitle, setEngagementTitle] = useState('');
   const [clientAlias, setClientAlias] = useState('');
@@ -36,6 +45,15 @@ export default function NewEngagement() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const [caseQuery, setCaseQuery] = useState('');
+  const [vaultCases, setVaultCases] = useState<VaultCase[]>([]);
+  const [selectedVaultCaseIds, setSelectedVaultCaseIds] = useState<string[]>([]);
+  const [isLoadingVaultCases, setIsLoadingVaultCases] = useState(false);
+  const [vaultCaseError, setVaultCaseError] = useState('');
+  const [sourceFirmFilter, setSourceFirmFilter] = useState('');
+  const [industryFilter, setIndustryFilter] = useState('');
+  const [capabilityFilter, setCapabilityFilter] = useState('');
+  const [showSelectedOnly, setShowSelectedOnly] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -118,6 +136,47 @@ export default function NewEngagement() {
     e.target.value = '';
   };
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setIsLoadingVaultCases(true);
+      setVaultCaseError('');
+      void listVaultCases({
+        query: caseQuery,
+        title: engagementTitle,
+        client: clientAlias,
+        brief,
+        problemType,
+        industry: industryFilter,
+        capability: capabilityFilter,
+        sourceFirm: sourceFirmFilter,
+        limit: 8,
+      })
+        .then((cases) => setVaultCases(cases))
+        .catch((error) => {
+          setVaultCaseError(error instanceof Error ? error.message : 'Unable to load case library');
+        })
+        .finally(() => setIsLoadingVaultCases(false));
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [brief, capabilityFilter, caseQuery, clientAlias, engagementTitle, industryFilter, listVaultCases, problemType, sourceFirmFilter]);
+
+  const toggleVaultCase = (caseId: string) => {
+    setSelectedVaultCaseIds((prev) => (prev.includes(caseId) ? prev.filter((id) => id !== caseId) : [...prev, caseId]));
+  };
+
+  const clearCaseFilters = () => {
+    setCaseQuery('');
+    setSourceFirmFilter('');
+    setIndustryFilter('');
+    setCapabilityFilter('');
+    setShowSelectedOnly(false);
+  };
+
+  const filteredVaultCases = showSelectedOnly
+    ? vaultCases.filter((vaultCase) => selectedVaultCaseIds.includes(vaultCase.id))
+    : vaultCases;
+
   const isFormValid = engagementTitle && clientAlias && problemType && (brief || uploadedFiles.length > 0);
 
   const handleCreate = async () => {
@@ -136,6 +195,7 @@ export default function NewEngagement() {
           void status;
           return upload;
         }),
+        selectedVaultCaseIds,
       });
       navigate(`/workspace?id=${engagement.id}`);
     } catch (error) {
@@ -230,12 +290,11 @@ export default function NewEngagement() {
                         className="w-full appearance-none border border-black/10 bg-white py-3 px-4 text-sm text-black transition-colors focus:border-black focus:outline-none"
                       >
                         <option value="">Select problem type</option>
-                        <option value="market-entry">Market Entry Strategy</option>
-                        <option value="digital">Digital Transformation</option>
-                        <option value="operations">Operations Optimization</option>
-                        <option value="growth">Growth Strategy</option>
-                        <option value="cost">Cost Reduction</option>
-                        <option value="org">Organization Design</option>
+                        {PROBLEM_TYPE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -280,6 +339,216 @@ export default function NewEngagement() {
                     rows={12}
                     className="w-full resize-none border border-black/10 bg-white py-4 px-4 text-sm text-black placeholder-black/40 transition-colors focus:border-black focus:outline-none"
                   />
+                </div>
+              </section>
+
+              <section className="border border-black/10 bg-white p-8">
+                <div className="mb-6 flex items-start justify-between gap-6">
+                  <div>
+                    <h2
+                      className="mb-2 text-lg tracking-tight text-black"
+                      style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
+                    >
+                      Reference Case Library
+                    </h2>
+                    <p className="text-sm text-black/60">
+                      Select any public analog cases you want this engagement to build from. If you skip selection, the app will recommend cases automatically.
+                    </p>
+                  </div>
+                  <div className="border border-black/10 bg-black/[0.02] px-4 py-3 text-right">
+                    <div className="text-xs uppercase tracking-wider text-black/40">Selected</div>
+                    <div className="text-2xl tracking-tight text-black" style={{ fontFamily: 'var(--font-display)' }}>
+                      {selectedVaultCaseIds.length}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-6 grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+                  <label className="flex items-center gap-3 border border-black/10 bg-white px-4 py-3 focus-within:border-black">
+                    <Search className="h-4 w-4 text-black/40" />
+                    <input
+                      type="text"
+                      value={caseQuery}
+                      onChange={(e) => setCaseQuery(e.target.value)}
+                      placeholder="Search by industry, source, function, or problem..."
+                      className="w-full bg-transparent text-sm text-black placeholder-black/40 outline-none"
+                    />
+                  </label>
+                  <div className="flex items-center justify-between border border-black/10 bg-white px-4 py-3 text-sm text-black/60">
+                    <span>Context-aware suggestions</span>
+                    <Sparkles className="h-4 w-4 text-black/50" />
+                  </div>
+                </div>
+
+                <div className="mb-6 grid gap-4 md:grid-cols-4">
+                  <select
+                    value={sourceFirmFilter}
+                    onChange={(e) => setSourceFirmFilter(e.target.value)}
+                    className="w-full appearance-none border border-black/10 bg-white px-4 py-3 text-sm text-black transition-colors focus:border-black focus:outline-none"
+                  >
+                    <option value="">All sources</option>
+                    <option value="McKinsey">McKinsey</option>
+                    <option value="Bain">Bain</option>
+                    <option value="BCG">BCG</option>
+                  </select>
+                  <select
+                    value={industryFilter}
+                    onChange={(e) => setIndustryFilter(e.target.value)}
+                    className="w-full appearance-none border border-black/10 bg-white px-4 py-3 text-sm text-black transition-colors focus:border-black focus:outline-none"
+                  >
+                    <option value="">All industries</option>
+                    <option value="Banking">Banking</option>
+                    <option value="Consumer goods">Consumer goods</option>
+                    <option value="Consumer packaged goods">Consumer packaged goods</option>
+                    <option value="Healthcare">Healthcare</option>
+                    <option value="Industrial manufacturing">Industrial manufacturing</option>
+                    <option value="Industrials">Industrials</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Nonprofit">Nonprofit</option>
+                    <option value="Paper and packaging">Paper and packaging</option>
+                    <option value="Real estate">Real estate</option>
+                    <option value="Retail">Retail</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Transportation">Transportation</option>
+                  </select>
+                  <select
+                    value={capabilityFilter}
+                    onChange={(e) => setCapabilityFilter(e.target.value)}
+                    className="w-full appearance-none border border-black/10 bg-white px-4 py-3 text-sm text-black transition-colors focus:border-black focus:outline-none"
+                  >
+                    <option value="">All capabilities</option>
+                    <option value="AI">AI</option>
+                    <option value="Advanced analytics">Advanced analytics</option>
+                    <option value="Behavior change">Behavior change</option>
+                    <option value="Computer vision and AI">Computer vision and AI</option>
+                    <option value="Decarbonization strategy">Decarbonization strategy</option>
+                    <option value="Digital factory">Digital factory</option>
+                    <option value="Digital operations">Digital operations</option>
+                    <option value="Generative AI">Generative AI</option>
+                    <option value="Leadership transformation">Leadership transformation</option>
+                    <option value="Operating model">Operating model</option>
+                    <option value="Portfolio focus">Portfolio focus</option>
+                    <option value="Public-private collaboration">Public-private collaboration</option>
+                    <option value="Sales transformation">Sales transformation</option>
+                    <option value="Service transformation">Service transformation</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowSelectedOnly((prev) => !prev)}
+                    className={`border px-4 py-3 text-sm transition-all ${
+                      showSelectedOnly
+                        ? 'border-black bg-black text-white hover:bg-black/90'
+                        : 'border-black/10 bg-white text-black hover:border-black/20'
+                    }`}
+                  >
+                    {showSelectedOnly ? 'Showing Selected' : 'Show Selected Only'}
+                  </button>
+                </div>
+
+                <div className="mb-6 flex flex-wrap items-center gap-3 text-xs text-black/50">
+                  <span>{filteredVaultCases.length} cases shown</span>
+                  {(caseQuery || sourceFirmFilter || industryFilter || capabilityFilter || showSelectedOnly) && (
+                    <button
+                      type="button"
+                      onClick={clearCaseFilters}
+                      className="border border-black/10 px-3 py-1 text-black transition-colors hover:border-black/20"
+                    >
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
+
+                {vaultCaseError && (
+                  <div className="mb-6 border-l-2 border-black/20 bg-black/[0.02] p-4 text-sm text-black/70">
+                    {vaultCaseError}
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {isLoadingVaultCases ? (
+                    <div className="flex items-center justify-center border border-black/10 bg-black/[0.01] px-6 py-10 text-sm text-black/60">
+                      <Loader2 className="mr-3 h-4 w-4 animate-spin" />
+                      Loading case recommendations...
+                    </div>
+                  ) : filteredVaultCases.length ? (
+                    filteredVaultCases.map((vaultCase) => {
+                      const isSelected = selectedVaultCaseIds.includes(vaultCase.id);
+                      return (
+                        <div
+                          key={vaultCase.id}
+                          className={`border p-6 transition-all ${
+                            isSelected
+                              ? 'border-black bg-black/[0.02]'
+                              : 'border-black/10 bg-white hover:border-black/20'
+                          }`}
+                        >
+                          <div className="mb-4 flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <div className="mb-2 flex flex-wrap items-center gap-2">
+                                <span className="inline-flex items-center bg-black px-3 py-1 text-xs text-white">
+                                  {vaultCase.sourceFirm}
+                                </span>
+                                <span className="inline-flex items-center border border-black/10 px-3 py-1 text-xs text-black">
+                                  {vaultCase.problemType}
+                                </span>
+                                <span className="inline-flex items-center border border-black/10 px-3 py-1 text-xs text-black/70">
+                                  {vaultCase.industry}
+                                </span>
+                              </div>
+                              <h3
+                                className="mb-2 text-base tracking-tight text-black"
+                                style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
+                              >
+                                {vaultCase.title}
+                              </h3>
+                              <p className="text-sm leading-relaxed text-black/70">{vaultCase.summary}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleVaultCase(vaultCase.id)}
+                              className={`shrink-0 border px-4 py-2 text-sm transition-all ${
+                                isSelected
+                                  ? 'border-black bg-black text-white hover:bg-black/90'
+                                  : 'border-black/10 bg-white text-black hover:border-black/20'
+                              }`}
+                            >
+                              {isSelected ? 'Selected' : 'Select Case'}
+                            </button>
+                          </div>
+
+                          <div className="mb-4 flex flex-wrap gap-2">
+                            {vaultCase.tags.slice(0, 5).map((tag) => (
+                              <span key={tag} className="inline-flex items-center border border-black/10 px-3 py-1 text-xs text-black/70">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center justify-between gap-4 border-t border-black/5 pt-4 text-xs text-black/50">
+                            <div className="flex flex-wrap items-center gap-4">
+                              <span>{vaultCase.businessFunction}</span>
+                              <span>{vaultCase.capability}</span>
+                              <span>{vaultCase.region}</span>
+                              {typeof vaultCase.matchScore === 'number' && <span>Match score {vaultCase.matchScore}</span>}
+                            </div>
+                            <a
+                              href={vaultCase.sourceUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black"
+                            >
+                              Source
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="border border-black/10 bg-black/[0.01] px-6 py-10 text-sm text-black/60">
+                      No curated cases matched the current filters. Clear filters or add more brief context for better recommendations.
+                    </div>
+                  )}
                 </div>
               </section>
 
@@ -424,7 +693,11 @@ export default function NewEngagement() {
                       : 'cursor-not-allowed border border-black/10 bg-black/5 text-black/40'
                   }`}
                 >
-                  {isSubmitting ? 'Creating Workspace…' : 'Continue to Workspace'}
+                  {isSubmitting
+                    ? 'Creating Workspace…'
+                    : selectedVaultCaseIds.length
+                    ? `Continue with ${selectedVaultCaseIds.length} Selected Case${selectedVaultCaseIds.length === 1 ? '' : 's'}`
+                    : 'Continue to Workspace'}
                 </button>
               </div>
             </motion.div>
