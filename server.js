@@ -1054,6 +1054,9 @@ function formatDateLabel(dateValue) {
 function humanizeAuditAction(action) {
   return {
     "engagement.created": "Engagement created",
+    "engagement.archived": "Engagement archived",
+    "engagement.duplicated": "Engagement duplicated",
+    "engagement.deleted": "Engagement deleted",
     "artifact.regenerated": "Section regenerated",
     "workspace.saved": "Workspace saved",
     "version.restored": "Version restored",
@@ -1378,7 +1381,7 @@ function createEngagementRecord({
   problemType,
   brief,
   notes,
-  uploads,
+  uploads = [],
   objective,
   progress = 18,
   status = "Draft",
@@ -1564,6 +1567,60 @@ function buildEvidenceContext(engagementId, evidenceMode) {
   if (cases.length) parts.push(`selected cases (${cases.join(", ")})`);
   if (uploads.length) parts.push(`uploads (${uploads.join(", ")})`);
   return `Ground this revision in ${parts.join(", ")}.`;
+}
+
+function duplicateEngagementRecord({ engagementId, organizationId, actorUserId }) {
+  const engagement = db.prepare("SELECT * FROM engagements WHERE id = ?").get(engagementId);
+  if (!engagement) return null;
+  const artifacts = Object.fromEntries(
+    db.prepare(`SELECT * FROM artifacts WHERE engagement_id = ?`).all(engagementId).map((artifact) => [
+      artifact.kind,
+      {
+        title: artifact.title.replace(engagement.title, `${engagement.title} Copy`),
+        generatedFrom: artifact.generated_from,
+        content: JSON.parse(artifact.content_json),
+      },
+    ])
+  );
+  const matchedCases = db.prepare(
+    `SELECT * FROM matched_cases WHERE engagement_id = ? ORDER BY confidence DESC`
+  ).all(engagementId).map((row) => ({
+    fileTitle: row.file_title,
+    engagementTitle: row.engagement_title,
+    confidence: row.confidence,
+    confidenceLabel: row.confidence_label,
+    rationale: row.rationale,
+    reusableElements: JSON.parse(row.reusable_elements_json),
+    included: Boolean(row.included),
+  }));
+  const uploads = db.prepare(
+    `SELECT * FROM uploads WHERE engagement_id = ? ORDER BY uploaded_at ASC`
+  ).all(engagementId).map((upload) => ({
+    name: upload.name,
+    mimeType: upload.mime_type,
+    extractedText: upload.extracted_text || "",
+  }));
+
+  return createEngagementRecord({
+    organizationId,
+    actorUserId,
+    title: `${engagement.title} Copy`,
+    client: engagement.client,
+    problemType: engagement.problem_type,
+    brief: JSON.parse(db.prepare(`SELECT content_json FROM artifacts WHERE engagement_id = ? AND kind = 'brief'`).get(engagementId).content_json).text || "",
+    notes: engagement.notes,
+    objective: engagement.objective,
+    progress: 12,
+    status: "Draft",
+    matchedCases,
+    artifactSeed: {
+      brief: artifacts.brief,
+      proposal: artifacts.proposal,
+      issueTree: artifacts.issue_tree,
+      workplan: artifacts.workplan,
+    },
+    migrateUploads: uploads,
+  });
 }
 
 async function updateArtifact({ engagementId, kind, actorUserId, organizationId, title, content, source, description }) {
@@ -1925,6 +1982,88 @@ async function requestHandler(req, res) {
         return;
       }
       json(res, 200, serializeEngagement(engagementId));
+      return;
+    }
+
+    if (url.pathname.match(/^\/api\/engagements\/[^/]+\/status$/) && req.method === "PATCH") {
+      const context = requireOrganizationContext(req, res);
+      if (!context) return;
+      if (!requireRole(res, context.membership, ["owner", "admin", "editor"])) return;
+      const engagementId = url.pathname.split("/")[3];
+      const engagement = getEngagementForUser(engagementId, context.session.user_id);
+      if (!engagement) {
+        json(res, 404, { error: "Engagement not found" });
+        return;
+      }
+      const body = await parseBody(req);
+      const status = String(body.status || "").trim() || engagement.status;
+      db.prepare("UPDATE engagements SET status = ?, updated_at = ? WHERE id = ?").run(status, isoNow(), engagementId);
+      createAuditLog({
+        organizationId: context.membership.organization_id,
+        userId: context.session.user_id,
+        action: status === "Archived" ? "engagement.archived" : "workspace.saved",
+        entityType: "engagement",
+        entityId: engagementId,
+        details: { engagementTitle: engagement.title, status },
+      });
+      json(res, 200, serializeEngagement(engagementId));
+      return;
+    }
+
+    if (url.pathname.match(/^\/api\/engagements\/[^/]+\/duplicate$/) && req.method === "POST") {
+      const context = requireOrganizationContext(req, res);
+      if (!context) return;
+      if (!requireRole(res, context.membership, ["owner", "admin", "editor"])) return;
+      const engagementId = url.pathname.split("/")[3];
+      const engagement = getEngagementForUser(engagementId, context.session.user_id);
+      if (!engagement) {
+        json(res, 404, { error: "Engagement not found" });
+        return;
+      }
+      const duplicateId = duplicateEngagementRecord({
+        engagementId,
+        organizationId: context.membership.organization_id,
+        actorUserId: context.session.user_id,
+      });
+      createAuditLog({
+        organizationId: context.membership.organization_id,
+        userId: context.session.user_id,
+        action: "engagement.duplicated",
+        entityType: "engagement",
+        entityId: engagementId,
+        details: { engagementTitle: engagement.title, duplicateId },
+      });
+      json(res, 201, serializeEngagement(duplicateId));
+      return;
+    }
+
+    if (url.pathname.match(/^\/api\/engagements\/[^/]+$/) && req.method === "DELETE") {
+      const context = requireOrganizationContext(req, res);
+      if (!context) return;
+      if (!requireRole(res, context.membership, ["owner", "admin", "editor"])) return;
+      const engagementId = url.pathname.split("/")[3];
+      const engagement = getEngagementForUser(engagementId, context.session.user_id);
+      if (!engagement) {
+        json(res, 404, { error: "Engagement not found" });
+        return;
+      }
+      runTransaction(() => {
+        db.prepare("DELETE FROM uploads WHERE engagement_id = ?").run(engagementId);
+        db.prepare("DELETE FROM matched_cases WHERE engagement_id = ?").run(engagementId);
+        db.prepare("DELETE FROM artifacts WHERE engagement_id = ?").run(engagementId);
+        db.prepare("DELETE FROM engagement_versions WHERE engagement_id = ?").run(engagementId);
+        db.prepare("DELETE FROM audit_logs WHERE entity_type = 'engagement' AND entity_id = ?").run(engagementId);
+        db.prepare("DELETE FROM engagements WHERE id = ?").run(engagementId);
+      });
+      createAuditLog({
+        organizationId: context.membership.organization_id,
+        userId: context.session.user_id,
+        action: "engagement.deleted",
+        entityType: "organization",
+        entityId: context.membership.organization_id,
+        details: { engagementTitle: engagement.title },
+      });
+      json(res, 200, { ok: true, engagementId });
       return;
     }
 

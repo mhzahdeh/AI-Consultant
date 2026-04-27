@@ -133,6 +133,20 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   getEngagement: (engagementId: string) => request<Engagement>(`/api/engagements/${engagementId}`),
+  updateEngagementStatus: (engagementId: string, status: string) =>
+    request<Engagement>(`/api/engagements/${engagementId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+  duplicateEngagement: (engagementId: string) =>
+    request<Engagement>(`/api/engagements/${engagementId}/duplicate`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+  deleteEngagement: (engagementId: string) =>
+    request<{ ok: true; engagementId: string }>(`/api/engagements/${engagementId}`, {
+      method: "DELETE",
+    }),
   createEngagement: (payload: {
     title: string;
     client: string;

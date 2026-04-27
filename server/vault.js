@@ -247,7 +247,7 @@ export function buildContextualMatchedCases(db, { title, client, problemType, br
   );
 }
 
-export function buildSelectedMatchedCases(db, { selectedVaultCaseIds, title, client, problemType, brief, industry, capability }) {
+export function buildSelectedMatchedCases(db, { selectedVaultCaseIds, title, client, problemType, brief, industry, capability } = {}) {
   const rows = getVaultCasesByIds(db, selectedVaultCaseIds);
   if (!rows.length) return null;
   return rows.map((row) => matchedCaseFromVaultRow(row, { title, client, problemType, brief, industry, capability }, true));

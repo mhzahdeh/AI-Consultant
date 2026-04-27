@@ -22,18 +22,21 @@ export function ExportModal({ isOpen, onClose, engagement }: ExportModalProps) {
         engagement.title,
         `Client: ${engagement.client}`,
         `Problem Type: ${engagement.problemType}`,
+        `Status: ${engagement.status}`,
         '',
-        'Brief',
+        '=== EXECUTIVE BRIEF ===',
         engagement.brief,
         '',
-        'Proposal Starter',
+        '=== PROPOSAL STARTER ===',
         ...engagement.workspace.proposalStarter.content.sections.flatMap((section) => [section.label, section.body, '']),
-        'Issue Tree',
+        '=== ISSUE TREE ===',
         engagement.workspace.issueTree.content.rootQuestion,
         '',
         ...engagement.workspace.issueTree.content.branches.flatMap((branch) => [branch.title, `Hypotheses: ${branch.hypotheses.join('; ')}`, `Required Data: ${branch.requiredData.join('; ')}`, '']),
-        'Workplan',
+        '=== WORKPLAN ===',
         ...engagement.workspace.workplan.content.phases.flatMap((phase) => [phase.name, phase.weeks, ...phase.deliverables, '']),
+        '=== SELECTED ANALOG CASES ===',
+        ...engagement.matchedCases.filter((item) => item.included).flatMap((item) => [item.engagementTitle, item.rationale, '']),
         '',
         `Last saved: ${engagement.workspace.lastSaved}`,
       ].join('\n')
@@ -200,7 +203,7 @@ export function ExportModal({ isOpen, onClose, engagement }: ExportModalProps) {
                       Export Complete
                     </div>
                     <div className="text-xs text-black/60">
-                      Your {exportFormat?.toUpperCase()} file has been downloaded
+                      {exportFormat ? `Your ${exportFormat.toUpperCase()} file has been downloaded` : 'The working draft was copied to your clipboard'}
                     </div>
                   </div>
                 </div>

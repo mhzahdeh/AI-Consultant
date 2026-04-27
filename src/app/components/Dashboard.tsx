@@ -1,12 +1,14 @@
 import { Link } from 'react-router';
 import { motion } from 'motion/react';
-import { Plus, ArrowRight, FileText, Clock, FolderOpen, Database } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, ArrowRight, FileText, Clock, FolderOpen, Database, Archive, Copy, Trash2 } from 'lucide-react';
 import { Sidebar } from './shared/Sidebar';
 import { useAppData } from '../lib/AppProvider';
 
 export default function Dashboard() {
-  const { bootstrap, isLoading } = useAppData();
+  const { bootstrap, isLoading, duplicateEngagement, updateEngagementStatus, deleteEngagement } = useAppData();
   const engagements = bootstrap?.dashboard.engagements ?? [];
+  const [notice, setNotice] = useState('');
   const usageStats =
     bootstrap?.usage.summary.slice(0, 4).map((stat) => ({
       label: stat.label,
@@ -49,6 +51,7 @@ export default function Dashboard() {
         {/* Main Content */}
         <div className="p-8">
           <div className="mx-auto max-w-7xl space-y-12">
+            {notice && <div className="border-l-2 border-black bg-black/[0.02] p-4 text-sm text-black/70">{notice}</div>}
             {hasEngagements ? (
               <>
                 {/* Usage Summary */}
@@ -169,6 +172,45 @@ export default function Dashboard() {
                                 <div className="h-1.5 w-1.5 rounded-full bg-black/40" />
                                 Private to your organization
                               </div>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await duplicateEngagement(engagement.id);
+                                  setNotice(`Duplicated "${engagement.title}"`);
+                                  window.setTimeout(() => setNotice(''), 2500);
+                                }}
+                                className="inline-flex items-center gap-1.5 border border-black/10 px-3 py-2 text-xs text-black/70 transition-colors hover:border-black/20"
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                                Duplicate
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const nextStatus = engagement.status === 'Archived' ? 'Draft' : 'Archived';
+                                  await updateEngagementStatus(engagement.id, nextStatus);
+                                  setNotice(nextStatus === 'Archived' ? `Archived "${engagement.title}"` : `Restored "${engagement.title}"`);
+                                  window.setTimeout(() => setNotice(''), 2500);
+                                }}
+                                className="inline-flex items-center gap-1.5 border border-black/10 px-3 py-2 text-xs text-black/70 transition-colors hover:border-black/20"
+                              >
+                                <Archive className="h-3.5 w-3.5" />
+                                {engagement.status === 'Archived' ? 'Restore' : 'Archive'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const confirmed = window.confirm(`Delete "${engagement.title}"?`);
+                                  if (!confirmed) return;
+                                  await deleteEngagement(engagement.id);
+                                  setNotice(`Deleted "${engagement.title}"`);
+                                  window.setTimeout(() => setNotice(''), 2500);
+                                }}
+                                className="inline-flex items-center gap-1.5 border border-red-200 px-3 py-2 text-xs text-red-700 transition-colors hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Delete
+                              </button>
                             </div>
                           </div>
                         </div>

@@ -1,4 +1,4 @@
-import { Clock, Lock, Save, FileDown, MoreVertical, History, PanelsTopLeft, Archive } from 'lucide-react';
+import { Clock, Lock, Save, FileDown, MoreVertical, History, PanelsTopLeft, Archive, Copy, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Badge } from '../design-system/Badge';
 
@@ -17,6 +17,9 @@ interface WorkspaceTopBarProps {
   onExport: () => void;
   onVersionHistory: () => void;
   onPromoteToVault: () => void;
+  onDuplicate: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
   isSaving?: boolean;
   saveNotice?: string | null;
 }
@@ -27,6 +30,9 @@ export function WorkspaceTopBar({
   onExport,
   onVersionHistory,
   onPromoteToVault,
+  onDuplicate,
+  onArchive,
+  onDelete,
   isSaving = false,
   saveNotice,
 }: WorkspaceTopBarProps) {
@@ -114,6 +120,28 @@ export function WorkspaceTopBar({
                 type="button"
                 onClick={() => {
                   setIsMenuOpen(false);
+                  onDuplicate();
+                }}
+                className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-black transition-colors hover:bg-black/[0.03]"
+              >
+                <Copy className="h-4 w-4" />
+                Duplicate engagement
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onArchive();
+                }}
+                className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-black transition-colors hover:bg-black/[0.03]"
+              >
+                <Archive className="h-4 w-4" />
+                Archive engagement
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
                   onPromoteToVault();
                 }}
                 className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-black transition-colors hover:bg-black/[0.03]"
@@ -142,6 +170,17 @@ export function WorkspaceTopBar({
               >
                 <PanelsTopLeft className="h-4 w-4" />
                 Export draft
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onDelete();
+                }}
+                className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-red-700 transition-colors hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete engagement
               </button>
             </div>
           )}

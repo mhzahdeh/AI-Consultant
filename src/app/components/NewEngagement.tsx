@@ -54,6 +54,7 @@ export default function NewEngagement() {
   const [industryFilter, setIndustryFilter] = useState('');
   const [capabilityFilter, setCapabilityFilter] = useState('');
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
+  const [showInternalOnly, setShowInternalOnly] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -171,11 +172,14 @@ export default function NewEngagement() {
     setIndustryFilter('');
     setCapabilityFilter('');
     setShowSelectedOnly(false);
+    setShowInternalOnly(false);
   };
 
-  const filteredVaultCases = showSelectedOnly
-    ? vaultCases.filter((vaultCase) => selectedVaultCaseIds.includes(vaultCase.id))
-    : vaultCases;
+  const filteredVaultCases = vaultCases.filter((vaultCase) => {
+    if (showSelectedOnly && !selectedVaultCaseIds.includes(vaultCase.id)) return false;
+    if (showInternalOnly && !vaultCase.isInternal) return false;
+    return true;
+  });
 
   const isFormValid = engagementTitle && clientAlias && problemType && (brief || uploadedFiles.length > 0);
 
@@ -390,6 +394,7 @@ export default function NewEngagement() {
                     <option value="McKinsey">McKinsey</option>
                     <option value="Bain">Bain</option>
                     <option value="BCG">BCG</option>
+                    <option value="Internal Vault">Internal Vault</option>
                   </select>
                   <select
                     value={industryFilter}
@@ -443,11 +448,22 @@ export default function NewEngagement() {
                   >
                     {showSelectedOnly ? 'Showing Selected' : 'Show Selected Only'}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowInternalOnly((prev) => !prev)}
+                    className={`border px-4 py-3 text-sm transition-all ${
+                      showInternalOnly
+                        ? 'border-black bg-black text-white hover:bg-black/90'
+                        : 'border-black/10 bg-white text-black hover:border-black/20'
+                    }`}
+                  >
+                    {showInternalOnly ? 'Internal Only' : 'Show Internal Cases'}
+                  </button>
                 </div>
 
                 <div className="mb-6 flex flex-wrap items-center gap-3 text-xs text-black/50">
                   <span>{filteredVaultCases.length} cases shown</span>
-                  {(caseQuery || sourceFirmFilter || industryFilter || capabilityFilter || showSelectedOnly) && (
+                  {(caseQuery || sourceFirmFilter || industryFilter || capabilityFilter || showSelectedOnly || showInternalOnly) && (
                     <button
                       type="button"
                       onClick={clearCaseFilters}
@@ -488,6 +504,11 @@ export default function NewEngagement() {
                                 <span className="inline-flex items-center bg-black px-3 py-1 text-xs text-white">
                                   {vaultCase.sourceFirm}
                                 </span>
+                                {vaultCase.isInternal && (
+                                  <span className="inline-flex items-center border border-black bg-black px-3 py-1 text-xs text-white">
+                                    Internal
+                                  </span>
+                                )}
                                 <span className="inline-flex items-center border border-black/10 px-3 py-1 text-xs text-black">
                                   {vaultCase.problemType}
                                 </span>
@@ -529,17 +550,30 @@ export default function NewEngagement() {
                               <span>{vaultCase.businessFunction}</span>
                               <span>{vaultCase.capability}</span>
                               <span>{vaultCase.region}</span>
+                              {vaultCase.linkedEngagementId && <span>Linked to prior engagement</span>}
                               {typeof vaultCase.matchScore === 'number' && <span>Match score {vaultCase.matchScore}</span>}
                             </div>
-                            <a
-                              href={vaultCase.sourceUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black"
-                            >
-                              Source
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
+                            <div className="flex items-center gap-3">
+                              {vaultCase.linkedEngagementId && (
+                                <Link
+                                  to={`/workspace?id=${vaultCase.linkedEngagementId}`}
+                                  className="inline-flex items-center gap-1 text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black"
+                                >
+                                  Source engagement
+                                </Link>
+                              )}
+                              {vaultCase.sourceUrl ? (
+                                <a
+                                  href={vaultCase.sourceUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black"
+                                >
+                                  Source
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                              ) : null}
+                            </div>
                           </div>
                         </div>
                       );

@@ -15,6 +15,8 @@ export default function VaultPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [favoriteOnly, setFavoriteOnly] = useState(false);
+  const [internalOnly, setInternalOnly] = useState(false);
+  const [feedbackNotice, setFeedbackNotice] = useState("");
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -28,7 +30,11 @@ export default function VaultPage() {
     return () => window.clearTimeout(timeoutId);
   }, [capability, getVaultOverview, industry, query, sourceFirm]);
 
-  const cases = favoriteOnly ? (overview?.cases ?? []).filter((item) => item.isFavorite) : overview?.cases ?? [];
+  const cases = (overview?.cases ?? []).filter((item) => {
+    if (favoriteOnly && !item.isFavorite) return false;
+    if (internalOnly && !item.isInternal) return false;
+    return true;
+  });
   const artifacts = overview?.artifacts ?? [];
   const highlightedCapabilities = useMemo(() => overview?.highlightedCapabilities ?? [], [overview]);
 
@@ -36,6 +42,8 @@ export default function VaultPage() {
     await updateVaultCaseFeedback(caseId, action);
     const refreshed = await getVaultOverview({ query, sourceFirm, industry, capability, limit: 18 });
     setOverview(refreshed);
+    setFeedbackNotice(action === "hide" ? "Case hidden from standard browsing" : "Vault feedback saved");
+    window.setTimeout(() => setFeedbackNotice(""), 2200);
   };
 
   return (
@@ -100,6 +108,15 @@ export default function VaultPage() {
                     <Heart className="h-4 w-4" />
                     Favorites
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setInternalOnly((prev) => !prev)}
+                    className={`inline-flex items-center gap-2 border px-4 py-2 text-sm transition-all ${
+                      internalOnly ? "border-black bg-black text-white" : "border-black/10 bg-black/[0.02] text-black/70"
+                    }`}
+                  >
+                    Internal cases
+                  </button>
                   <div className="inline-flex items-center gap-2 border border-black/10 bg-black/[0.02] px-4 py-2 text-sm text-black/70">
                     <Filter className="h-4 w-4" />
                     {cases.length} shown
@@ -122,6 +139,7 @@ export default function VaultPage() {
                   <option value="McKinsey">McKinsey</option>
                   <option value="Bain">Bain</option>
                   <option value="BCG">BCG</option>
+                  <option value="Internal Vault">Internal Vault</option>
                 </select>
                 <input
                   value={industry}
@@ -154,6 +172,7 @@ export default function VaultPage() {
               )}
 
               {error && <div className="border-l-2 border-black/20 bg-black/[0.02] p-4 text-sm text-black/70">{error}</div>}
+              {feedbackNotice && <div className="border-l-2 border-black bg-black/[0.02] p-4 text-sm text-black/70">{feedbackNotice}</div>}
 
               {isLoading ? (
                 <div className="flex items-center justify-center border border-black/10 bg-black/[0.01] px-6 py-12 text-sm text-black/60">
@@ -166,6 +185,7 @@ export default function VaultPage() {
                     <div key={vaultCase.id} className="border border-black/10 bg-white p-6">
                       <div className="mb-3 flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center bg-black px-3 py-1 text-xs text-white">{vaultCase.sourceFirm}</span>
+                        {vaultCase.isInternal && <span className="inline-flex items-center border border-black bg-black px-3 py-1 text-xs text-white">Internal</span>}
                         <span className="inline-flex items-center border border-black/10 px-3 py-1 text-xs text-black">{vaultCase.problemType}</span>
                         <span className="inline-flex items-center border border-black/10 px-3 py-1 text-xs text-black/70">{vaultCase.industry}</span>
                         {typeof vaultCase.matchScore === "number" && (
@@ -188,6 +208,7 @@ export default function VaultPage() {
                       <div className="flex items-center justify-between gap-4 border-t border-black/5 pt-4">
                         <div className="text-xs text-black/50">
                           {vaultCase.businessFunction} • {vaultCase.capability} • {vaultCase.region}
+                          {vaultCase.linkedEngagementId ? " • Linked engagement available" : ""}
                         </div>
                         <div className="flex items-center gap-2">
                           <button
@@ -214,10 +235,17 @@ export default function VaultPage() {
                             <EyeOff className="h-3 w-3" />
                             Hide
                           </button>
-                          <a href={vaultCase.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm text-black/60 underline decoration-black/20 hover:text-black hover:decoration-black">
-                            Source
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
+                          {vaultCase.linkedEngagementId && (
+                            <Link to={`/workspace?id=${vaultCase.linkedEngagementId}`} className="inline-flex items-center gap-1 text-sm text-black/60 underline decoration-black/20 hover:text-black hover:decoration-black">
+                              Source engagement
+                            </Link>
+                          )}
+                          {vaultCase.sourceUrl ? (
+                            <a href={vaultCase.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm text-black/60 underline decoration-black/20 hover:text-black hover:decoration-black">
+                              Source
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          ) : null}
                         </div>
                       </div>
                     </div>

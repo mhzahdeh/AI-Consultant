@@ -28,6 +28,9 @@ export default function EngagementWorkspace() {
     saveArtifact,
     uploadFiles,
     promoteEngagementToVault,
+    duplicateEngagement,
+    updateEngagementStatus,
+    deleteEngagement,
   } = useAppData();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('proposal');
@@ -75,6 +78,11 @@ export default function EngagementWorkspace() {
     window.setTimeout(() => setSaveNotice(null), 2000);
   };
 
+  const showNotice = (message: string) => {
+    setSaveNotice(message);
+    window.setTimeout(() => setSaveNotice(null), 2500);
+  };
+
   if (!currentEngagement) {
     return <div className="flex min-h-screen items-center justify-center bg-white text-sm text-black/60">Loading workspace…</div>;
   }
@@ -120,6 +128,22 @@ export default function EngagementWorkspace() {
           onSave={handleSaveWorkspace}
           onExport={() => setIsExportOpen(true)}
           onVersionHistory={() => setIsVersionHistoryOpen(true)}
+          onDuplicate={async () => {
+            const duplicate = await duplicateEngagement(currentEngagement.id);
+            showNotice('Engagement duplicated');
+            window.location.assign(`/workspace?id=${duplicate.id}`);
+          }}
+          onArchive={async () => {
+            const nextStatus = currentEngagement.status === 'Archived' ? 'Draft' : 'Archived';
+            await updateEngagementStatus(currentEngagement.id, nextStatus);
+            showNotice(nextStatus === 'Archived' ? 'Engagement archived' : 'Engagement restored to draft');
+          }}
+          onDelete={async () => {
+            const confirmed = window.confirm(`Delete "${currentEngagement.title}"? This removes the workspace, uploads, and version history.`);
+            if (!confirmed) return;
+            await deleteEngagement(currentEngagement.id);
+            window.location.assign('/dashboard');
+          }}
           onPromoteToVault={() => setIsPromoteOpen(true)}
           isSaving={isSavingWorkspace}
           saveNotice={saveNotice}

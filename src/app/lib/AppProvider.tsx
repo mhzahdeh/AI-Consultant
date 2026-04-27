@@ -70,6 +70,9 @@ interface AppContextValue {
       outcomes: string[];
     }
   ) => Promise<void>;
+  updateEngagementStatus: (engagementId: string, status: string) => Promise<void>;
+  duplicateEngagement: (engagementId: string) => Promise<Engagement>;
+  deleteEngagement: (engagementId: string) => Promise<void>;
   selectEngagement: (engagementId: string | null) => Promise<void>;
   createEngagement: (input: CreateEngagementInput) => Promise<Engagement>;
   saveBrief: (engagementId: string, brief: string) => Promise<void>;
@@ -259,6 +262,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await refreshWorkspace();
   }, [refreshWorkspace]);
 
+  const updateEngagementStatus = useCallback(async (engagementId: string, status: string) => {
+    const engagement = await api.updateEngagementStatus(engagementId, status);
+    syncEngagement(engagement);
+    await refreshWorkspace();
+  }, [refreshWorkspace, syncEngagement]);
+
+  const duplicateEngagement = useCallback(async (engagementId: string) => {
+    const engagement = await api.duplicateEngagement(engagementId);
+    syncEngagement(engagement);
+    await refreshWorkspace();
+    return engagement;
+  }, [refreshWorkspace, syncEngagement]);
+
+  const deleteEngagement = useCallback(async (engagementId: string) => {
+    await api.deleteEngagement(engagementId);
+    setEngagements((prev) => prev.filter((item) => item.id !== engagementId));
+    setCurrentEngagement((prev) => (prev?.id === engagementId ? null : prev));
+    await refreshWorkspace();
+  }, [refreshWorkspace]);
+
   const selectEngagement = useCallback(async (engagementId: string | null) => {
     if (!engagementId) {
       setCurrentEngagement(null);
@@ -375,6 +398,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       getVaultOverview,
       updateVaultCaseFeedback,
       promoteEngagementToVault,
+      updateEngagementStatus,
+      duplicateEngagement,
+      deleteEngagement,
       selectEngagement,
       createEngagement,
       saveBrief,
@@ -410,6 +436,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       getVaultOverview,
       updateVaultCaseFeedback,
       promoteEngagementToVault,
+      updateEngagementStatus,
+      duplicateEngagement,
+      deleteEngagement,
       selectEngagement,
       createEngagement,
       saveBrief,
