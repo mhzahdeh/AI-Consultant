@@ -62,10 +62,10 @@ export function syncVaultCaseSeed({ db, seedPath, isoNow, runTransaction }) {
       );
     }
 
-    const existingIds = db.prepare(`SELECT id FROM vault_cases`).all().map((row) => row.id);
+    const existingIds = db.prepare(`SELECT id FROM vault_cases WHERE is_internal = 0`).all().map((row) => row.id);
     const staleIds = existingIds.filter((id) => !seedIds.includes(id));
     for (const staleId of staleIds) {
-      db.prepare(`DELETE FROM vault_cases WHERE id = ?`).run(staleId);
+      db.prepare(`DELETE FROM vault_cases WHERE id = ? AND is_internal = 0`).run(staleId);
     }
   });
 }
@@ -103,6 +103,8 @@ export function serializeVaultCase(row) {
     isFavorite: Boolean(row.is_favorite),
     isHidden: Boolean(row.is_hidden),
     useAgainCount: Number(row.use_again_count || 0),
+    isInternal: Boolean(row.is_internal),
+    linkedEngagementId: row.linked_engagement_id || null,
   };
 }
 
@@ -301,4 +303,50 @@ export function updateVaultCaseFeedback(db, caseId, action) {
   }
 
   return db.prepare(`SELECT * FROM vault_cases WHERE id = ?`).get(caseId);
+}
+
+export function promoteEngagementToVaultCase(db, { nextId, isoNow, engagementId, organizationId, title, summary, industry, businessFunction, problemType, capability, tags, outcomes }) {
+  const engagement = db.prepare(`SELECT * FROM engagements WHERE id = ? AND organization_id = ?`).get(engagementId, organizationId);
+  if (!engagement) return null;
+
+  const artifactRows = db.prepare(`SELECT kind, title, content_json FROM artifacts WHERE engagement_id = ? ORDER BY kind`).all(engagementId);
+  const uploads = db.prepare(`SELECT name FROM uploads WHERE engagement_id = ? ORDER BY uploaded_at DESC LIMIT 5`).all(engagementId);
+  const matchedCases = db.prepare(`SELECT engagement_title, confidence, rationale FROM matched_cases WHERE engagement_id = ? AND included = 1 ORDER BY confidence DESC LIMIT 4`).all(engagementId);
+
+  const recordId = nextId("vlt");
+  db.prepare(
+    `INSERT INTO vault_cases (
+      id, title, client_name, source_firm, source_url, industry, business_function, problem_type,
+      capability, summary, outcomes_json, tags_json, region, year, evidence_strength, review_status,
+      created_at, updated_at, is_internal, linked_engagement_id, owner_organization_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
+  ).run(
+    recordId,
+    title,
+    engagement.client,
+    "Internal Vault",
+    "",
+    industry,
+    businessFunction,
+    problemType || engagement.problem_type,
+    capability,
+    summary,
+    JSON.stringify(outcomes),
+    JSON.stringify(tags),
+    "Internal",
+    new Date().getFullYear(),
+    5,
+    "approved",
+    isoNow(),
+    isoNow(),
+    engagementId,
+    organizationId
+  );
+
+  return {
+    id: recordId,
+    artifactRows,
+    uploads,
+    matchedCases,
+  };
 }

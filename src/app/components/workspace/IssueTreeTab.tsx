@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Save, FileDown, Clock, History } from 'lucide-react';
-import type { Engagement } from '../../lib/types';
+import type { Engagement, SourceTrace } from '../../lib/types';
 
 interface IssueTreeTabProps {
   onExport: () => void;
@@ -15,6 +15,23 @@ export function IssueTreeTab({ onExport, onVersionHistory, onSaveArtifact, engag
   const [branches, setBranches] = useState(engagement.workspace.issueTree.content.branches);
   const [isSaving, setIsSaving] = useState(false);
   const [savedNotice, setSavedNotice] = useState('');
+  const selectedCases = engagement.matchedCases.filter((item) => item.included);
+  const topUploads = engagement.uploads.slice(0, 2);
+
+  const buildBranchTrace = (branchTitle: string): SourceTrace[] => [
+    {
+      label: 'Root brief',
+      detail: engagement.brief.split('\n').find((line) => line.trim()) || 'Primary client brief used to frame the issue tree.',
+    },
+    ...selectedCases.slice(0, 2).map((item) => ({
+      label: item.engagementTitle,
+      detail: `Reference analog contributing hypotheses for ${branchTitle.toLowerCase()}.`,
+    })),
+    ...topUploads.map((upload) => ({
+      label: upload.name,
+      detail: `Supporting upload informing data needs (${upload.status}).`,
+    })),
+  ].slice(0, 4);
 
   useEffect(() => {
     setTitle(engagement.workspace.issueTree.title);
@@ -87,6 +104,17 @@ export function IssueTreeTab({ onExport, onVersionHistory, onSaveArtifact, engag
               className="w-full resize-none border border-black/10 bg-white px-4 py-3 text-base text-black focus:border-black focus:outline-none"
               style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
             />
+            <div className="mt-4 border border-black/10 bg-black/[0.015] px-4 py-4">
+              <div className="mb-3 text-xs uppercase tracking-wider text-black/40">Evidence In Use</div>
+              <div className="space-y-3">
+                {buildBranchTrace('root question').map((trace) => (
+                  <div key={`root-${trace.label}`} className="text-sm text-black/70">
+                    <div className="font-medium text-black">{trace.label}</div>
+                    <div>{trace.detail}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {branches.map((branch, branchIndex) => (
@@ -136,6 +164,18 @@ export function IssueTreeTab({ onExport, onVersionHistory, onSaveArtifact, engag
                     rows={6}
                     className="w-full resize-none border border-black/10 bg-white px-4 py-3 text-sm text-black focus:border-black focus:outline-none"
                   />
+                </div>
+              </div>
+
+              <div className="mt-4 border border-black/10 bg-black/[0.015] px-4 py-4">
+                <div className="mb-3 text-xs uppercase tracking-wider text-black/40">Source Trace</div>
+                <div className="space-y-3">
+                  {buildBranchTrace(branch.title).map((trace) => (
+                    <div key={`${branch.title}-${trace.label}`} className="text-sm text-black/70">
+                      <div className="font-medium text-black">{trace.label}</div>
+                      <div>{trace.detail}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { Clock, Lock, Save, FileDown, MoreVertical, History, PanelsTopLeft } from 'lucide-react';
+import { Clock, Lock, Save, FileDown, MoreVertical, History, PanelsTopLeft, Archive } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Badge } from '../design-system/Badge';
 
@@ -16,6 +16,7 @@ interface WorkspaceTopBarProps {
   onSave: () => void;
   onExport: () => void;
   onVersionHistory: () => void;
+  onPromoteToVault: () => void;
   isSaving?: boolean;
   saveNotice?: string | null;
 }
@@ -25,6 +26,7 @@ export function WorkspaceTopBar({
   onSave,
   onExport,
   onVersionHistory,
+  onPromoteToVault,
   isSaving = false,
   saveNotice,
 }: WorkspaceTopBarProps) {
@@ -108,6 +110,17 @@ export function WorkspaceTopBar({
           </button>
           {isMenuOpen && (
             <div className="absolute right-0 top-14 z-20 min-w-52 border border-black/10 bg-white p-2 shadow-[0_12px_30px_rgb(0,0,0,0.08)]">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onPromoteToVault();
+                }}
+                className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-black transition-colors hover:bg-black/[0.03]"
+              >
+                <Archive className="h-4 w-4" />
+                Save to vault
+              </button>
               <button
                 type="button"
                 onClick={() => {

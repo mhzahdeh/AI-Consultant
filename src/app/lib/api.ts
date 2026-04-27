@@ -115,6 +115,23 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ action }),
     }),
+  promoteEngagementToVault: (
+    engagementId: string,
+    payload: {
+      title: string;
+      summary: string;
+      industry: string;
+      businessFunction: string;
+      problemType: string;
+      capability: string;
+      tags: string[];
+      outcomes: string[];
+    }
+  ) =>
+    request<{ ok: true; vaultCaseId: string }>(`/api/engagements/${engagementId}/promote-to-vault`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   getEngagement: (engagementId: string) => request<Engagement>(`/api/engagements/${engagementId}`),
   createEngagement: (payload: {
     title: string;
@@ -158,10 +175,10 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ included }),
     }),
-  regenerateSection: (engagementId: string, section: string, instructions: string) =>
+  regenerateSection: (engagementId: string, section: string, instructions: string, evidenceMode: string) =>
     request<Engagement>(`/api/engagements/${engagementId}/regenerate`, {
       method: "POST",
-      body: JSON.stringify({ section, instructions }),
+      body: JSON.stringify({ section, instructions, evidenceMode }),
     }),
   uploadFiles: (engagementId: string, uploads: UploadDraft[]) =>
     request<Engagement>(`/api/engagements/${engagementId}/uploads`, {

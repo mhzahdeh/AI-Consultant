@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Save, FileDown, Clock, History } from 'lucide-react';
-import type { Engagement } from '../../lib/types';
+import type { Engagement, SourceTrace } from '../../lib/types';
 
 interface WorkplanTabProps {
   onExport: () => void;
@@ -14,6 +14,23 @@ export function WorkplanTab({ onExport, onVersionHistory, onSaveArtifact, engage
   const [phases, setPhases] = useState(engagement.workspace.workplan.content.phases);
   const [isSaving, setIsSaving] = useState(false);
   const [savedNotice, setSavedNotice] = useState('');
+  const selectedCases = engagement.matchedCases.filter((item) => item.included);
+  const topUploads = engagement.uploads.slice(0, 2);
+
+  const buildPhaseTrace = (phaseName: string): SourceTrace[] => [
+    {
+      label: 'Client brief',
+      detail: `Phase sequencing is anchored to the current engagement objective for ${engagement.client}.`,
+    },
+    ...selectedCases.slice(0, 2).map((item) => ({
+      label: item.engagementTitle,
+      detail: `Analog applied to ${phaseName.toLowerCase()} through ${item.reusableElements.slice(0, 2).join(', ') || 'prior delivery patterns'}.`,
+    })),
+    ...topUploads.map((upload) => ({
+      label: upload.name,
+      detail: `Uploaded artifact used as supporting evidence (${upload.status}).`,
+    })),
+  ].slice(0, 4);
 
   useEffect(() => {
     setTitle(engagement.workspace.workplan.title);
@@ -125,6 +142,18 @@ export function WorkplanTab({ onExport, onVersionHistory, onSaveArtifact, engage
                   rows={6}
                   className="w-full resize-none border border-black/10 bg-white px-4 py-3 text-sm text-black focus:border-black focus:outline-none"
                 />
+              </div>
+
+              <div className="mt-4 border border-black/10 bg-black/[0.015] px-4 py-4">
+                <div className="mb-3 text-xs uppercase tracking-wider text-black/40">Evidence In Use</div>
+                <div className="space-y-3">
+                  {buildPhaseTrace(phase.name).map((trace) => (
+                    <div key={`${phase.name}-${trace.label}`} className="text-sm text-black/70">
+                      <div className="font-medium text-black">{trace.label}</div>
+                      <div>{trace.detail}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           ))}

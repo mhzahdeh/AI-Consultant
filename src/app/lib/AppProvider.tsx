@@ -57,6 +57,19 @@ interface AppContextValue {
     limit?: number;
   }) => Promise<VaultOverview>;
   updateVaultCaseFeedback: (caseId: string, action: "favorite" | "hide" | "use_again") => Promise<void>;
+  promoteEngagementToVault: (
+    engagementId: string,
+    payload: {
+      title: string;
+      summary: string;
+      industry: string;
+      businessFunction: string;
+      problemType: string;
+      capability: string;
+      tags: string[];
+      outcomes: string[];
+    }
+  ) => Promise<void>;
   selectEngagement: (engagementId: string | null) => Promise<void>;
   createEngagement: (input: CreateEngagementInput) => Promise<Engagement>;
   saveBrief: (engagementId: string, brief: string) => Promise<void>;
@@ -69,7 +82,7 @@ interface AppContextValue {
   saveWorkspace: (engagementId: string) => Promise<void>;
   restoreVersion: (engagementId: string, versionId: string) => Promise<void>;
   toggleMatchedCase: (engagementId: string, caseId: string, included: boolean) => Promise<void>;
-  regenerateSection: (engagementId: string, section: string, instructions: string) => Promise<void>;
+  regenerateSection: (engagementId: string, section: string, instructions: string, evidenceMode: string) => Promise<void>;
   inviteMember: (email: string, role: Role) => Promise<Member>;
   updateMemberRole: (memberId: string, role: Role) => Promise<void>;
   removeMember: (memberId: string) => Promise<void>;
@@ -229,6 +242,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await api.updateVaultCaseFeedback(caseId, action);
   }, []);
 
+  const promoteEngagementToVault = useCallback(async (
+    engagementId: string,
+    payload: {
+      title: string;
+      summary: string;
+      industry: string;
+      businessFunction: string;
+      problemType: string;
+      capability: string;
+      tags: string[];
+      outcomes: string[];
+    }
+  ) => {
+    await api.promoteEngagementToVault(engagementId, payload);
+    await refreshWorkspace();
+  }, [refreshWorkspace]);
+
   const selectEngagement = useCallback(async (engagementId: string | null) => {
     if (!engagementId) {
       setCurrentEngagement(null);
@@ -287,8 +317,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await refreshWorkspace();
   }, [refreshWorkspace, syncEngagement]);
 
-  const regenerateSection = useCallback(async (engagementId: string, section: string, instructions: string) => {
-    const engagement = await api.regenerateSection(engagementId, section, instructions);
+  const regenerateSection = useCallback(async (engagementId: string, section: string, instructions: string, evidenceMode: string) => {
+    const engagement = await api.regenerateSection(engagementId, section, instructions, evidenceMode);
     syncEngagement(engagement);
     await refreshWorkspace();
   }, [refreshWorkspace, syncEngagement]);
@@ -344,6 +374,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       listVaultCases,
       getVaultOverview,
       updateVaultCaseFeedback,
+      promoteEngagementToVault,
       selectEngagement,
       createEngagement,
       saveBrief,
@@ -378,6 +409,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       listVaultCases,
       getVaultOverview,
       updateVaultCaseFeedback,
+      promoteEngagementToVault,
       selectEngagement,
       createEngagement,
       saveBrief,

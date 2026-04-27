@@ -1,19 +1,26 @@
 import { X, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface RegenerateSectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   sectionName: string;
-  onRegenerate: (instructions: string) => void;
+  onRegenerate: (instructions: string, evidenceMode: string) => void;
 }
 
 export function RegenerateSectionModal({ isOpen, onClose, sectionName, onRegenerate }: RegenerateSectionModalProps) {
   const [instructions, setInstructions] = useState('');
+  const [evidenceMode, setEvidenceMode] = useState('brief-cases');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setInstructions('');
+    setEvidenceMode('brief-cases');
+  }, [isOpen, sectionName]);
 
   const handleSubmit = () => {
-    onRegenerate(instructions);
+    onRegenerate(instructions, evidenceMode);
     onClose();
   };
 
@@ -59,6 +66,19 @@ export function RegenerateSectionModal({ isOpen, onClose, sectionName, onRegener
             {/* Instructions Input */}
             <div className="mb-6">
               <label className="mb-2 block text-sm text-black">
+                Evidence Mode
+              </label>
+              <select
+                value={evidenceMode}
+                onChange={(e) => setEvidenceMode(e.target.value)}
+                className="mb-4 w-full border border-black/10 bg-white py-3 px-4 text-sm text-black transition-colors focus:border-black focus:outline-none"
+              >
+                <option value="brief-cases">Brief + selected cases + uploads</option>
+                <option value="brief-only">Brief only</option>
+                <option value="cases-only">Selected cases only</option>
+                <option value="uploads-only">Uploads only</option>
+              </select>
+              <label className="mb-2 block text-sm text-black">
                 Targeted Instructions (Optional)
               </label>
               <textarea
@@ -80,7 +100,7 @@ export function RegenerateSectionModal({ isOpen, onClose, sectionName, onRegener
                 <br />
                 • Other sections will remain unchanged
                 <br />
-                • Generation uses the same matched cases as original
+                • Generation will respect the selected evidence mode
               </div>
             </div>
 

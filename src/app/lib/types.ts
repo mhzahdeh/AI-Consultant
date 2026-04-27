@@ -87,6 +87,11 @@ export interface UploadItem {
   error?: string | null;
 }
 
+export interface SourceTrace {
+  label: string;
+  detail: string;
+}
+
 export interface MatchedCase {
   id: string;
   fileTitle: string;
@@ -120,6 +125,8 @@ export interface VaultCase {
   isFavorite: boolean;
   isHidden: boolean;
   useAgainCount: number;
+  isInternal?: boolean;
+  linkedEngagementId?: string | null;
 }
 
 export interface VaultOverview {

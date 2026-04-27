@@ -12,18 +12,30 @@ import { MatchPreviewModal } from './workspace/MatchPreviewModal';
 import { VersionHistoryModal } from './workspace/VersionHistoryModal';
 import { ExportModal } from './workspace/ExportModal';
 import { RegenerateSectionModal } from './workspace/RegenerateSectionModal';
+import { PromoteToVaultModal } from './workspace/PromoteToVaultModal';
 import { useAppData } from '../lib/AppProvider';
 import { BackButton } from './shared/BackButton';
 import type { UploadDraft } from '../lib/types';
 
 export default function EngagementWorkspace() {
-  const { engagements, currentEngagement, selectEngagement, regenerateSection, saveWorkspace, restoreVersion, saveArtifact, uploadFiles } = useAppData();
+  const {
+    engagements,
+    currentEngagement,
+    selectEngagement,
+    regenerateSection,
+    saveWorkspace,
+    restoreVersion,
+    saveArtifact,
+    uploadFiles,
+    promoteEngagementToVault,
+  } = useAppData();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('proposal');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isRegenerateOpen, setIsRegenerateOpen] = useState(false);
+  const [isPromoteOpen, setIsPromoteOpen] = useState(false);
   const [sectionToRegenerate, setSectionToRegenerate] = useState('');
   const [isSavingWorkspace, setIsSavingWorkspace] = useState(false);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
@@ -48,9 +60,9 @@ export default function EngagementWorkspace() {
     setIsRegenerateOpen(true);
   };
 
-  const handleRegenerate = async (instructions: string) => {
+  const handleRegenerate = async (instructions: string, evidenceMode: string) => {
     if (!currentEngagement) return;
-    await regenerateSection(currentEngagement.id, sectionToRegenerate, instructions);
+    await regenerateSection(currentEngagement.id, sectionToRegenerate, instructions, evidenceMode);
     setIsRegenerateOpen(false);
   };
 
@@ -66,6 +78,31 @@ export default function EngagementWorkspace() {
   if (!currentEngagement) {
     return <div className="flex min-h-screen items-center justify-center bg-white text-sm text-black/60">Loading workspace…</div>;
   }
+
+  const selectedCases = currentEngagement.matchedCases.filter((item) => item.included);
+  const promoteDefaults = {
+    title: `${currentEngagement.title} Internal Case`,
+    summary:
+      currentEngagement.notes.trim() ||
+      currentEngagement.brief.split('\n').find((line) => line.trim()) ||
+      `Reusable engagement pattern for ${currentEngagement.client}.`,
+    industry: selectedCases[0]?.engagementTitle.split(' ').slice(0, 2).join(' ') || 'General',
+    businessFunction: selectedCases[0]?.reusableElements[0] || 'Strategy',
+    problemType: currentEngagement.problemType,
+    capability: selectedCases[0]?.fileTitle || 'Engagement Delivery',
+    tags: Array.from(
+      new Set(
+        [
+          currentEngagement.problemType,
+          currentEngagement.client,
+          ...selectedCases.flatMap((item) => item.reusableElements),
+        ]
+          .map((item) => item.trim())
+          .filter(Boolean)
+      )
+    ).slice(0, 6),
+    outcomes: currentEngagement.outputs.slice(0, 4),
+  };
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -83,6 +120,7 @@ export default function EngagementWorkspace() {
           onSave={handleSaveWorkspace}
           onExport={() => setIsExportOpen(true)}
           onVersionHistory={() => setIsVersionHistoryOpen(true)}
+          onPromoteToVault={() => setIsPromoteOpen(true)}
           isSaving={isSavingWorkspace}
           saveNotice={saveNotice}
         />
@@ -160,6 +198,16 @@ export default function EngagementWorkspace() {
         onClose={() => setIsRegenerateOpen(false)}
         sectionName={sectionToRegenerate}
         onRegenerate={handleRegenerate}
+      />
+      <PromoteToVaultModal
+        isOpen={isPromoteOpen}
+        onClose={() => setIsPromoteOpen(false)}
+        defaults={promoteDefaults}
+        onSubmit={async (payload) => {
+          await promoteEngagementToVault(currentEngagement.id, payload);
+          setSaveNotice('Saved to vault');
+          window.setTimeout(() => setSaveNotice(null), 2500);
+        }}
       />
     </div>
   );

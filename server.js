@@ -12,6 +12,7 @@ import {
   buildSelectedMatchedCases,
   buildVaultOverview,
   listVaultCases,
+  promoteEngagementToVaultCase,
   syncVaultCaseSeed,
   updateVaultCaseFeedback,
 } from "./server/vault.js";
@@ -222,6 +223,15 @@ function ensureVaultCaseFeedbackColumns() {
   }
   if (!columns.has("use_again_count")) {
     db.exec(`ALTER TABLE vault_cases ADD COLUMN use_again_count INTEGER NOT NULL DEFAULT 0`);
+  }
+  if (!columns.has("is_internal")) {
+    db.exec(`ALTER TABLE vault_cases ADD COLUMN is_internal INTEGER NOT NULL DEFAULT 0`);
+  }
+  if (!columns.has("linked_engagement_id")) {
+    db.exec(`ALTER TABLE vault_cases ADD COLUMN linked_engagement_id TEXT`);
+  }
+  if (!columns.has("owner_organization_id")) {
+    db.exec(`ALTER TABLE vault_cases ADD COLUMN owner_organization_id TEXT`);
   }
 }
 
@@ -1528,6 +1538,34 @@ function deriveObjectiveFromBrief(brief) {
   return firstSentence || "New engagement created from client brief.";
 }
 
+function buildEvidenceContext(engagementId, evidenceMode) {
+  const uploads = db.prepare(
+    `SELECT name FROM uploads WHERE engagement_id = ? ORDER BY uploaded_at DESC LIMIT 3`
+  ).all(engagementId).map((row) => row.name);
+  const cases = db.prepare(
+    `SELECT engagement_title FROM matched_cases WHERE engagement_id = ? AND included = 1 ORDER BY confidence DESC LIMIT 3`
+  ).all(engagementId).map((row) => row.engagement_title);
+
+  const briefLabel = "canonical brief";
+  if (evidenceMode === "brief-only") {
+    return `Ground this revision only in the ${briefLabel}. Do not rely on analog cases or uploads.`;
+  }
+  if (evidenceMode === "uploads-only") {
+    return uploads.length
+      ? `Ground this revision only in uploaded source files: ${uploads.join(", ")}.`
+      : `No uploaded files are available, so fall back to the ${briefLabel}.`;
+  }
+  if (evidenceMode === "cases-only") {
+    return cases.length
+      ? `Ground this revision only in selected analog cases: ${cases.join(", ")}.`
+      : `No selected analog cases are available, so fall back to the ${briefLabel}.`;
+  }
+  const parts = [briefLabel];
+  if (cases.length) parts.push(`selected cases (${cases.join(", ")})`);
+  if (uploads.length) parts.push(`uploads (${uploads.join(", ")})`);
+  return `Ground this revision in ${parts.join(", ")}.`;
+}
+
 async function updateArtifact({ engagementId, kind, actorUserId, organizationId, title, content, source, description }) {
   db.prepare(
     `UPDATE artifacts
@@ -1998,15 +2036,17 @@ async function requestHandler(req, res) {
       }
       const body = await parseBody(req);
       const section = String(body.section || "section");
+      const evidenceMode = String(body.evidenceMode || "brief-cases");
       const artifact = db.prepare(
         `SELECT * FROM artifacts WHERE engagement_id = ? AND kind = 'proposal'`
       ).get(engagementId);
       const content = JSON.parse(artifact.content_json);
+      const evidenceContext = buildEvidenceContext(engagementId, evidenceMode);
       const nextSections = content.sections.map((item) =>
         item.key === section || item.label.toLowerCase().replace(/\s+/g, "_") === section
           ? {
               ...item,
-              body: `${item.body}\n\nRefined for this engagement${body.instructions ? ` with direction: ${body.instructions}` : "."}`,
+              body: `${item.body}\n\nRefined for this engagement${body.instructions ? ` with direction: ${body.instructions}` : "."}\n\nEvidence mode: ${evidenceContext}`,
             }
           : item
       );
@@ -2018,9 +2058,50 @@ async function requestHandler(req, res) {
         title: artifact.title,
         content: { ...content, sections: nextSections },
         source: "Section regeneration",
-        description: `Regenerated "${section}" section${body.instructions ? " with targeted instructions" : ""}`,
+        description: `Regenerated "${section}" section${body.instructions ? " with targeted instructions" : ""} using ${evidenceMode}`,
       });
       json(res, 200, serializeEngagement(engagementId));
+      return;
+    }
+
+    if (url.pathname.match(/^\/api\/engagements\/[^/]+\/promote-to-vault$/) && req.method === "POST") {
+      const context = requireOrganizationContext(req, res);
+      if (!context) return;
+      if (!requireRole(res, context.membership, ["owner", "admin", "editor"])) return;
+      const engagementId = url.pathname.split("/")[3];
+      const engagement = getEngagementForUser(engagementId, context.session.user_id);
+      if (!engagement) {
+        json(res, 404, { error: "Engagement not found" });
+        return;
+      }
+      const body = await parseBody(req);
+      const promoted = promoteEngagementToVaultCase(db, {
+        nextId,
+        isoNow,
+        engagementId,
+        organizationId: context.membership.organization_id,
+        title: String(body.title || `${engagement.title} - Internal Case`).trim(),
+        summary: String(body.summary || engagement.objective || engagement.notes || "").trim() || `Internal case derived from ${engagement.title}.`,
+        industry: String(body.industry || "General").trim(),
+        businessFunction: String(body.businessFunction || "Strategy").trim(),
+        problemType: String(body.problemType || engagement.problem_type).trim(),
+        capability: String(body.capability || "Delivery").trim(),
+        tags: Array.isArray(body.tags) ? body.tags.map((item) => String(item).trim()).filter(Boolean) : [],
+        outcomes: Array.isArray(body.outcomes) ? body.outcomes.map((item) => String(item).trim()).filter(Boolean) : [],
+      });
+      if (!promoted) {
+        json(res, 500, { error: "Unable to promote engagement to vault" });
+        return;
+      }
+      createAuditLog({
+        organizationId: context.membership.organization_id,
+        userId: context.session.user_id,
+        action: "engagement.promoted_to_vault",
+        entityType: "engagement",
+        entityId: engagementId,
+        details: { engagementTitle: engagement.title, vaultCaseId: promoted.id },
+      });
+      json(res, 201, { ok: true, vaultCaseId: promoted.id });
       return;
     }
 

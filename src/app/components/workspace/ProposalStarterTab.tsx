@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Save, FileDown, Clock, History, RefreshCw } from 'lucide-react';
-import type { Engagement, ProposalSection } from '../../lib/types';
+import type { Engagement, ProposalSection, SourceTrace } from '../../lib/types';
 
 interface ProposalStarterTabProps {
   onExport: () => void;
@@ -21,6 +21,37 @@ export function ProposalStarterTab({
   const [sections, setSections] = useState(engagement.workspace.proposalStarter.content.sections);
   const [isSaving, setIsSaving] = useState(false);
   const [savedNotice, setSavedNotice] = useState('');
+  const selectedCases = engagement.matchedCases.filter((item) => item.included);
+  const topUploads = engagement.uploads.slice(0, 3);
+
+  const buildSourceTrace = (sectionKey: string): SourceTrace[] => {
+    const traces: SourceTrace[] = [
+      {
+        label: 'Client brief',
+        detail: engagement.brief.split('\n').find((line) => line.trim()) || 'Primary engagement objective and working notes.',
+      },
+    ];
+
+    if (sectionKey === 'case_evidence' || sectionKey === 'workstreams' || sectionKey === 'deliverables' || sectionKey === 'timeline') {
+      traces.push(
+        ...selectedCases.slice(0, 3).map((item) => ({
+          label: item.engagementTitle,
+          detail: item.rationale,
+        }))
+      );
+    }
+
+    if (sectionKey !== 'case_evidence') {
+      traces.push(
+        ...topUploads.map((upload) => ({
+          label: upload.name,
+          detail: `Uploaded source available for grounding (${upload.status}).`,
+        }))
+      );
+    }
+
+    return traces.slice(0, 4);
+  };
 
   useEffect(() => {
     setTitle(engagement.workspace.proposalStarter.title);
@@ -129,6 +160,17 @@ export function ProposalStarterTab({
                 rows={Math.max(5, section.body.split('\n').length + 2)}
                 className="w-full resize-none border border-black/10 bg-white px-4 py-4 text-sm leading-relaxed text-black focus:border-black focus:outline-none"
               />
+              <div className="border border-black/10 bg-black/[0.015] px-4 py-4">
+                <div className="mb-3 text-xs uppercase tracking-wider text-black/40">Source Trace</div>
+                <div className="space-y-3">
+                  {buildSourceTrace(section.key).map((trace) => (
+                    <div key={`${section.key}-${trace.label}`} className="text-sm text-black/70">
+                      <div className="font-medium text-black">{trace.label}</div>
+                      <div>{trace.detail}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </section>
           ))}
         </div>
