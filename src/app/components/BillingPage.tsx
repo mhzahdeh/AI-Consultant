@@ -166,9 +166,12 @@ export default function BillingPage() {
                     >
                       Upgrade Plan
                     </button>
-                    <button className="border border-black/10 bg-white px-6 py-3 text-sm text-black transition-all hover:border-black/20">
+                    <a
+                      href="mailto:support@aicopilot.com?subject=Billing%20Management%20Request"
+                      className="border border-black/10 bg-white px-6 py-3 text-sm text-black transition-all hover:border-black/20"
+                    >
                       Manage Billing
-                    </button>
+                    </a>
                   </div>
                 </div>
               </section>
@@ -344,9 +347,13 @@ export default function BillingPage() {
                       <div className="flex items-center gap-6">
                         <div className="text-sm text-black">${item.amount}</div>
                         <div className="text-xs text-black/60">{item.status}</div>
-                        <button className="text-xs text-black underline decoration-black/20 transition-colors hover:decoration-black">
+                        <a
+                          href={`data:text/plain;charset=utf-8,${encodeURIComponent(`Invoice ${item.invoice}\nDate: ${item.date}\nAmount: $${item.amount}\nStatus: ${item.status}`)}`}
+                          download={`${item.invoice}.txt`}
+                          className="text-xs text-black underline decoration-black/20 transition-colors hover:decoration-black"
+                        >
                           Download
-                        </button>
+                        </a>
                       </div>
                     </div>
                   ))}

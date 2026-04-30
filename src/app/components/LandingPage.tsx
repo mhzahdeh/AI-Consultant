@@ -50,10 +50,10 @@ export default function LandingPage() {
               className="mb-6 text-5xl leading-tight tracking-tight text-white lg:text-7xl"
               style={{ fontFamily: 'var(--font-display)', fontWeight: 300, letterSpacing: '-0.03em' }}
             >
-              Turn messy briefs into structured consulting output
+              Turn client briefs into draft-ready consulting deliverables
             </h1>
             <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-white/70">
-              Match prior work from your organization. Generate proposal starters, issue trees, and workplans in minutes. Private, precise, premium.
+              Built for consulting teams that need to go from rough brief to proposal starter, issue tree, and workplan without losing prior firm knowledge.
             </p>
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -65,12 +65,15 @@ export default function LandingPage() {
                 to="/signup"
                 className="group inline-flex items-center gap-2 border border-white bg-white px-8 py-4 text-base text-black transition-all hover:bg-white/90"
               >
-                Start New Engagement
+                Start The Workflow
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
-              <button className="inline-flex items-center gap-2 border border-white/20 bg-transparent px-8 py-4 text-base text-white transition-all hover:border-white/40 hover:bg-white/5">
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 border border-white/20 bg-transparent px-8 py-4 text-base text-white transition-all hover:border-white/40 hover:bg-white/5"
+              >
                 View Demo
-              </button>
+              </Link>
             </motion.div>
           </motion.div>
 
@@ -118,7 +121,7 @@ export default function LandingPage() {
               Three steps to structured output
             </h2>
             <p className="mx-auto max-w-2xl text-base text-black/60">
-              Upload your brief, match prior work, generate consulting outputs
+              Focused on one MVP path: define the engagement, ground it with source material, then generate editable deliverables.
             </p>
           </motion.div>
 
@@ -127,17 +130,17 @@ export default function LandingPage() {
               {
                 number: '01',
                 title: 'Upload Brief',
-                description: 'Drop in your RFP, client email chain, or rough opportunity notes',
+                description: 'Paste the client brief or upload the source files that define the engagement.',
               },
               {
                 number: '02',
-                title: 'Match Prior Work',
-                description: 'AI finds relevant cases, proposals, and frameworks from your organization vault',
+                title: 'Ground With Prior Work',
+                description: 'Optionally select analog cases, or let the app recommend the most relevant prior work.',
               },
               {
                 number: '03',
-                title: 'Generate & Export',
-                description: 'Create proposal starters, issue trees, and workplans. Edit section by section.',
+                title: 'Generate Working Drafts',
+                description: 'Open one workspace to edit the proposal starter, issue tree, and workplan section by section.',
               },
             ].map((step, i) => (
               <motion.div
@@ -308,9 +311,9 @@ export default function LandingPage() {
               </span>
             </div>
             <div className="flex gap-8 text-sm text-black/60">
-              <a href="#" className="transition-colors hover:text-black">Privacy</a>
-              <a href="#" className="transition-colors hover:text-black">Terms</a>
-              <a href="#" className="transition-colors hover:text-black">Security</a>
+              <a href="mailto:privacy@aicopilot.com?subject=Privacy%20Inquiry" className="transition-colors hover:text-black">Privacy</a>
+              <a href="mailto:support@aicopilot.com?subject=Terms%20Request" className="transition-colors hover:text-black">Terms</a>
+              <a href="mailto:support@aicopilot.com?subject=Security%20Question" className="transition-colors hover:text-black">Security</a>
               <Link to="/design-system" className="transition-colors hover:text-black">Design System</Link>
             </div>
           </div>

@@ -189,6 +189,11 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ included }),
     }),
+  rematchEngagement: (engagementId: string) =>
+    request<Engagement>(`/api/engagements/${engagementId}/rematch`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
   regenerateSection: (engagementId: string, section: string, instructions: string, evidenceMode: string) =>
     request<Engagement>(`/api/engagements/${engagementId}/regenerate`, {
       method: "POST",

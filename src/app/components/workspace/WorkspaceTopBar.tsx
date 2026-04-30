@@ -1,4 +1,4 @@
-import { Clock, Lock, Save, FileDown, MoreVertical, History, PanelsTopLeft, Archive, Copy, Trash2 } from 'lucide-react';
+import { Clock, Lock, Save, ArrowRight, MoreVertical, History, PanelsTopLeft, Archive, Copy, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Badge } from '../design-system/Badge';
 
@@ -15,26 +15,34 @@ interface WorkspaceTopBarProps {
   };
   onSave: () => void;
   onExport: () => void;
+  onPrimaryAction: () => void;
   onVersionHistory: () => void;
   onPromoteToVault: () => void;
   onDuplicate: () => void;
   onArchive: () => void;
   onDelete: () => void;
+  primaryActionLabel: string;
+  primaryActionDisabled?: boolean;
   isSaving?: boolean;
   saveNotice?: string | null;
+  noticeTone?: 'success' | 'error';
 }
 
 export function WorkspaceTopBar({
   engagement,
   onSave,
   onExport,
+  onPrimaryAction,
   onVersionHistory,
   onPromoteToVault,
   onDuplicate,
   onArchive,
   onDelete,
+  primaryActionLabel,
+  primaryActionDisabled = false,
   isSaving = false,
   saveNotice,
+  noticeTone = 'success',
 }: WorkspaceTopBarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -79,7 +87,7 @@ export function WorkspaceTopBar({
               <Clock className="h-4 w-4 text-black/40" />
               {engagement.lastUpdated}
             </div>
-            {saveNotice && <div className="text-black">{saveNotice}</div>}
+            {saveNotice && <div className={noticeTone === 'error' ? 'text-red-700' : 'text-black'}>{saveNotice}</div>}
           </div>
 
           <div className="mt-3 flex items-center gap-2 text-xs text-black/40">
@@ -101,15 +109,17 @@ export function WorkspaceTopBar({
           </button>
           <button
             type="button"
-            onClick={onExport}
-            className="inline-flex items-center gap-2 border border-black bg-black px-4 py-2 text-sm text-white transition-all hover:bg-black/90"
+            onClick={onPrimaryAction}
+            disabled={primaryActionDisabled}
+            className="inline-flex items-center gap-2 border border-black bg-black px-4 py-2 text-sm text-white transition-all hover:bg-black/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <FileDown className="h-4 w-4" />
-            Export
+            <ArrowRight className="h-4 w-4" />
+            {primaryActionLabel}
           </button>
           <button
             type="button"
             onClick={() => setIsMenuOpen((open) => !open)}
+            aria-label="Open workspace actions"
             className="border border-black/10 bg-white px-3 py-2 text-black transition-all hover:border-black/20"
           >
             <MoreVertical className="h-4 w-4" />

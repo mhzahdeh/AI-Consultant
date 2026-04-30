@@ -1,10 +1,3 @@
-function firstNonEmptyLine(value) {
-  return String(value || "")
-    .split("\n")
-    .map((line) => line.trim())
-    .find(Boolean) || "";
-}
-
 function sentenceFragments(value, count = 2) {
   return String(value || "")
     .split(/(?<=[.!?])\s+/)
@@ -37,6 +30,411 @@ function uploadedSources(engagement, limit = 3) {
   return Array.isArray(engagement.uploads) ? engagement.uploads.slice(0, limit) : [];
 }
 
+function titleCase(value) {
+  return String(value || "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function tokenize(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function bulletize(items, prefix = "- ") {
+  return items.filter(Boolean).map((item) => `${prefix}${item}`).join("\n");
+}
+
+function unique(items) {
+  return [...new Set(items.filter(Boolean))];
+}
+
+function inferThemes(engagement) {
+  const tokens = tokenize(
+    [
+      engagement.problemType,
+      engagement.brief,
+      engagement.notes,
+      ...uploadedSources(engagement, 5).map((item) => `${item.name} ${item.extractedText || ""}`),
+      ...selectedCases(engagement, 4).flatMap((item) => [item.engagementTitle, item.rationale, ...(item.reusableElements || [])]),
+    ].join(" ")
+  );
+
+  const rules = [
+    { key: "regulatory", match: ["regulatory", "license", "licensing", "approval", "policy", "compliance", "government"], label: "regulatory and stakeholder constraints" },
+    { key: "pricing", match: ["pricing", "price", "margin", "promotion", "commercial"], label: "pricing and margin logic" },
+    { key: "customer", match: ["customer", "segment", "consumer", "client", "channel", "sales"], label: "customer and segment priorities" },
+    { key: "operations", match: ["operations", "supply", "plant", "process", "capacity", "service"], label: "operating model and process constraints" },
+    { key: "technology", match: ["digital", "technology", "data", "analytics", "ai", "genai", "automation"], label: "technology and enablement choices" },
+    { key: "economics", match: ["cost", "economics", "investment", "return", "roi", "ebitda"], label: "economics and investment tradeoffs" },
+    { key: "organization", match: ["organization", "talent", "capability", "team", "governance", "change"], label: "organization, talent, and change requirements" },
+  ];
+
+  return rules.filter((rule) => rule.match.some((term) => tokens.includes(term))).map((rule) => rule.label).slice(0, 4);
+}
+
+function caseInsights(engagement, limit = 3) {
+  return selectedCases(engagement, limit).map((item) => ({
+    title: item.engagementTitle,
+    rationale: item.rationale,
+    elements: Array.isArray(item.reusableElements) ? item.reusableElements.slice(0, 3) : [],
+    confidence: item.confidence,
+    confidenceLabel: item.confidenceLabel,
+  }));
+}
+
+function uploadInsights(engagement, limit = 3) {
+  return uploadedSources(engagement, limit).map((item) => ({
+    name: item.name,
+    status: item.status,
+    excerpt:
+      sentenceFragments(item.extractedText, 1)[0] ||
+      `${item.name} is available as uploaded source material.`,
+  }));
+}
+
+function formatInstruction(instructions) {
+  const clean = String(instructions || "").trim();
+  if (!clean) return "";
+  return clean.endsWith(".") ? clean : `${clean}.`;
+}
+
+function formatCaseInfluence(engagement, fallback = "No analog cases are currently selected.") {
+  const cases = caseInsights(engagement, 3);
+  if (!cases.length) return fallback;
+  return cases
+    .map(
+      (item) =>
+        `${item.title} (${item.confidence}% ${String(item.confidenceLabel || "").toLowerCase()} match): ${item.elements.length ? item.elements.join(", ") : item.rationale}`
+    )
+    .join("; ");
+}
+
+function proposalSectionLibrary(engagement) {
+  const title = engagement.title || "Proposal Starter";
+  const client = engagement.client || "Client";
+  const problemType = engagement.problemType || "Strategy";
+  const briefSummary = summarizeBrief(
+    engagement.brief,
+    `${client} needs a structured ${problemType.toLowerCase()} recommendation for ${title}.`
+  );
+  const themes = inferThemes(engagement);
+  const cases = caseInsights(engagement, 3);
+  const uploads = uploadInsights(engagement, 2);
+  const casePattern = formatCaseInfluence(engagement);
+  const themeLine = themes.length ? themes.join(", ") : "decision framing, evidence priorities, and execution risks";
+  const uploadLine = uploads.length
+    ? uploads.map((item) => `${item.name}: ${item.excerpt}`).join(" ")
+    : "No uploaded source excerpts are available yet.";
+
+  return {
+    problem_statement: `${briefSummary} The first draft should answer the core decision for ${client} while explicitly addressing ${themeLine}. The work should stay grounded in the current brief and available source material rather than generic transformation language.`,
+    objectives: bulletize([
+      `Define the decision that leadership must make and the criteria that will determine a sound recommendation.`,
+      `Build the fact base around ${themeLine}.`,
+      cases.length ? `Translate the most relevant analog patterns into this client context: ${casePattern}.` : `Identify the minimum additional analog or market evidence needed to strengthen the recommendation.`,
+      `Produce a recommendation path that can be challenged, refined, and mobilized quickly by the team.`,
+    ]),
+    workstreams: bulletize([
+      `Decision framing and current-state synthesis: convert the brief and uploads into a clean working problem statement and decision architecture.`,
+      `Hypothesis and option development: shape the strategic options, using selected cases to inform where the team should look first.`,
+      `Evidence and economics: quantify benefits, risks, investment needs, and operational implications tied to ${themeLine}.`,
+      `Recommendation and mobilization: turn the preferred path into an executive narrative, a workplan, and explicit next decisions.`,
+    ]),
+    deliverables: bulletize([
+      `Executive recommendation narrative that states the decision, recommendation logic, and open questions.`,
+      `Issue-led analysis structure covering the highest-priority themes: ${themeLine}.`,
+      `Decision-ready workplan with owners, sequencing, and dependencies.`,
+      cases.length ? `Analog evidence appendix drawing from ${cases.map((item) => item.title).join(", ")}.` : `Evidence gap log showing where more internal or external references are still needed.`,
+    ]),
+    case_evidence: cases.length
+      ? cases
+          .map(
+            (item, index) =>
+              `${index + 1}. ${item.title} (${item.confidence}% ${String(item.confidenceLabel || "").toLowerCase()} match)\nReusable patterns: ${item.elements.join(", ") || "Delivery pattern and recommendation structure"}\nWhy it matters here: ${item.rationale}`
+          )
+          .join("\n\n")
+      : `No analog cases were explicitly selected. Strengthen this draft by selecting internal cases or importing higher-quality reference material before finalizing.`,
+    timeline: bulletize([
+      `Weeks 1-2: lock the problem framing, review uploads, and align on decision criteria.`,
+      `Weeks 3-5: develop hypotheses and compare strategic or operating options against the strongest analogs.`,
+      `Weeks 6-8: pressure-test economics, execution risks, and stakeholder implications.`,
+      `Weeks 9-12: finalize recommendation, implementation logic, and leadership-ready outputs.`,
+    ]),
+    assumptions: bulletize([
+      `The client can provide enough data to test the highest-priority questions around ${themeLine}.`,
+      uploads.length ? `Uploaded sources are directionally reliable and can be used as an initial fact base: ${uploads.map((item) => item.name).join(", ")}.` : `The existing brief is sufficient to build an initial view before more data arrives.`,
+      cases.length ? `Selected analog cases are useful starting points but will be translated into the client's context rather than copied literally.` : `The team will need to supplement the brief with analog evidence before the final recommendation is locked.`,
+    ]),
+    risks: bulletize([
+      `If the fact base stays thin, the draft may remain directionally helpful but not decision-ready.`,
+      themes.includes("regulatory and stakeholder constraints")
+        ? `Regulatory or stakeholder constraints could change the recommendation path late in the process if not surfaced early.`
+        : `Late stakeholder input could reframe the problem and force changes to workstreams and output emphasis.`,
+      cases.length
+        ? `Analog cases may create false confidence if the team does not adapt them to current client realities.`
+        : `Without selected analogs, the draft may lean too heavily on generic consulting structure instead of proven internal patterns.`,
+    ]),
+    source_note: uploadLine,
+  };
+}
+
+function proposalSectionDirectives(sectionKey) {
+  const directives = {
+    problem_statement: "Write a tight consulting problem statement in paragraph form. State the decision, why it matters now, and what must be resolved.",
+    objectives: "Write crisp, action-oriented objectives as bullets. Avoid boilerplate and vague transformation language.",
+    workstreams: "Write named workstreams with one-sentence descriptions. Each workstream should feel mutually reinforcing and specific to the brief.",
+    deliverables: "List the concrete outputs the team should hand over. Make them decision-ready, not generic artifacts.",
+    case_evidence: "Summarize how selected cases should influence the engagement. Focus on transferable patterns and explicit limitations.",
+    timeline: "Write a practical phase sequence with timing. Each phase should imply a clear purpose and output.",
+    assumptions: "List explicit assumptions that the team is relying on to make the first draft credible.",
+    risks: "List the most material delivery or recommendation risks in sharp language.",
+  };
+  return directives[sectionKey] || "Rewrite the section into a stronger first draft.";
+}
+
+function applyEvidenceModeToSection(body, engagement, evidenceMode, sectionKey) {
+  if (evidenceMode === "brief-only") {
+    return `${body}\n\nGrounding note: this revision relies only on the client brief and deliberately excludes analog and upload references.`;
+  }
+  if (evidenceMode === "uploads-only") {
+    const uploads = uploadInsights(engagement, 3);
+    return uploads.length
+      ? `${body}\n\nGrounding note: this revision emphasizes uploaded sources: ${uploads.map((item) => item.name).join(", ")}.`
+      : body;
+  }
+  if (evidenceMode === "cases-only") {
+    const caseLine = formatCaseInfluence(engagement, "");
+    return caseLine
+      ? `${body}\n\nGrounding note: this revision emphasizes selected analog cases: ${caseLine}.`
+      : body;
+  }
+  if (sectionKey === "case_evidence") {
+    return body;
+  }
+  const uploads = uploadInsights(engagement, 2);
+  return uploads.length ? `${body}\n\nGrounding note: this section is additionally informed by ${uploads.map((item) => item.name).join(", ")}.` : body;
+}
+
+function reviseProposalSection({ engagement, sectionKey, instructions = "", evidenceMode = "brief-cases" }) {
+  const library = proposalSectionLibrary(engagement);
+  let body = library[sectionKey] || library.problem_statement;
+  body = applyEvidenceModeToSection(body, engagement, evidenceMode, sectionKey);
+  const cleanInstructions = formatInstruction(instructions);
+  if (cleanInstructions) {
+    body = `${body}\n\nRevision emphasis: ${cleanInstructions}`;
+  }
+  return body;
+}
+
+function issueTreeBlueprint(problemType, client, themes, cases) {
+  const reusable = unique(cases.flatMap((item) => item.elements)).slice(0, 4);
+  const analogLine = reusable.length ? ` using analog cues such as ${reusable.join(", ")}` : "";
+
+  const templates = {
+    "Market Entry Strategy": {
+      rootQuestion: `What entry path gives ${client} the highest-probability route to win, and what evidence is still required before committing capital?`,
+      branches: [
+        {
+          title: "Is the market worth entering?",
+          hypotheses: [
+            `Demand pools and segment growth are attractive enough to justify entry.`,
+            `Profitability structure supports a viable position for ${client}.`,
+          ],
+          requiredData: ["Market size and growth by segment", "Margin pool economics", "Competitive intensity and barriers"],
+        },
+        {
+          title: "What is the right entry model?",
+          hypotheses: [
+            "A focused beachhead is superior to a broad launch.",
+            `Local partnerships or staged investment may reduce risk${analogLine}.`,
+          ],
+          requiredData: ["Channel and route-to-market options", "Partner landscape", "Entry sequencing choices"],
+        },
+        {
+          title: "Can the client execute the move?",
+          hypotheses: [
+            `${client} can build the required capabilities on the needed timeline.`,
+            "The operating model can absorb the entry without eroding economics.",
+          ],
+          requiredData: ["Capability gaps", "Operating requirements", "Investment and ramp plan"],
+        },
+      ],
+    },
+    "Digital Transformation": {
+      rootQuestion: `Where should ${client} focus first to create measurable value from digital change, and what operating model will sustain it?`,
+      branches: [
+        {
+          title: "Where is the value pool?",
+          hypotheses: [
+            "A small number of use cases account for most near-term value.",
+            `Value should be prioritized around ${themes.join(", ") || "customer, operations, and data foundations"}.`,
+          ],
+          requiredData: ["Current pain points", "Use-case value sizing", "Baseline process metrics"],
+        },
+        {
+          title: "What capabilities must change?",
+          hypotheses: [
+            "Technology alone will not unlock value without operating-model change.",
+            "Data, process, and decision rights need to be redesigned together.",
+          ],
+          requiredData: ["Capability maturity", "Data architecture", "Process ownership and governance"],
+        },
+        {
+          title: "How will adoption hold?",
+          hypotheses: [
+            "The organization can sustain the new ways of working with targeted change support.",
+            "Leadership governance can force prioritization and benefit realization.",
+          ],
+          requiredData: ["Adoption barriers", "Change readiness", "Governance design"],
+        },
+      ],
+    },
+    "Operations Optimization": {
+      rootQuestion: `Which operational levers will move performance most materially for ${client}, and how should the team sequence them?`,
+      branches: [
+        {
+          title: "Where are the biggest bottlenecks?",
+          hypotheses: [
+            "A small set of process or capacity constraints explains most of the performance loss.",
+            "The current baseline hides avoidable variation and waste.",
+          ],
+          requiredData: ["Operational baseline", "Throughput and utilization", "Failure or delay points"],
+        },
+        {
+          title: "Which levers are highest impact?",
+          hypotheses: [
+            `Levers tied to ${themes.join(", ") || "cost, process, and capacity"} will yield the biggest return.`,
+            "A phased improvement program will outperform broad simultaneous change.",
+          ],
+          requiredData: ["Improvement levers", "Impact sizing", "Implementation complexity"],
+        },
+        {
+          title: "Can improvements sustain?",
+          hypotheses: [
+            "Governance and frontline routines can hold the gains after rollout.",
+            "Capability building is required to avoid backsliding.",
+          ],
+          requiredData: ["Governance routines", "Capability gaps", "Sustainment metrics"],
+        },
+      ],
+    },
+    "Growth Strategy": {
+      rootQuestion: `Which growth bets should ${client} back, and what evidence makes those bets defendable?`,
+      branches: [
+        {
+          title: "Where should growth come from?",
+          hypotheses: [
+            "A limited set of customer, product, or market plays accounts for the majority of upside.",
+            "The current portfolio hides underinvested growth pools.",
+          ],
+          requiredData: ["Growth pool sizing", "Customer and segment attractiveness", "Current portfolio performance"],
+        },
+        {
+          title: "How can the client win?",
+          hypotheses: [
+            `${client} has a right-to-win in only a subset of the identified pools.`,
+            `Commercial or capability moves${analogLine ? ` ${analogLine}` : ""} are needed to capture the upside.`,
+          ],
+          requiredData: ["Differentiators", "Commercial model effectiveness", "Capability gaps"],
+        },
+        {
+          title: "What is the risk-adjusted value?",
+          hypotheses: [
+            "The preferred growth path outperforms alternatives on risk-adjusted economics.",
+            "Execution complexity is manageable with the right sequencing.",
+          ],
+          requiredData: ["Investment profile", "Scenario economics", "Key execution risks"],
+        },
+      ],
+    },
+    "Cost Reduction": {
+      rootQuestion: `Which cost actions give ${client} the cleanest path to savings without damaging strategic capability?`,
+      branches: [
+        {
+          title: "Where is the cost base structurally misaligned?",
+          hypotheses: [
+            "A limited set of categories explains most of the gap to target performance.",
+            "The baseline includes structural spend that can be redesigned, not just trimmed.",
+          ],
+          requiredData: ["Cost baseline", "Category decomposition", "Benchmark gap"],
+        },
+        {
+          title: "Which levers are credible?",
+          hypotheses: [
+            "Portfolio, process, or organization levers can unlock the majority of savings.",
+            "Some cost actions are one-time, while others require operating-model change.",
+          ],
+          requiredData: ["Savings levers", "Implementation feasibility", "Timing and dependencies"],
+        },
+        {
+          title: "What are the risks to delivery?",
+          hypotheses: [
+            "Aggressive savings could erode growth or service if sequencing is wrong.",
+            "Leadership governance is needed to sustain benefits.",
+          ],
+          requiredData: ["Service impact assessment", "Risk scenarios", "Governance and owner map"],
+        },
+      ],
+    },
+    "Organization Design": {
+      rootQuestion: `What organization model will best support the strategy for ${client}, and where must roles, governance, and capabilities change?`,
+      branches: [
+        {
+          title: "What must the organization enable?",
+          hypotheses: [
+            "The future-state strategy requires clearer role mandates and decision ownership.",
+            "The current structure creates friction across high-value decisions or processes.",
+          ],
+          requiredData: ["Strategy and capability priorities", "Decision pain points", "Current operating model"],
+        },
+        {
+          title: "What should change structurally?",
+          hypotheses: [
+            "A revised structure can simplify accountability and improve execution speed.",
+            "Spans, layers, or interfaces are creating avoidable complexity.",
+          ],
+          requiredData: ["Org structure options", "Role charters", "Layer and span analysis"],
+        },
+        {
+          title: "How will the change stick?",
+          hypotheses: [
+            "Governance, incentives, and capability building are as important as structure.",
+            "Transition planning is needed to prevent organizational ambiguity.",
+          ],
+          requiredData: ["Change impact", "Capability plan", "Governance and transition model"],
+        },
+      ],
+    },
+  };
+
+  return templates[problemType] || {
+    rootQuestion: `What is the best recommendation for ${client}, and what evidence will make that recommendation defensible?`,
+    branches: [
+      {
+        title: "What is the core decision?",
+        hypotheses: ["The problem can be framed into a small set of decision options.", "Decision criteria can be made explicit early."],
+        requiredData: ["Client objective", "Decision criteria", "Constraints and boundaries"],
+      },
+      {
+        title: "What evidence matters most?",
+        hypotheses: ["A limited set of facts will decide the recommendation.", "Analogs and uploads can sharpen the evidence hierarchy."],
+        requiredData: ["Fact base", "Analog references", "Data gaps"],
+      },
+      {
+        title: "How will the recommendation land?",
+        hypotheses: ["The recommendation must be executable, not just analytically correct.", "Risks and change implications matter to adoption."],
+        requiredData: ["Execution dependencies", "Stakeholder impacts", "Risk profile"],
+      },
+    ],
+  };
+}
+
 function buildProposalProvenance(engagement) {
   const briefSummary = summarizeBrief(
     engagement.brief,
@@ -54,7 +452,7 @@ function buildProposalProvenance(engagement) {
 
   return {
     problem_statement: [briefTrace, ...uploadTraces].slice(0, 4),
-    objectives: [briefTrace, ...caseTraces.slice(0, 1), ...uploadTraces.slice(0, 1)].slice(0, 4),
+    objectives: [briefTrace, ...caseTraces.slice(0, 2), ...uploadTraces.slice(0, 1)].slice(0, 4),
     workstreams: [briefTrace, ...caseTraces, ...uploadTraces.slice(0, 1)].slice(0, 4),
     deliverables: [briefTrace, ...caseTraces.slice(0, 2), ...uploadTraces.slice(0, 1)].slice(0, 4),
     case_evidence: caseTraces.length
@@ -129,62 +527,16 @@ function buildWorkplanProvenance(engagement, phases) {
 }
 
 export function buildProposalArtifactContent(engagement) {
-  const title = engagement.title || "Proposal Starter";
-  const client = engagement.client || "Client";
-  const problemType = engagement.problemType || "Strategy";
-  const caseEvidence = selectedCases(engagement, 3);
-  const briefSummary = summarizeBrief(
-    engagement.brief,
-    `${client} needs a structured ${problemType.toLowerCase()} recommendation for ${title}.`
-  );
+  const library = proposalSectionLibrary(engagement);
   const sections = [
-    {
-      key: "problem_statement",
-      label: "Problem Statement",
-      body: `${briefSummary} This draft translates that brief into a scoped consulting response with a recommendation path, evidence plan, and delivery structure.`,
-    },
-    {
-      key: "objectives",
-      label: "Objectives",
-      body: `1. Clarify the client objective and critical decisions.\n2. Translate the brief into an evidence-backed recommendation path.\n3. Pressure-test options against execution realities and risk.\n4. Produce a decision-ready output set the team can refine quickly.`,
-    },
-    {
-      key: "workstreams",
-      label: "Proposed Workstreams",
-      body: `Workstream 1: Confirm the current-state fact base and stakeholder objectives.\nWorkstream 2: Frame hypotheses, analog patterns, and strategic options.\nWorkstream 3: Quantify implications, risks, and investment requirements.\nWorkstream 4: Convert the recommendation into an executable roadmap and leadership narrative.`,
-    },
-    {
-      key: "deliverables",
-      label: "Deliverables",
-      body: `Executive recommendation memo\nIssue-led analysis structure with supporting evidence\nDecision-ready workplan\nImplementation roadmap with risks, assumptions, and dependencies`,
-    },
-    {
-      key: "case_evidence",
-      label: "Analog Case Evidence",
-      body: caseEvidence.length
-        ? caseEvidence
-            .map(
-              (item, index) =>
-                `${index + 1}. ${item.engagementTitle} (${item.confidence}% ${item.confidenceLabel.toLowerCase()} match)\nWhy it matters: ${item.rationale}`
-            )
-            .join("\n\n")
-        : `No analog cases were explicitly selected. This draft should be refined against additional reference material as it becomes available.`,
-    },
-    {
-      key: "timeline",
-      label: "Timeline Draft",
-      body: `Weeks 1-2: Intake, fact-base review, and stakeholder alignment\nWeeks 3-5: Analysis, option development, and analog comparison\nWeeks 6-8: Recommendation shaping, economics, and risk testing\nWeeks 9-12: Execution roadmap, leadership readout, and handoff`,
-    },
-    {
-      key: "assumptions",
-      label: "Assumptions",
-      body: `Stakeholder access is available early in the engagement.\nRelevant commercial and operating data can be shared in time for synthesis.\nThe client team can align on decision criteria before recommendation lock.`,
-    },
-    {
-      key: "risks",
-      label: "Risks",
-      body: `Incomplete source material may limit the specificity of the recommendation.\nLate stakeholder input could delay synthesis and reprioritize workstreams.\nScope changes without evidence refresh may weaken the final recommendation quality.`,
-    },
+    { key: "problem_statement", label: "Problem Statement", body: library.problem_statement },
+    { key: "objectives", label: "Objectives", body: library.objectives },
+    { key: "workstreams", label: "Proposed Workstreams", body: library.workstreams },
+    { key: "deliverables", label: "Deliverables", body: library.deliverables },
+    { key: "case_evidence", label: "Analog Case Evidence", body: library.case_evidence },
+    { key: "timeline", label: "Timeline Draft", body: library.timeline },
+    { key: "assumptions", label: "Assumptions", body: library.assumptions },
+    { key: "risks", label: "Risks", body: library.risks },
   ];
 
   return {
@@ -195,92 +547,61 @@ export function buildProposalArtifactContent(engagement) {
 
 export function buildIssueTreeArtifactContent(engagement) {
   const client = engagement.client || "Client";
-  const branches = [
-    {
-      title: "Is the opportunity attractive?",
-      hypotheses: [
-        "The target segment is large enough to justify investment.",
-        "Growth and margin profile support the strategic move.",
-      ],
-      requiredData: [
-        "Market size and growth",
-        "Segment profitability",
-        "Competitive intensity",
-      ],
-    },
-    {
-      title: "Can the client win?",
-      hypotheses: [
-        "The client has a differentiated right-to-win.",
-        "Required capabilities can be built or acquired in time.",
-      ],
-      requiredData: [
-        "Current capabilities",
-        "Capability gaps",
-        "Partner or acquisition options",
-      ],
-    },
-    {
-      title: "Is the plan economically sound?",
-      hypotheses: [
-        "Investment requirements are acceptable.",
-        "The return profile beats alternatives.",
-      ],
-      requiredData: [
-        "Investment profile",
-        "Scenario model",
-        "Risk-adjusted returns",
-      ],
-    },
-  ];
+  const themes = inferThemes(engagement);
+  const cases = caseInsights(engagement, 2);
+  const blueprint = issueTreeBlueprint(engagement.problemType, client, themes, cases);
   return {
-    rootQuestion: `What is the best recommendation for ${client}, and what evidence will make that recommendation defensible?`,
-    branches,
-    provenance: buildIssueTreeProvenance(engagement, branches),
+    rootQuestion: blueprint.rootQuestion,
+    branches: blueprint.branches,
+    provenance: buildIssueTreeProvenance(engagement, blueprint.branches),
   };
 }
 
 export function buildWorkplanArtifactContent(engagement) {
-  const caseEvidence = selectedCases(engagement, 2);
+  const themes = inferThemes(engagement);
+  const cases = caseInsights(engagement, 2);
+  const uploads = uploadInsights(engagement, 2);
+  const problemType = engagement.problemType || "Strategy";
+
   const phases = [
     {
-      name: "Diagnose",
-      weeks: "Weeks 1-3",
-      deliverables: [
-        "Problem framing and success criteria",
-        "Source material synthesis",
-        "Initial fact base",
-        ...(caseEvidence[0] ? [`Analog scan anchored in ${caseEvidence[0].engagementTitle}`] : []),
-      ],
+      name: "Frame",
+      weeks: "Weeks 1-2",
+      deliverables: unique([
+        "Decision framing and success criteria",
+        "Source-material synthesis and fact-base outline",
+        themes.length ? `Priority themes confirmed: ${themes.join(", ")}` : "Priority themes and open questions confirmed",
+        uploads[0] ? `Upload review anchored in ${uploads[0].name}` : "",
+      ]),
     },
     {
-      name: "Analyze",
-      weeks: "Weeks 4-7",
-      deliverables: [
-        "Issue tree and hypotheses",
-        "Option analysis",
-        "Economics and risk assessment",
-        ...(caseEvidence[1] ? [`Cross-case comparison with ${caseEvidence[1].engagementTitle}`] : []),
-      ],
+      name: "Pressure-Test",
+      weeks: "Weeks 3-6",
+      deliverables: unique([
+        `${problemType} issue tree and hypotheses`,
+        "Options, scenarios, or levers assessed against available evidence",
+        cases[0] ? `Analog translation from ${cases[0].title}` : "Initial analog comparison and evidence gap review",
+        "Economics, execution implications, and risk assessment",
+      ]),
     },
     {
       name: "Recommend",
-      weeks: "Weeks 8-10",
-      deliverables: [
-        "Recommendation narrative",
-        "Executive deck and memo",
-        "Leadership alignment session",
-        "Explicit rationale for where analog case evidence influenced the recommendation",
-      ],
+      weeks: "Weeks 7-9",
+      deliverables: unique([
+        "Recommendation narrative and executive storyline",
+        "Decision-ready exhibits and supporting logic",
+        cases[1] ? `Cross-case synthesis using ${cases[1].title}` : "Final rationale for the preferred path",
+        "Leadership alignment session materials",
+      ]),
     },
     {
       name: "Mobilize",
-      weeks: "Weeks 11-12",
-      deliverables: [
-        "12-week execution plan",
-        "Governance and owners",
-        "Decision log and next steps",
-      ],
+      weeks: "Weeks 10-12",
+      deliverables: unique([
+        "12-week mobilization plan with owners and milestones",
+        "Governance and decision cadence",
+        "Risk watchlist, dependencies, and next-step plan",
+      ]),
     },
   ];
 
@@ -301,4 +622,8 @@ export function buildProposalProvenanceForRegeneration(engagement, sectionKey, e
   });
   if (filtered.length) return filtered;
   return proposal.provenance?.[sectionKey] || [];
+}
+
+export function regenerateProposalSection(engagement, sectionKey, instructions = "", evidenceMode = "brief-cases") {
+  return reviseProposalSection({ engagement, sectionKey, instructions, evidenceMode });
 }

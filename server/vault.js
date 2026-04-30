@@ -74,12 +74,105 @@ export function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function normalizeText(value) {
+  return String(value || "").toLowerCase().trim();
+}
+
 export function tokenizeContext(value) {
-  return String(value || "")
-    .toLowerCase()
+  return normalizeText(value)
     .replace(/[^a-z0-9\s]+/g, " ")
     .split(/\s+/)
     .filter((token) => token.length >= 3);
+}
+
+const STOP_TOKENS = new Set([
+  "about",
+  "across",
+  "after",
+  "again",
+  "against",
+  "align",
+  "among",
+  "around",
+  "because",
+  "before",
+  "between",
+  "brief",
+  "build",
+  "business",
+  "capability",
+  "cases",
+  "client",
+  "company",
+  "could",
+  "deliver",
+  "delivery",
+  "engagement",
+  "focus",
+  "from",
+  "into",
+  "market",
+  "needs",
+  "opportunity",
+  "phase",
+  "prior",
+  "program",
+  "project",
+  "proposal",
+  "recommendation",
+  "strategy",
+  "support",
+  "team",
+  "their",
+  "there",
+  "these",
+  "this",
+  "through",
+  "work",
+  "workplan",
+]);
+
+function tokenSet(value) {
+  return new Set(tokenizeContext(value));
+}
+
+function overlapTerms(left, right, max = 4) {
+  const leftSet = tokenSet(left);
+  const rightSet = tokenSet(right);
+  return [...leftSet].filter((token) => rightSet.has(token)).slice(0, max);
+}
+
+function startsWithClientAlias(clientName, client) {
+  const normalizedClientName = normalizeText(clientName);
+  const normalizedClient = normalizeText(client);
+  return Boolean(normalizedClient && normalizedClientName && (normalizedClientName.includes(normalizedClient) || normalizedClient.includes(normalizedClientName)));
+}
+
+function meaningfullyTokenized(value) {
+  return tokenizeContext(value).filter((token) => !STOP_TOKENS.has(token));
+}
+
+function overlapMeaningfulTerms(left, right, max = 5) {
+  const leftSet = new Set(meaningfullyTokenized(left));
+  const rightSet = new Set(meaningfullyTokenized(right));
+  return [...leftSet].filter((token) => rightSet.has(token)).slice(0, max);
+}
+
+function normalizeFieldMatch(left, right) {
+  return Boolean(left && right && normalizeText(left) === normalizeText(right));
+}
+
+function buildContextProfile(context = {}) {
+  return {
+    title: context.title || "",
+    client: context.client || "",
+    query: context.query || "",
+    problemType: context.problemType || "",
+    industry: context.industry || "",
+    capability: context.capability || "",
+    brief: context.brief || "",
+    narrative: [context.query, context.title, context.client, context.problemType, context.industry, context.capability, context.brief].join(" "),
+  };
 }
 
 export function serializeVaultCase(row) {
@@ -109,11 +202,10 @@ export function serializeVaultCase(row) {
 }
 
 export function scoreVaultCase(row, context) {
-  const tokens = tokenizeContext(
-    [context.query, context.title, context.client, context.problemType, context.industry, context.capability, context.brief].join(" ")
-  );
-  const tagTokens = JSON.parse(row.tags_json).map((item) => String(item).toLowerCase());
-  const outcomeTokens = JSON.parse(row.outcomes_json).map((item) => String(item).toLowerCase());
+  const profile = buildContextProfile(context);
+  const tokens = meaningfullyTokenized(profile.narrative);
+  const tagTokens = JSON.parse(row.tags_json).map((item) => normalizeText(item));
+  const outcomeTokens = JSON.parse(row.outcomes_json).map((item) => normalizeText(item));
   const haystack = [
     row.title,
     row.client_name,
@@ -129,49 +221,92 @@ export function scoreVaultCase(row, context) {
   ]
     .join(" ")
     .toLowerCase();
+  const briefOverlap = overlapMeaningfulTerms(profile.brief, `${row.summary} ${row.tags_json} ${row.outcomes_json}`, 5);
+  const titleOverlap = overlapMeaningfulTerms(`${profile.title} ${profile.query}`, `${row.title} ${row.client_name}`, 3);
+  const taxonomyOverlap = overlapMeaningfulTerms(
+    `${profile.problemType} ${profile.industry} ${profile.capability}`,
+    `${row.problem_type} ${row.industry} ${row.capability} ${row.business_function}`,
+    4
+  );
+  const structuralHits = [];
+  const proofPoints = [];
 
   let score =
-    row.evidence_strength * 8 +
-    Number(row.use_again_count || 0) * 4 +
-    (row.is_favorite ? 10 : 0) +
-    (row.is_internal ? 12 : 0) +
+    row.evidence_strength * 10 +
+    Number(row.use_again_count || 0) * 5 +
+    (row.is_favorite ? 12 : 0) +
+    (row.is_internal ? 8 : 0) +
     (row.year ? Math.max(0, row.year - 2022) : 0);
   const matchedSignals = [];
+  let directHitCount = 0;
+  let contextualHitCount = 0;
 
   for (const token of tokens) {
     if (haystack.includes(token)) {
-      score += token.length >= 7 ? 6 : 3;
+      score += token.length >= 7 ? 5 : 2;
+      contextualHitCount += 1;
     }
     if (tagTokens.some((item) => item.includes(token))) {
       score += 5;
+      contextualHitCount += 1;
     }
     if (outcomeTokens.some((item) => item.includes(token))) {
       score += 4;
+      contextualHitCount += 1;
     }
   }
 
-  if (context.problemType && row.problem_type.toLowerCase() === String(context.problemType).toLowerCase()) {
-    score += 18;
-    matchedSignals.push(`problem type: ${row.problem_type}`);
+  if (normalizeFieldMatch(row.problem_type, profile.problemType)) {
+    score += 30;
+    directHitCount += 1;
+    structuralHits.push("problem type");
+    matchedSignals.push(`same problem type (${row.problem_type})`);
+    proofPoints.push(`same problem type`);
   }
-  if (context.industry && row.industry.toLowerCase() === String(context.industry).toLowerCase()) {
-    score += 14;
-    matchedSignals.push(`industry: ${row.industry}`);
+  if (normalizeFieldMatch(row.industry, profile.industry)) {
+    score += 24;
+    directHitCount += 1;
+    structuralHits.push("industry");
+    matchedSignals.push(`same industry (${row.industry})`);
+    proofPoints.push(`same industry`);
   }
-  if (context.capability && row.capability.toLowerCase() === String(context.capability).toLowerCase()) {
-    score += 10;
-    matchedSignals.push(`capability: ${row.capability}`);
+  if (normalizeFieldMatch(row.capability, profile.capability)) {
+    score += 20;
+    directHitCount += 1;
+    structuralHits.push("capability");
+    matchedSignals.push(`same capability (${row.capability})`);
+    proofPoints.push(`same capability`);
   }
-  if (context.sourceFirm && row.source_firm.toLowerCase() === String(context.sourceFirm).toLowerCase()) {
+  if (normalizeFieldMatch(row.source_firm, context.sourceFirm)) {
     score += 8;
-    matchedSignals.push(`source: ${row.source_firm}`);
+    matchedSignals.push(`source filter match (${row.source_firm})`);
   }
-  if (context.client && row.client_name.toLowerCase().includes(String(context.client).toLowerCase())) {
-    score += 6;
-    matchedSignals.push(`client analog: ${row.client_name}`);
+  if (startsWithClientAlias(row.client_name, profile.client)) {
+    score += 18;
+    directHitCount += 1;
+    structuralHits.push("client");
+    matchedSignals.push(`client analog (${row.client_name})`);
+    proofPoints.push(`client analog`);
   }
-  if (row.is_internal) {
+  if (taxonomyOverlap.length) {
+    score += taxonomyOverlap.length * 7;
+    matchedSignals.push(`taxonomy overlap (${taxonomyOverlap.join(", ")})`);
+  }
+  if (briefOverlap.length) {
+    score += briefOverlap.length * 8;
+    matchedSignals.push(`brief overlap (${briefOverlap.join(", ")})`);
+    proofPoints.push(`brief overlap on ${briefOverlap.join(", ")}`);
+  }
+  if (titleOverlap.length) {
+    score += titleOverlap.length * 5;
+    matchedSignals.push(`title overlap (${titleOverlap.join(", ")})`);
+  }
+  if (row.is_internal && (directHitCount >= 1 || briefOverlap.length >= 2 || taxonomyOverlap.length >= 2)) {
+    score += 26;
     matchedSignals.push("internal reusable case");
+    proofPoints.push("internal reusable case");
+  } else if (row.is_internal) {
+    matchedSignals.push("internal case");
   }
   if (row.is_favorite) {
     matchedSignals.push("team favorite");
@@ -180,7 +315,36 @@ export function scoreVaultCase(row, context) {
     matchedSignals.push(`used again ${row.use_again_count}x`);
   }
 
-  return { score, matchedSignals: [...new Set(matchedSignals)].slice(0, 5) };
+  const quality =
+    directHitCount * 20 +
+    briefOverlap.length * 9 +
+    taxonomyOverlap.length * 7 +
+    titleOverlap.length * 5 +
+    Math.min(12, contextualHitCount) +
+    (row.is_internal ? 6 : 0) +
+    (row.is_favorite ? 3 : 0) +
+    Math.min(8, Number(row.use_again_count || 0) * 2);
+
+  const fitTier =
+    directHitCount >= 2 || quality >= 48
+      ? "high"
+      : directHitCount >= 1 || briefOverlap.length >= 2 || quality >= 30
+      ? "medium"
+      : "low";
+
+  return {
+    score,
+    quality,
+    directHitCount,
+    contextualHitCount,
+    briefOverlap,
+    titleOverlap,
+    taxonomyOverlap,
+    structuralHits,
+    proofPoints: [...new Set(proofPoints)].slice(0, 4),
+    fitTier,
+    matchedSignals: [...new Set(matchedSignals)].slice(0, 5),
+  };
 }
 
 export function listVaultCases(db, context = {}) {
@@ -202,7 +366,7 @@ export function listVaultCases(db, context = {}) {
 
   const ranked = filtered
     .map((row) => ({ row, ...scoreVaultCase(row, context) }))
-    .sort((a, b) => b.score - a.score || b.row.evidence_strength - a.row.evidence_strength || a.row.title.localeCompare(b.row.title))
+    .sort((a, b) => b.score - a.score || b.quality - a.quality || b.row.evidence_strength - a.row.evidence_strength || a.row.title.localeCompare(b.row.title))
     .slice(0, limit);
 
   return ranked.map((item) => ({
@@ -229,28 +393,44 @@ export function getVaultCasesByIds(db, ids) {
 }
 
 export function matchedCaseFromVaultRow(row, context = {}, selected = false) {
-  const { score, matchedSignals } = scoreVaultCase(row, context);
-  const confidence = clamp(selected ? 92 : 55 + Math.round(score / 2), 62, 97);
+  const { score, quality, directHitCount, briefOverlap, proofPoints, fitTier, matchedSignals } = scoreVaultCase(row, context);
+  const confidence = clamp(
+    selected ? 92 : 44 + Math.round(score / 4) + directHitCount * 6 + Math.min(8, briefOverlap.length * 3),
+    selected ? 88 : 58,
+    96
+  );
+  const confidenceLabel = selected
+    ? "Strong"
+    : fitTier === "high" || confidence >= 84
+    ? "Strong"
+    : fitTier === "medium" || confidence >= 71
+    ? "Medium"
+    : "Weak";
   return {
     fileTitle: `${row.source_firm} case study`,
     engagementTitle: row.title,
     confidence,
-    confidenceLabel: confidence >= 85 ? "Strong" : confidence >= 72 ? "Medium" : "Weak",
+    confidenceLabel,
     rationale: selected
-      ? `Manually selected from the case library. ${row.summary}`
+      ? `Manually selected from the case library. Why it belongs: ${proofPoints.join("; ") || matchedSignals.join("; ") || "relevant reusable case"}. ${row.summary}`
+      : proofPoints.length
+      ? `Why it surfaced: ${proofPoints.join("; ")}. ${row.summary}`
       : matchedSignals.length
-      ? `Matched on ${matchedSignals.join(", ")}. ${row.summary}`
+      ? `Why it surfaced: ${matchedSignals.join("; ")}. ${row.summary}`
       : row.summary,
     reusableElements: [...JSON.parse(row.tags_json).slice(0, 2), ...JSON.parse(row.outcomes_json).slice(0, 2)].slice(0, 4),
     included: true,
+    qualityScore: quality,
+    matchSignals: matchedSignals,
+    reasoningPoints: proofPoints.length ? proofPoints : matchedSignals,
   };
 }
 
 export function buildContextualMatchedCases(db, { title, client, problemType, brief, industry, capability }, limit = 4) {
-  const candidates = listVaultCases(db, { title, client, problemType, brief, industry, capability, limit });
-  return candidates.map((item) =>
-    matchedCaseFromVaultRow(
-      {
+  const context = { title, client, problemType, brief, industry, capability, limit: limit * 3 };
+  const candidates = listVaultCases(db, context)
+    .map((item) => {
+      const row = {
         id: item.id,
         title: item.title,
         client_name: item.clientName,
@@ -267,11 +447,64 @@ export function buildContextualMatchedCases(db, { title, client, problemType, br
         year: item.year,
         evidence_strength: item.evidenceStrength,
         review_status: item.reviewStatus,
-      },
-      { title, client, problemType, brief, industry, capability },
-      false
-    )
-  );
+        is_favorite: item.isFavorite ? 1 : 0,
+        is_internal: item.isInternal ? 1 : 0,
+        use_again_count: item.useAgainCount || 0,
+      };
+      const scored = scoreVaultCase(row, context);
+      return { row, scored };
+    })
+    .filter(({ scored }, index) => {
+      if (index === 0 && (scored.directHitCount >= 1 || scored.briefOverlap.length >= 1 || scored.quality >= 28)) return true;
+      if (scored.directHitCount >= 2) return true;
+      if (scored.directHitCount >= 1 && scored.quality >= 30) return true;
+      if (scored.briefOverlap.length >= 3) return true;
+      if (scored.quality >= 42) return true;
+      return false;
+    })
+    .sort((left, right) => {
+      if (right.scored.directHitCount !== left.scored.directHitCount) {
+        return right.scored.directHitCount - left.scored.directHitCount;
+      }
+      if (Boolean(right.row.is_internal) !== Boolean(left.row.is_internal)) {
+        return Number(Boolean(right.row.is_internal)) - Number(Boolean(left.row.is_internal));
+      }
+      return right.scored.score - left.scored.score;
+    })
+    .slice(0, limit);
+
+  if (!candidates.length) {
+    const fallback = listVaultCases(db, { ...context, limit: 2 }).slice(0, Math.min(2, limit));
+    return fallback.map((item) =>
+      matchedCaseFromVaultRow(
+        {
+          id: item.id,
+          title: item.title,
+          client_name: item.clientName,
+          source_firm: item.sourceFirm,
+          source_url: item.sourceUrl,
+          industry: item.industry,
+          business_function: item.businessFunction,
+          problem_type: item.problemType,
+          capability: item.capability,
+          summary: item.summary,
+          outcomes_json: JSON.stringify(item.outcomes),
+          tags_json: JSON.stringify(item.tags),
+          region: item.region,
+          year: item.year,
+          evidence_strength: item.evidenceStrength,
+          review_status: item.reviewStatus,
+          is_favorite: item.isFavorite ? 1 : 0,
+          is_internal: item.isInternal ? 1 : 0,
+          use_again_count: item.useAgainCount || 0,
+        },
+        { title, client, problemType, brief, industry, capability },
+        false
+      )
+    );
+  }
+
+  return candidates.map(({ row }) => matchedCaseFromVaultRow(row, { title, client, problemType, brief, industry, capability }, false));
 }
 
 export function buildSelectedMatchedCases(db, { selectedVaultCaseIds, title, client, problemType, brief, industry, capability } = {}) {
@@ -302,12 +535,23 @@ export function buildVaultOverview(db, { relativeTimeFrom }, context = {}) {
   }));
 
   const highlightedCapabilities = [...new Set(cases.map((item) => item.capability))].slice(0, 6);
+  const internalTotals = db.prepare(
+    `SELECT
+      SUM(CASE WHEN is_internal = 1 THEN 1 ELSE 0 END) AS internal_cases,
+      SUM(CASE WHEN is_internal = 0 THEN 1 ELSE 0 END) AS external_cases,
+      SUM(CASE WHEN is_internal = 1 AND use_again_count > 0 THEN 1 ELSE 0 END) AS reusable_internal_cases
+     FROM vault_cases
+     WHERE review_status = 'approved' AND is_hidden = 0`
+  ).get();
 
   return {
     totals: {
       totalCases: db.prepare(`SELECT COUNT(*) AS count FROM vault_cases WHERE review_status = 'approved' AND is_hidden = 0`).get().count,
       totalArtifacts: db.prepare(`SELECT COUNT(*) AS count FROM uploads`).get().count,
       totalSources: db.prepare(`SELECT COUNT(DISTINCT source_firm) AS count FROM vault_cases WHERE review_status = 'approved'`).get().count,
+      internalCases: Number(internalTotals.internal_cases || 0),
+      externalCases: Number(internalTotals.external_cases || 0),
+      reusableInternalCases: Number(internalTotals.reusable_internal_cases || 0),
     },
     highlightedCapabilities,
     cases,

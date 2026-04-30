@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Save, FileDown, Clock, History } from 'lucide-react';
+import { WorkplanTimeline } from '../visualizations/WorkplanTimeline';
 import type { Engagement, SourceTrace } from '../../lib/types';
+import { SourceTracePanel } from './SourceTracePanel';
 
 interface WorkplanTabProps {
   onExport: () => void;
@@ -39,11 +41,14 @@ export function WorkplanTab({ onExport, onVersionHistory, onSaveArtifact, engage
   }, [engagement.id, engagement.workspace.workplan]);
 
   const handleSave = async () => {
-    setIsSaving(true);
-    await onSaveArtifact({ title, content: { phases, provenance: persistedProvenance } });
-    setIsSaving(false);
-    setSavedNotice('Saved');
-    window.setTimeout(() => setSavedNotice(''), 2000);
+    try {
+      setIsSaving(true);
+      await onSaveArtifact({ title, content: { phases, provenance: persistedProvenance } });
+      setSavedNotice('Saved');
+      window.setTimeout(() => setSavedNotice(''), 2000);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -103,6 +108,8 @@ export function WorkplanTab({ onExport, onVersionHistory, onSaveArtifact, engage
             </div>
           )}
 
+          <WorkplanTimeline phases={phases} />
+
           {phases.map((phase, phaseIndex) => (
             <div key={`${phase.name}-${phaseIndex}`} className="border border-black/10 bg-white p-6">
               <div className="grid gap-4 md:grid-cols-[1fr_180px]">
@@ -145,16 +152,8 @@ export function WorkplanTab({ onExport, onVersionHistory, onSaveArtifact, engage
                 />
               </div>
 
-              <div className="mt-4 border border-black/10 bg-black/[0.015] px-4 py-4">
-                <div className="mb-3 text-xs uppercase tracking-wider text-black/40">Evidence In Use</div>
-                <div className="space-y-3">
-                  {(persistedProvenance[phase.name] || buildPhaseTrace(phase.name)).map((trace) => (
-                    <div key={`${phase.name}-${trace.label}`} className="text-sm text-black/70">
-                      <div className="font-medium text-black">{trace.label}</div>
-                      <div>{trace.detail}</div>
-                    </div>
-                  ))}
-                </div>
+              <div className="mt-4">
+                <SourceTracePanel title="Evidence In Use" traces={persistedProvenance[phase.name] || buildPhaseTrace(phase.name)} />
               </div>
             </div>
           ))}

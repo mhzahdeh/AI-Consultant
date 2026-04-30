@@ -67,6 +67,7 @@ export function VersionHistoryModal({ isOpen, onClose, engagement, onRestore }: 
                 </div>
                 <button
                   onClick={onClose}
+                  aria-label="Close version history"
                   className="text-black/40 transition-colors hover:text-black"
                 >
                   <X className="h-5 w-5" />

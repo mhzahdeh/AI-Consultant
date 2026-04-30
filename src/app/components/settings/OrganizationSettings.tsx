@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Building2, Calendar, Crown, Check, X } from 'lucide-react';
+import { Link } from 'react-router';
 import { useAppData } from '../../lib/AppProvider';
 
 interface OrganizationSettingsProps {
@@ -163,9 +164,9 @@ export function OrganizationSettings({ userRole }: OrganizationSettingsProps) {
               Permanently delete this workspace and all associated data. This action cannot be undone.
             </div>
           </div>
-          <button className="border border-black/20 bg-white px-4 py-2 text-xs text-black/70 transition-all hover:border-black/40 hover:text-black">
+          <Link to="/settings?section=deletion" className="border border-black/20 bg-white px-4 py-2 text-xs text-black/70 transition-all hover:border-black/40 hover:text-black">
             Delete Workspace
-          </button>
+          </Link>
         </div>
       )}
     </div>

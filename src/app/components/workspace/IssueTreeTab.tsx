@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Save, FileDown, Clock, History } from 'lucide-react';
 import type { Engagement, SourceTrace } from '../../lib/types';
+import { SourceTracePanel } from './SourceTracePanel';
 
 interface IssueTreeTabProps {
   onExport: () => void;
@@ -41,11 +42,14 @@ export function IssueTreeTab({ onExport, onVersionHistory, onSaveArtifact, engag
   }, [engagement.id, engagement.workspace.issueTree]);
 
   const handleSave = async () => {
-    setIsSaving(true);
-    await onSaveArtifact({ title, content: { rootQuestion, branches, provenance: persistedProvenance } });
-    setIsSaving(false);
-    setSavedNotice('Saved');
-    window.setTimeout(() => setSavedNotice(''), 2000);
+    try {
+      setIsSaving(true);
+      await onSaveArtifact({ title, content: { rootQuestion, branches, provenance: persistedProvenance } });
+      setSavedNotice('Saved');
+      window.setTimeout(() => setSavedNotice(''), 2000);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -105,16 +109,8 @@ export function IssueTreeTab({ onExport, onVersionHistory, onSaveArtifact, engag
               className="w-full resize-none border border-black/10 bg-white px-4 py-3 text-base text-black focus:border-black focus:outline-none"
               style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
             />
-            <div className="mt-4 border border-black/10 bg-black/[0.015] px-4 py-4">
-              <div className="mb-3 text-xs uppercase tracking-wider text-black/40">Evidence In Use</div>
-              <div className="space-y-3">
-                {(persistedProvenance?.rootQuestion || buildBranchTrace('root question')).map((trace) => (
-                  <div key={`root-${trace.label}`} className="text-sm text-black/70">
-                    <div className="font-medium text-black">{trace.label}</div>
-                    <div>{trace.detail}</div>
-                  </div>
-                ))}
-              </div>
+            <div className="mt-4">
+              <SourceTracePanel title="Evidence In Use" traces={persistedProvenance?.rootQuestion || buildBranchTrace('root question')} />
             </div>
           </div>
 
@@ -168,16 +164,8 @@ export function IssueTreeTab({ onExport, onVersionHistory, onSaveArtifact, engag
                 </div>
               </div>
 
-              <div className="mt-4 border border-black/10 bg-black/[0.015] px-4 py-4">
-                <div className="mb-3 text-xs uppercase tracking-wider text-black/40">Source Trace</div>
-                <div className="space-y-3">
-                  {((persistedProvenance?.branches && persistedProvenance.branches[branch.title]) || buildBranchTrace(branch.title)).map((trace) => (
-                    <div key={`${branch.title}-${trace.label}`} className="text-sm text-black/70">
-                      <div className="font-medium text-black">{trace.label}</div>
-                      <div>{trace.detail}</div>
-                    </div>
-                  ))}
-                </div>
+              <div className="mt-4">
+                <SourceTracePanel traces={(persistedProvenance?.branches && persistedProvenance.branches[branch.title]) || buildBranchTrace(branch.title)} />
               </div>
             </div>
           ))}

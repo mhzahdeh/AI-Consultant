@@ -154,7 +154,7 @@ export function UpgradeModal({ isOpen, onClose, planName, onConfirm }: UpgradeMo
                     <div className="text-xs">
                       <span className="text-black/60">Schedule:</span>{' '}
                       <a
-                        href="#"
+                        href="mailto:enterprise@aicopilot.com?subject=Enterprise%20Demo%20Request"
                         className="text-black underline decoration-black/20 hover:decoration-black"
                       >
                         Book a demo
@@ -172,9 +172,12 @@ export function UpgradeModal({ isOpen, onClose, planName, onConfirm }: UpgradeMo
                     <div className="text-xs text-black/60">Payment Method</div>
                   </div>
                   <div className="mb-3 text-sm text-black">•••• •••• •••• 4242</div>
-                  <button className="text-xs text-black underline decoration-black/20 transition-colors hover:decoration-black">
+                  <a
+                    href="mailto:support@aicopilot.com?subject=Update%20Payment%20Method"
+                    className="text-xs text-black underline decoration-black/20 transition-colors hover:decoration-black"
+                  >
                     Update payment method
-                  </button>
+                  </a>
                 </div>
               )}
             </div>

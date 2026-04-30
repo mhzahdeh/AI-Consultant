@@ -12,30 +12,70 @@ interface ExportModalProps {
 
 type ExportStatus = 'idle' | 'exporting' | 'success' | 'error';
 
+function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function renderTraceMarkdown(title: string, traces: { label: string; detail: string }[]) {
+  if (!traces.length) return '';
+  return [
+    `Source Trace: ${title}`,
+    ...traces.map((trace) => `- ${trace.label}: ${trace.detail}`),
+    '',
+  ].join('\n');
+}
+
 export function ExportModal({ isOpen, onClose, engagement }: ExportModalProps) {
   const { markExport } = useAppData();
   const [exportStatus, setExportStatus] = useState<ExportStatus>('idle');
   const [exportFormat, setExportFormat] = useState<'html' | 'md' | null>(null);
 
+  const proposalProvenance = engagement?.workspace.proposalStarter.content.provenance || {};
+  const issueTreeProvenance = engagement?.workspace.issueTree.content.provenance;
+  const workplanProvenance = engagement?.workspace.workplan.content.provenance || {};
+
   const exportBody = engagement
     ? [
-        engagement.title,
+        `# ${engagement.title}`,
         `Client: ${engagement.client}`,
         `Problem Type: ${engagement.problemType}`,
         `Status: ${engagement.status}`,
         '',
-        '=== EXECUTIVE BRIEF ===',
+        '## Executive Brief',
         engagement.brief,
         '',
-        '=== PROPOSAL STARTER ===',
-        ...engagement.workspace.proposalStarter.content.sections.flatMap((section) => [section.label, section.body, '']),
-        '=== ISSUE TREE ===',
+        '## Proposal Starter',
+        ...engagement.workspace.proposalStarter.content.sections.flatMap((section) => [
+          `### ${section.label}`,
+          section.body,
+          '',
+          renderTraceMarkdown(section.label, proposalProvenance[section.key] || []),
+        ]),
+        '## Issue Tree',
         engagement.workspace.issueTree.content.rootQuestion,
         '',
-        ...engagement.workspace.issueTree.content.branches.flatMap((branch) => [branch.title, `Hypotheses: ${branch.hypotheses.join('; ')}`, `Required Data: ${branch.requiredData.join('; ')}`, '']),
-        '=== WORKPLAN ===',
-        ...engagement.workspace.workplan.content.phases.flatMap((phase) => [phase.name, phase.weeks, ...phase.deliverables, '']),
-        '=== SELECTED ANALOG CASES ===',
+        renderTraceMarkdown('Root Question', issueTreeProvenance?.rootQuestion || []),
+        ...engagement.workspace.issueTree.content.branches.flatMap((branch) => [
+          `### ${branch.title}`,
+          `Hypotheses: ${branch.hypotheses.join('; ')}`,
+          `Required Data: ${branch.requiredData.join('; ')}`,
+          '',
+          renderTraceMarkdown(branch.title, issueTreeProvenance?.branches?.[branch.title] || []),
+        ]),
+        '## Workplan',
+        ...engagement.workspace.workplan.content.phases.flatMap((phase) => [
+          `### ${phase.name}`,
+          phase.weeks,
+          ...phase.deliverables.map((item) => `- ${item}`),
+          '',
+          renderTraceMarkdown(phase.name, workplanProvenance[phase.name] || []),
+        ]),
+        '## Selected Analog Cases',
         ...engagement.matchedCases.filter((item) => item.included).flatMap((item) => [item.engagementTitle, item.rationale, '']),
         '',
         `Last saved: ${engagement.workspace.lastSaved}`,
@@ -47,25 +87,35 @@ export function ExportModal({ isOpen, onClose, engagement }: ExportModalProps) {
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>${engagement.title}</title>
+    <title>${escapeHtml(engagement.title)}</title>
     <style>
-      body { font-family: Georgia, serif; margin: 48px auto; max-width: 860px; color: #111; line-height: 1.6; }
-      h1, h2, h3 { font-family: "Helvetica Neue", Arial, sans-serif; }
-      h1 { margin-bottom: 0.25rem; }
-      .meta { color: #555; margin-bottom: 2rem; }
-      section { margin: 2rem 0; }
-      ul { padding-left: 1.25rem; }
-      .card { border: 1px solid #ddd; padding: 16px; margin: 12px 0; }
+      body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 40px auto; max-width: 920px; color: #111; line-height: 1.65; background: #fafafa; }
+      h1, h2, h3 { font-family: Georgia, serif; font-weight: 500; }
+      h1 { margin-bottom: 0.35rem; font-size: 34px; }
+      h2 { margin: 0 0 14px; font-size: 22px; }
+      h3 { margin: 0 0 10px; font-size: 17px; }
+      .shell { background: #fff; border: 1px solid #ddd; padding: 36px 40px; }
+      .meta { color: #555; margin-bottom: 2rem; font-size: 14px; }
+      section { margin: 2.25rem 0; }
+      ul { padding-left: 1.25rem; margin: 0.6rem 0 0; }
+      .card { border: 1px solid #ddd; padding: 18px; margin: 14px 0; background: #fff; }
+      .trace { margin-top: 14px; padding-left: 14px; border-left: 2px solid #111; background: #f7f7f7; padding-top: 12px; padding-bottom: 12px; }
+      .trace-title { text-transform: uppercase; letter-spacing: 0.18em; font-size: 10px; color: #666; margin-bottom: 8px; }
+      .trace-item { margin: 8px 0; }
+      .trace-item strong { display: block; font-size: 13px; color: #111; }
+      .eyebrow { text-transform: uppercase; letter-spacing: 0.2em; font-size: 10px; color: #666; margin-bottom: 8px; }
     </style>
   </head>
   <body>
-    <h1>${engagement.title}</h1>
-    <div class="meta">Client: ${engagement.client} | Problem Type: ${engagement.problemType} | Status: ${engagement.status}</div>
-    <section><h2>Executive Brief</h2><p>${engagement.brief.replace(/\n/g, '<br />')}</p></section>
-    <section><h2>Proposal Starter</h2>${engagement.workspace.proposalStarter.content.sections.map((section) => `<div class="card"><h3>${section.label}</h3><p>${section.body.replace(/\n/g, '<br />')}</p></div>`).join('')}</section>
-    <section><h2>Issue Tree</h2><div class="card"><h3>Root Question</h3><p>${engagement.workspace.issueTree.content.rootQuestion}</p></div>${engagement.workspace.issueTree.content.branches.map((branch) => `<div class="card"><h3>${branch.title}</h3><p><strong>Hypotheses:</strong><br />${branch.hypotheses.join('<br />')}</p><p><strong>Required Data:</strong><br />${branch.requiredData.join('<br />')}</p></div>`).join('')}</section>
-    <section><h2>Workplan</h2>${engagement.workspace.workplan.content.phases.map((phase) => `<div class="card"><h3>${phase.name}</h3><p>${phase.weeks}</p><ul>${phase.deliverables.map((item) => `<li>${item}</li>`).join('')}</ul></div>`).join('')}</section>
-    <section><h2>Selected Analog Cases</h2>${engagement.matchedCases.filter((item) => item.included).map((item) => `<div class="card"><h3>${item.engagementTitle}</h3><p>${item.rationale}</p></div>`).join('')}</section>
+    <div class="shell">
+      <h1>${escapeHtml(engagement.title)}</h1>
+      <div class="meta">Client: ${escapeHtml(engagement.client)} | Problem Type: ${escapeHtml(engagement.problemType)} | Status: ${escapeHtml(engagement.status)} | Last saved: ${escapeHtml(engagement.workspace.lastSaved)}</div>
+      <section><div class="eyebrow">Working Draft</div><h2>Executive Brief</h2><p>${escapeHtml(engagement.brief).replace(/\n/g, '<br />')}</p></section>
+      <section><h2>Proposal Starter</h2>${engagement.workspace.proposalStarter.content.sections.map((section) => `<div class="card"><h3>${escapeHtml(section.label)}</h3><p>${escapeHtml(section.body).replace(/\n/g, '<br />')}</p>${(proposalProvenance[section.key] || []).length ? `<div class="trace"><div class="trace-title">Source Trace</div>${(proposalProvenance[section.key] || []).map((trace) => `<div class="trace-item"><strong>${escapeHtml(trace.label)}</strong>${escapeHtml(trace.detail)}</div>`).join('')}</div>` : ''}</div>`).join('')}</section>
+      <section><h2>Issue Tree</h2><div class="card"><h3>Root Question</h3><p>${escapeHtml(engagement.workspace.issueTree.content.rootQuestion)}</p>${(issueTreeProvenance?.rootQuestion || []).length ? `<div class="trace"><div class="trace-title">Source Trace</div>${(issueTreeProvenance?.rootQuestion || []).map((trace) => `<div class="trace-item"><strong>${escapeHtml(trace.label)}</strong>${escapeHtml(trace.detail)}</div>`).join('')}</div>` : ''}</div>${engagement.workspace.issueTree.content.branches.map((branch) => `<div class="card"><h3>${escapeHtml(branch.title)}</h3><p><strong>Hypotheses:</strong><br />${branch.hypotheses.map((item) => escapeHtml(item)).join('<br />')}</p><p><strong>Required Data:</strong><br />${branch.requiredData.map((item) => escapeHtml(item)).join('<br />')}</p>${(issueTreeProvenance?.branches?.[branch.title] || []).length ? `<div class="trace"><div class="trace-title">Source Trace</div>${(issueTreeProvenance?.branches?.[branch.title] || []).map((trace) => `<div class="trace-item"><strong>${escapeHtml(trace.label)}</strong>${escapeHtml(trace.detail)}</div>`).join('')}</div>` : ''}</div>`).join('')}</section>
+      <section><h2>Workplan</h2>${engagement.workspace.workplan.content.phases.map((phase) => `<div class="card"><h3>${escapeHtml(phase.name)}</h3><p>${escapeHtml(phase.weeks)}</p><ul>${phase.deliverables.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>${(workplanProvenance[phase.name] || []).length ? `<div class="trace"><div class="trace-title">Source Trace</div>${(workplanProvenance[phase.name] || []).map((trace) => `<div class="trace-item"><strong>${escapeHtml(trace.label)}</strong>${escapeHtml(trace.detail)}</div>`).join('')}</div>` : ''}</div>`).join('')}</section>
+      <section><h2>Selected Analog Cases</h2>${engagement.matchedCases.filter((item) => item.included).map((item) => `<div class="card"><h3>${escapeHtml(item.engagementTitle)}</h3><p>${escapeHtml(item.rationale)}</p></div>`).join('')}</section>
+    </div>
   </body>
 </html>`
     : '';
@@ -137,11 +187,12 @@ export function ExportModal({ isOpen, onClose, engagement }: ExportModalProps) {
                   Export Draft
                 </h2>
                 <p className="text-sm text-black/60">
-                  Download or copy your proposal starter
+                  Export a working draft with visible source traceability
                 </p>
               </div>
               <button
                 onClick={onClose}
+                aria-label="Close export modal"
                 className="text-black/40 transition-colors hover:text-black"
               >
                 <X className="h-5 w-5" />
@@ -150,11 +201,32 @@ export function ExportModal({ isOpen, onClose, engagement }: ExportModalProps) {
 
             {/* Latest Version Notice */}
             <div className="mb-6 border-l-2 border-black/10 bg-black/[0.01] p-4">
-              <div className="text-xs uppercase tracking-wider text-black/40 mb-1">
+              <div className="mb-1 text-xs uppercase tracking-wider text-black/40">
                 Export Version
               </div>
               <div className="text-sm text-black">
                 Latest saved version • Saved {engagement?.workspace.lastSaved || 'recently'}
+              </div>
+            </div>
+
+            <div className="mb-6 grid gap-3 md:grid-cols-3">
+              <div className="border border-black/10 bg-black/[0.015] p-4">
+                <div className="mb-1 text-[10px] uppercase tracking-[0.2em] text-black/40">Proposal Sections</div>
+                <div className="text-2xl tracking-tight text-black" style={{ fontFamily: 'var(--font-display)' }}>
+                  {engagement?.workspace.proposalStarter.content.sections.length || 0}
+                </div>
+              </div>
+              <div className="border border-black/10 bg-black/[0.015] p-4">
+                <div className="mb-1 text-[10px] uppercase tracking-[0.2em] text-black/40">Issue Branches</div>
+                <div className="text-2xl tracking-tight text-black" style={{ fontFamily: 'var(--font-display)' }}>
+                  {engagement?.workspace.issueTree.content.branches.length || 0}
+                </div>
+              </div>
+              <div className="border border-black/10 bg-black/[0.015] p-4">
+                <div className="mb-1 text-[10px] uppercase tracking-[0.2em] text-black/40">Workplan Phases</div>
+                <div className="text-2xl tracking-tight text-black" style={{ fontFamily: 'var(--font-display)' }}>
+                  {engagement?.workspace.workplan.content.phases.length || 0}
+                </div>
               </div>
             </div>
 

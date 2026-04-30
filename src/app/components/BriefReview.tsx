@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { FileText, Edit3, Upload, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { Sidebar } from './shared/Sidebar';
 import { BackButton } from './shared/BackButton';
 
 export default function BriefReview() {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [brief, setBrief] = useState(
     'Client seeks to assess expansion opportunity into Saudi Arabia retail market. Key questions include: market entry timing, recommended entry mode (greenfield vs acquisition), regulatory considerations, and competitive landscape assessment. Expected timeline: 8-week engagement with deliverables including market sizing, competitor analysis, go-to-market strategy, and implementation roadmap.'
@@ -17,7 +18,8 @@ export default function BriefReview() {
     problemType: 'Market Entry Strategy',
   };
 
-  const uploadedFiles = [
+  const [previewFileId, setPreviewFileId] = useState<number | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState([
     {
       id: 1,
       name: 'RFP_Northstar_Saudi_Expansion.pdf',
@@ -34,7 +36,8 @@ export default function BriefReview() {
       status: 'parsed',
       extractedPages: 4,
     },
-  ];
+  ]);
+  const selectedPreview = uploadedFiles.find((file) => file.id === previewFileId) || null;
 
   const parsingSummary = {
     totalPages: 16,
@@ -164,15 +167,39 @@ export default function BriefReview() {
                         Parsed
                       </span>
 
-                      <button className="text-sm text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black">
+                      <button
+                        onClick={() => setPreviewFileId(file.id)}
+                        className="text-sm text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black"
+                      >
                         Preview
                       </button>
                     </div>
                   ))}
                 </div>
 
+                {selectedPreview && (
+                  <div className="mt-4 border-l-2 border-black/10 bg-black/[0.01] p-4 text-sm text-black/70">
+                    Previewing {selectedPreview.name} • {selectedPreview.extractedPages} extracted pages
+                  </div>
+                )}
+
                 <div className="mt-4">
-                  <button className="inline-flex items-center gap-2 border border-black/10 bg-white px-4 py-2 text-sm text-black transition-all hover:border-black/20">
+                  <button
+                    onClick={() =>
+                      setUploadedFiles((prev) => [
+                        ...prev,
+                        {
+                          id: Date.now(),
+                          name: `Additional_Brief_${prev.length + 1}.pdf`,
+                          type: 'PDF',
+                          size: '1.2 MB',
+                          status: 'parsed',
+                          extractedPages: 6,
+                        },
+                      ])
+                    }
+                    className="inline-flex items-center gap-2 border border-black/10 bg-white px-4 py-2 text-sm text-black transition-all hover:border-black/20"
+                  >
                     <Upload className="h-4 w-4" />
                     Add More Files
                   </button>
@@ -278,6 +305,11 @@ export default function BriefReview() {
                 </Link>
                 <button
                   disabled={!allReady}
+                  onClick={() => {
+                    if (allReady) {
+                      navigate('/workspace?id=eng_000001');
+                    }
+                  }}
                   className={`inline-flex items-center gap-2 border px-6 py-3 text-sm transition-all ${
                     allReady
                       ? 'border-black bg-black text-white hover:bg-black/90'

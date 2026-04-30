@@ -35,10 +35,13 @@ export function PaymentIssueState() {
           </div>
 
           {/* Action */}
-          <button className="inline-flex items-center gap-2 border border-black bg-black px-5 py-2.5 text-sm text-white transition-all hover:bg-black/90">
+          <a
+            href="mailto:support@aicopilot.com?subject=Update%20Payment%20Method"
+            className="inline-flex items-center gap-2 border border-black bg-black px-5 py-2.5 text-sm text-white transition-all hover:bg-black/90"
+          >
             <CreditCard className="h-4 w-4" />
             Update Payment Method
-          </button>
+          </a>
         </div>
       </div>
     </div>

@@ -192,9 +192,9 @@ export default function UsagePage() {
                           {/* Action for near limit */}
                           {metric.isNearLimit && !metric.isAtLimit && userRole === 'owner' && (
                             <div className="mt-4 border-t border-black/5 pt-4">
-                              <button className="text-xs text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black">
+                              <Link to="/billing" className="text-xs text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black">
                                 Upgrade to increase limit
-                              </button>
+                              </Link>
                             </div>
                           )}
 
@@ -304,7 +304,7 @@ export default function UsagePage() {
                       </div>
 
                       <Link
-                        to="/plans"
+                        to="/billing"
                         className="inline-flex w-full items-center justify-center gap-2 border border-black bg-black px-4 py-2 text-xs text-white transition-all hover:bg-black/90"
                       >
                         View Plans

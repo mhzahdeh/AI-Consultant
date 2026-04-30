@@ -3,10 +3,11 @@ import { motion } from 'motion/react';
 import { useState } from 'react';
 import { Plus, ArrowRight, FileText, Clock, FolderOpen, Database, Archive, Copy, Trash2 } from 'lucide-react';
 import { Sidebar } from './shared/Sidebar';
+import { PortfolioVisuals } from './visualizations/PortfolioVisuals';
 import { useAppData } from '../lib/AppProvider';
 
 export default function Dashboard() {
-  const { bootstrap, isLoading, duplicateEngagement, updateEngagementStatus, deleteEngagement } = useAppData();
+  const { bootstrap, engagements: detailedEngagements, isLoading, duplicateEngagement, updateEngagementStatus, deleteEngagement } = useAppData();
   const engagements = bootstrap?.dashboard.engagements ?? [];
   const [notice, setNotice] = useState('');
   const usageStats =
@@ -16,6 +17,7 @@ export default function Dashboard() {
       max: String(stat.limit),
     })) ?? [];
   const hasEngagements = engagements.length > 0;
+  const nextEngagement = engagements[0] ?? null;
 
   if (isLoading || !bootstrap) {
     return <div className="flex min-h-screen items-center justify-center bg-white text-sm text-black/60">Loading dashboard…</div>;
@@ -52,8 +54,45 @@ export default function Dashboard() {
         <div className="p-8">
           <div className="mx-auto max-w-7xl space-y-12">
             {notice && <div className="border-l-2 border-black bg-black/[0.02] p-4 text-sm text-black/70">{notice}</div>}
+            <section className="border border-black/10 bg-black/[0.015] p-8">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                <div className="max-w-2xl">
+                  <div className="mb-3 text-xs uppercase tracking-[0.2em] text-black/40">Core Workflow</div>
+                  <h2
+                    className="mb-3 text-2xl tracking-tight text-black"
+                    style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
+                  >
+                    Move from client brief to working deliverables in one session.
+                  </h2>
+                  <p className="text-sm leading-relaxed text-black/65">
+                    This MVP is strongest when you create an engagement, ground it with source files, review matched cases,
+                    and save proposal, issue tree, and workplan outputs in one workspace.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    to="/new-engagement"
+                    className="inline-flex items-center gap-2 border border-black bg-black px-5 py-3 text-sm text-white transition-all hover:bg-black/90"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Start New Engagement
+                  </Link>
+                  {nextEngagement ? (
+                    <Link
+                      to={`/workspace?id=${nextEngagement.id}`}
+                      className="inline-flex items-center gap-2 border border-black/10 bg-white px-5 py-3 text-sm text-black transition-all hover:border-black/20"
+                    >
+                      Resume Latest Workspace
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </section>
             {hasEngagements ? (
               <>
+                <PortfolioVisuals engagements={detailedEngagements} />
+
                 {/* Usage Summary */}
                 <section>
                   <h2

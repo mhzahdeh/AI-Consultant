@@ -85,6 +85,7 @@ interface AppContextValue {
   saveWorkspace: (engagementId: string) => Promise<void>;
   restoreVersion: (engagementId: string, versionId: string) => Promise<void>;
   toggleMatchedCase: (engagementId: string, caseId: string, included: boolean) => Promise<void>;
+  rematchEngagement: (engagementId: string) => Promise<void>;
   regenerateSection: (engagementId: string, section: string, instructions: string, evidenceMode: string) => Promise<void>;
   inviteMember: (email: string, role: Role) => Promise<Member>;
   updateMemberRole: (memberId: string, role: Role) => Promise<void>;
@@ -340,6 +341,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await refreshWorkspace();
   }, [refreshWorkspace, syncEngagement]);
 
+  const rematchEngagement = useCallback(async (engagementId: string) => {
+    const engagement = await api.rematchEngagement(engagementId);
+    syncEngagement(engagement);
+    await refreshWorkspace();
+  }, [refreshWorkspace, syncEngagement]);
+
   const regenerateSection = useCallback(async (engagementId: string, section: string, instructions: string, evidenceMode: string) => {
     const engagement = await api.regenerateSection(engagementId, section, instructions, evidenceMode);
     syncEngagement(engagement);
@@ -409,6 +416,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       saveWorkspace,
       restoreVersion,
       toggleMatchedCase,
+      rematchEngagement,
       regenerateSection,
       inviteMember,
       updateMemberRole,
@@ -447,6 +455,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       saveWorkspace,
       restoreVersion,
       toggleMatchedCase,
+      rematchEngagement,
       regenerateSection,
       inviteMember,
       updateMemberRole,

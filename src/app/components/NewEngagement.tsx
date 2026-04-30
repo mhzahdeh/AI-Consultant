@@ -55,6 +55,8 @@ export default function NewEngagement() {
   const [capabilityFilter, setCapabilityFilter] = useState('');
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
   const [showInternalOnly, setShowInternalOnly] = useState(false);
+  const [showCaseLibrary, setShowCaseLibrary] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -182,9 +184,28 @@ export default function NewEngagement() {
   });
 
   const isFormValid = engagementTitle && clientAlias && problemType && (brief || uploadedFiles.length > 0);
+  const readyFileCount = uploadedFiles.filter((file) => file.status === 'parsed').length;
+
+  const validateForm = () => {
+    const nextErrors: Record<string, string> = {};
+    if (!engagementTitle.trim()) nextErrors.engagementTitle = 'Add a clear engagement title.';
+    if (!clientAlias.trim()) nextErrors.clientAlias = 'Add the client name.';
+    if (!problemType.trim()) nextErrors.problemType = 'Choose the engagement type.';
+    if (!brief.trim() && uploadedFiles.length === 0) {
+      nextErrors.brief = 'Add a working brief or upload at least one file.';
+    } else if (brief.trim() && brief.trim().length < 80 && uploadedFiles.length === 0) {
+      nextErrors.brief = 'The brief is too thin on its own. Add more detail or upload source material.';
+    }
+    setFieldErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
 
   const handleCreate = async () => {
-    if (!isFormValid || isSubmitting) return;
+    if (isSubmitting) return;
+    if (!validateForm()) {
+      setFormError('Complete the missing inputs before creating the workspace.');
+      return;
+    }
     setFormError('');
     try {
       setIsSubmitting(true);
@@ -226,7 +247,7 @@ export default function NewEngagement() {
             >
               Create New Engagement
             </h1>
-            <p className="text-sm text-black/60">Start by providing engagement details and your brief</p>
+            <p className="text-sm text-black/60">Define the engagement, add source context, optionally choose analog cases, then open the workspace.</p>
           </div>
         </header>
 
@@ -244,6 +265,30 @@ export default function NewEngagement() {
                   {formError}
                 </div>
               )}
+
+              <section className="border border-black/10 bg-black/[0.015] p-8">
+                <div className="mb-4 text-xs uppercase tracking-[0.2em] text-black/40">MVP Path</div>
+                <h2
+                  className="mb-3 text-2xl tracking-tight text-black"
+                  style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
+                >
+                  Create one engagement, add the source material, then open the workspace.
+                </h2>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="border border-black/10 bg-white p-4">
+                    <div className="mb-1 text-xs text-black/40">Step 1</div>
+                    <div className="text-sm text-black">Define the engagement title, client, and problem type.</div>
+                  </div>
+                  <div className="border border-black/10 bg-white p-4">
+                    <div className="mb-1 text-xs text-black/40">Step 2</div>
+                    <div className="text-sm text-black">Paste the brief or upload the RFP and supporting materials.</div>
+                  </div>
+                  <div className="border border-black/10 bg-white p-4">
+                    <div className="mb-1 text-xs text-black/40">Optional</div>
+                    <div className="text-sm text-black">Add analog cases if you want to influence the first draft.</div>
+                  </div>
+                </div>
+              </section>
               {/* Basic Information */}
               <section className="border border-black/10 bg-white p-8">
                 <h2
@@ -262,10 +307,14 @@ export default function NewEngagement() {
                       id="title"
                       type="text"
                       value={engagementTitle}
-                      onChange={(e) => setEngagementTitle(e.target.value)}
+                      onChange={(e) => {
+                        setEngagementTitle(e.target.value);
+                        if (fieldErrors.engagementTitle) setFieldErrors((prev) => ({ ...prev, engagementTitle: '' }));
+                      }}
                       placeholder="e.g., Market Entry Strategy - Saudi Arabia"
                       className="w-full border border-black/10 bg-white py-3 px-4 text-sm text-black placeholder-black/40 transition-colors focus:border-black focus:outline-none"
                     />
+                    {fieldErrors.engagementTitle ? <div className="mt-2 text-xs text-red-700">{fieldErrors.engagementTitle}</div> : null}
                   </div>
 
                   <div className="grid gap-6 md:grid-cols-2">
@@ -277,10 +326,14 @@ export default function NewEngagement() {
                         id="client"
                         type="text"
                         value={clientAlias}
-                        onChange={(e) => setClientAlias(e.target.value)}
+                        onChange={(e) => {
+                          setClientAlias(e.target.value);
+                          if (fieldErrors.clientAlias) setFieldErrors((prev) => ({ ...prev, clientAlias: '' }));
+                        }}
                         placeholder="e.g., Northstar Retail"
                         className="w-full border border-black/10 bg-white py-3 px-4 text-sm text-black placeholder-black/40 transition-colors focus:border-black focus:outline-none"
                       />
+                      {fieldErrors.clientAlias ? <div className="mt-2 text-xs text-red-700">{fieldErrors.clientAlias}</div> : null}
                     </div>
 
                     <div>
@@ -290,7 +343,10 @@ export default function NewEngagement() {
                       <select
                         id="problem"
                         value={problemType}
-                        onChange={(e) => setProblemType(e.target.value)}
+                        onChange={(e) => {
+                          setProblemType(e.target.value);
+                          if (fieldErrors.problemType) setFieldErrors((prev) => ({ ...prev, problemType: '' }));
+                        }}
                         className="w-full appearance-none border border-black/10 bg-white py-3 px-4 text-sm text-black transition-colors focus:border-black focus:outline-none"
                       >
                         <option value="">Select problem type</option>
@@ -300,6 +356,7 @@ export default function NewEngagement() {
                           </option>
                         ))}
                       </select>
+                      {fieldErrors.problemType ? <div className="mt-2 text-xs text-red-700">{fieldErrors.problemType}</div> : null}
                     </div>
                   </div>
 
@@ -338,14 +395,19 @@ export default function NewEngagement() {
                   <textarea
                     id="brief"
                     value={brief}
-                    onChange={(e) => setBrief(e.target.value)}
+                    onChange={(e) => {
+                      setBrief(e.target.value);
+                      if (fieldErrors.brief) setFieldErrors((prev) => ({ ...prev, brief: '' }));
+                    }}
                     placeholder="Paste your RFP, client email chain, or opportunity notes here..."
                     rows={12}
                     className="w-full resize-none border border-black/10 bg-white py-4 px-4 text-sm text-black placeholder-black/40 transition-colors focus:border-black focus:outline-none"
                   />
+                  {fieldErrors.brief ? <div className="mt-2 text-xs text-red-700">{fieldErrors.brief}</div> : null}
                 </div>
               </section>
 
+              {/* File Upload */}
               <section className="border border-black/10 bg-white p-8">
                 <div className="mb-6 flex items-start justify-between gap-6">
                   <div>
@@ -353,250 +415,19 @@ export default function NewEngagement() {
                       className="mb-2 text-lg tracking-tight text-black"
                       style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
                     >
-                      Reference Case Library
+                      Upload Files
                     </h2>
                     <p className="text-sm text-black/60">
-                      Select any public analog cases you want this engagement to build from. If you skip selection, the app will recommend cases automatically.
+                      Add RFP documents, email chains, or supporting materials if the brief alone is not enough.
                     </p>
                   </div>
                   <div className="border border-black/10 bg-black/[0.02] px-4 py-3 text-right">
                     <div className="text-xs uppercase tracking-wider text-black/40">Selected</div>
                     <div className="text-2xl tracking-tight text-black" style={{ fontFamily: 'var(--font-display)' }}>
-                      {selectedVaultCaseIds.length}
+                      {readyFileCount}
                     </div>
                   </div>
                 </div>
-
-                <div className="mb-6 grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
-                  <label className="flex items-center gap-3 border border-black/10 bg-white px-4 py-3 focus-within:border-black">
-                    <Search className="h-4 w-4 text-black/40" />
-                    <input
-                      type="text"
-                      value={caseQuery}
-                      onChange={(e) => setCaseQuery(e.target.value)}
-                      placeholder="Search by industry, source, function, or problem..."
-                      className="w-full bg-transparent text-sm text-black placeholder-black/40 outline-none"
-                    />
-                  </label>
-                  <div className="flex items-center justify-between border border-black/10 bg-white px-4 py-3 text-sm text-black/60">
-                    <span>Context-aware suggestions</span>
-                    <Sparkles className="h-4 w-4 text-black/50" />
-                  </div>
-                </div>
-
-                <div className="mb-6 grid gap-4 md:grid-cols-4">
-                  <select
-                    value={sourceFirmFilter}
-                    onChange={(e) => setSourceFirmFilter(e.target.value)}
-                    className="w-full appearance-none border border-black/10 bg-white px-4 py-3 text-sm text-black transition-colors focus:border-black focus:outline-none"
-                  >
-                    <option value="">All sources</option>
-                    <option value="McKinsey">McKinsey</option>
-                    <option value="Bain">Bain</option>
-                    <option value="BCG">BCG</option>
-                    <option value="Internal Vault">Internal Vault</option>
-                  </select>
-                  <select
-                    value={industryFilter}
-                    onChange={(e) => setIndustryFilter(e.target.value)}
-                    className="w-full appearance-none border border-black/10 bg-white px-4 py-3 text-sm text-black transition-colors focus:border-black focus:outline-none"
-                  >
-                    <option value="">All industries</option>
-                    <option value="Banking">Banking</option>
-                    <option value="Consumer goods">Consumer goods</option>
-                    <option value="Consumer packaged goods">Consumer packaged goods</option>
-                    <option value="Healthcare">Healthcare</option>
-                    <option value="Industrial manufacturing">Industrial manufacturing</option>
-                    <option value="Industrials">Industrials</option>
-                    <option value="Insurance">Insurance</option>
-                    <option value="Nonprofit">Nonprofit</option>
-                    <option value="Paper and packaging">Paper and packaging</option>
-                    <option value="Real estate">Real estate</option>
-                    <option value="Retail">Retail</option>
-                    <option value="Technology">Technology</option>
-                    <option value="Transportation">Transportation</option>
-                  </select>
-                  <select
-                    value={capabilityFilter}
-                    onChange={(e) => setCapabilityFilter(e.target.value)}
-                    className="w-full appearance-none border border-black/10 bg-white px-4 py-3 text-sm text-black transition-colors focus:border-black focus:outline-none"
-                  >
-                    <option value="">All capabilities</option>
-                    <option value="AI">AI</option>
-                    <option value="Advanced analytics">Advanced analytics</option>
-                    <option value="Behavior change">Behavior change</option>
-                    <option value="Computer vision and AI">Computer vision and AI</option>
-                    <option value="Decarbonization strategy">Decarbonization strategy</option>
-                    <option value="Digital factory">Digital factory</option>
-                    <option value="Digital operations">Digital operations</option>
-                    <option value="Generative AI">Generative AI</option>
-                    <option value="Leadership transformation">Leadership transformation</option>
-                    <option value="Operating model">Operating model</option>
-                    <option value="Portfolio focus">Portfolio focus</option>
-                    <option value="Public-private collaboration">Public-private collaboration</option>
-                    <option value="Sales transformation">Sales transformation</option>
-                    <option value="Service transformation">Service transformation</option>
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => setShowSelectedOnly((prev) => !prev)}
-                    className={`border px-4 py-3 text-sm transition-all ${
-                      showSelectedOnly
-                        ? 'border-black bg-black text-white hover:bg-black/90'
-                        : 'border-black/10 bg-white text-black hover:border-black/20'
-                    }`}
-                  >
-                    {showSelectedOnly ? 'Showing Selected' : 'Show Selected Only'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowInternalOnly((prev) => !prev)}
-                    className={`border px-4 py-3 text-sm transition-all ${
-                      showInternalOnly
-                        ? 'border-black bg-black text-white hover:bg-black/90'
-                        : 'border-black/10 bg-white text-black hover:border-black/20'
-                    }`}
-                  >
-                    {showInternalOnly ? 'Internal Only' : 'Show Internal Cases'}
-                  </button>
-                </div>
-
-                <div className="mb-6 flex flex-wrap items-center gap-3 text-xs text-black/50">
-                  <span>{filteredVaultCases.length} cases shown</span>
-                  {(caseQuery || sourceFirmFilter || industryFilter || capabilityFilter || showSelectedOnly || showInternalOnly) && (
-                    <button
-                      type="button"
-                      onClick={clearCaseFilters}
-                      className="border border-black/10 px-3 py-1 text-black transition-colors hover:border-black/20"
-                    >
-                      Clear Filters
-                    </button>
-                  )}
-                </div>
-
-                {vaultCaseError && (
-                  <div className="mb-6 border-l-2 border-black/20 bg-black/[0.02] p-4 text-sm text-black/70">
-                    {vaultCaseError}
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  {isLoadingVaultCases ? (
-                    <div className="flex items-center justify-center border border-black/10 bg-black/[0.01] px-6 py-10 text-sm text-black/60">
-                      <Loader2 className="mr-3 h-4 w-4 animate-spin" />
-                      Loading case recommendations...
-                    </div>
-                  ) : filteredVaultCases.length ? (
-                    filteredVaultCases.map((vaultCase) => {
-                      const isSelected = selectedVaultCaseIds.includes(vaultCase.id);
-                      return (
-                        <div
-                          key={vaultCase.id}
-                          className={`border p-6 transition-all ${
-                            isSelected
-                              ? 'border-black bg-black/[0.02]'
-                              : 'border-black/10 bg-white hover:border-black/20'
-                          }`}
-                        >
-                          <div className="mb-4 flex items-start justify-between gap-4">
-                            <div className="min-w-0">
-                              <div className="mb-2 flex flex-wrap items-center gap-2">
-                                <span className="inline-flex items-center bg-black px-3 py-1 text-xs text-white">
-                                  {vaultCase.sourceFirm}
-                                </span>
-                                {vaultCase.isInternal && (
-                                  <span className="inline-flex items-center border border-black bg-black px-3 py-1 text-xs text-white">
-                                    Internal
-                                  </span>
-                                )}
-                                <span className="inline-flex items-center border border-black/10 px-3 py-1 text-xs text-black">
-                                  {vaultCase.problemType}
-                                </span>
-                                <span className="inline-flex items-center border border-black/10 px-3 py-1 text-xs text-black/70">
-                                  {vaultCase.industry}
-                                </span>
-                              </div>
-                              <h3
-                                className="mb-2 text-base tracking-tight text-black"
-                                style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
-                              >
-                                {vaultCase.title}
-                              </h3>
-                              <p className="text-sm leading-relaxed text-black/70">{vaultCase.summary}</p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => toggleVaultCase(vaultCase.id)}
-                              className={`shrink-0 border px-4 py-2 text-sm transition-all ${
-                                isSelected
-                                  ? 'border-black bg-black text-white hover:bg-black/90'
-                                  : 'border-black/10 bg-white text-black hover:border-black/20'
-                              }`}
-                            >
-                              {isSelected ? 'Selected' : 'Select Case'}
-                            </button>
-                          </div>
-
-                          <div className="mb-4 flex flex-wrap gap-2">
-                            {vaultCase.tags.slice(0, 5).map((tag) => (
-                              <span key={tag} className="inline-flex items-center border border-black/10 px-3 py-1 text-xs text-black/70">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-
-                          <div className="flex items-center justify-between gap-4 border-t border-black/5 pt-4 text-xs text-black/50">
-                            <div className="flex flex-wrap items-center gap-4">
-                              <span>{vaultCase.businessFunction}</span>
-                              <span>{vaultCase.capability}</span>
-                              <span>{vaultCase.region}</span>
-                              {vaultCase.linkedEngagementId && <span>Linked to prior engagement</span>}
-                              {typeof vaultCase.matchScore === 'number' && <span>Match score {vaultCase.matchScore}</span>}
-                            </div>
-                            <div className="flex items-center gap-3">
-                              {vaultCase.linkedEngagementId && (
-                                <Link
-                                  to={`/workspace?id=${vaultCase.linkedEngagementId}`}
-                                  className="inline-flex items-center gap-1 text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black"
-                                >
-                                  Source engagement
-                                </Link>
-                              )}
-                              {vaultCase.sourceUrl ? (
-                                <a
-                                  href={vaultCase.sourceUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex items-center gap-1 text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black"
-                                >
-                                  Source
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="border border-black/10 bg-black/[0.01] px-6 py-10 text-sm text-black/60">
-                      No curated cases matched the current filters. Clear filters or add more brief context for better recommendations.
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              {/* File Upload */}
-              <section className="border border-black/10 bg-white p-8">
-                <h2
-                  className="mb-2 text-lg tracking-tight text-black"
-                  style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
-                >
-                  Upload Files
-                </h2>
-                <p className="mb-6 text-sm text-black/60">
-                  Upload RFP documents, email chains, or supporting materials
-                </p>
 
                 {/* Drop Zone */}
                 <div
@@ -710,6 +541,259 @@ export default function NewEngagement() {
                 </div>
               </section>
 
+              <section className="border border-black/10 bg-white p-8">
+                <div className="flex items-start justify-between gap-6">
+                  <div>
+                    <h2
+                      className="mb-2 text-lg tracking-tight text-black"
+                      style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
+                    >
+                      Optional Analog Cases
+                    </h2>
+                    <p className="text-sm text-black/60">
+                      Skip this if you want the app to recommend cases automatically. Open it only if you want tighter control over the first draft.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCaseLibrary((prev) => !prev)}
+                    className={`inline-flex items-center gap-2 border px-4 py-2 text-sm transition-all ${
+                      showCaseLibrary ? 'border-black bg-black text-white hover:bg-black/90' : 'border-black/10 bg-white text-black hover:border-black/20'
+                    }`}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {showCaseLibrary ? 'Hide Case Library' : 'Open Case Library'}
+                  </button>
+                </div>
+
+                <div className="mt-6 flex flex-wrap items-center gap-3 text-xs text-black/50">
+                  <span>{selectedVaultCaseIds.length} case{selectedVaultCaseIds.length === 1 ? '' : 's'} selected</span>
+                  <span>Auto-recommendation runs even if you leave this closed</span>
+                </div>
+
+                {showCaseLibrary ? (
+                  <div className="mt-6 space-y-6">
+                    <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+                      <label className="flex items-center gap-3 border border-black/10 bg-white px-4 py-3 focus-within:border-black">
+                        <Search className="h-4 w-4 text-black/40" />
+                        <input
+                          type="text"
+                          value={caseQuery}
+                          onChange={(e) => setCaseQuery(e.target.value)}
+                          placeholder="Search by industry, source, function, or problem..."
+                          className="w-full bg-transparent text-sm text-black placeholder-black/40 outline-none"
+                        />
+                      </label>
+                      <div className="flex items-center justify-between border border-black/10 bg-white px-4 py-3 text-sm text-black/60">
+                        <span>Context-aware suggestions</span>
+                        <Sparkles className="h-4 w-4 text-black/50" />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-4">
+                      <select
+                        value={sourceFirmFilter}
+                        onChange={(e) => setSourceFirmFilter(e.target.value)}
+                        className="w-full appearance-none border border-black/10 bg-white px-4 py-3 text-sm text-black transition-colors focus:border-black focus:outline-none"
+                      >
+                        <option value="">All sources</option>
+                        <option value="McKinsey">McKinsey</option>
+                        <option value="Bain">Bain</option>
+                        <option value="BCG">BCG</option>
+                        <option value="Internal Vault">Internal Vault</option>
+                      </select>
+                      <select
+                        value={industryFilter}
+                        onChange={(e) => setIndustryFilter(e.target.value)}
+                        className="w-full appearance-none border border-black/10 bg-white px-4 py-3 text-sm text-black transition-colors focus:border-black focus:outline-none"
+                      >
+                        <option value="">All industries</option>
+                        <option value="Banking">Banking</option>
+                        <option value="Consumer goods">Consumer goods</option>
+                        <option value="Consumer packaged goods">Consumer packaged goods</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Industrial manufacturing">Industrial manufacturing</option>
+                        <option value="Industrials">Industrials</option>
+                        <option value="Insurance">Insurance</option>
+                        <option value="Nonprofit">Nonprofit</option>
+                        <option value="Paper and packaging">Paper and packaging</option>
+                        <option value="Real estate">Real estate</option>
+                        <option value="Retail">Retail</option>
+                        <option value="Technology">Technology</option>
+                        <option value="Transportation">Transportation</option>
+                      </select>
+                      <select
+                        value={capabilityFilter}
+                        onChange={(e) => setCapabilityFilter(e.target.value)}
+                        className="w-full appearance-none border border-black/10 bg-white px-4 py-3 text-sm text-black transition-colors focus:border-black focus:outline-none"
+                      >
+                        <option value="">All capabilities</option>
+                        <option value="AI">AI</option>
+                        <option value="Advanced analytics">Advanced analytics</option>
+                        <option value="Behavior change">Behavior change</option>
+                        <option value="Computer vision and AI">Computer vision and AI</option>
+                        <option value="Decarbonization strategy">Decarbonization strategy</option>
+                        <option value="Digital factory">Digital factory</option>
+                        <option value="Digital operations">Digital operations</option>
+                        <option value="Generative AI">Generative AI</option>
+                        <option value="Leadership transformation">Leadership transformation</option>
+                        <option value="Operating model">Operating model</option>
+                        <option value="Portfolio focus">Portfolio focus</option>
+                        <option value="Public-private collaboration">Public-private collaboration</option>
+                        <option value="Sales transformation">Sales transformation</option>
+                        <option value="Service transformation">Service transformation</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setShowSelectedOnly((prev) => !prev)}
+                        className={`border px-4 py-3 text-sm transition-all ${
+                          showSelectedOnly
+                            ? 'border-black bg-black text-white hover:bg-black/90'
+                            : 'border-black/10 bg-white text-black hover:border-black/20'
+                        }`}
+                      >
+                        {showSelectedOnly ? 'Showing Selected' : 'Show Selected Only'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowInternalOnly((prev) => !prev)}
+                        className={`border px-4 py-3 text-sm transition-all ${
+                          showInternalOnly
+                            ? 'border-black bg-black text-white hover:bg-black/90'
+                            : 'border-black/10 bg-white text-black hover:border-black/20'
+                        }`}
+                      >
+                        {showInternalOnly ? 'Internal Only' : 'Show Internal Cases'}
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-black/50">
+                      <span>{filteredVaultCases.length} cases shown</span>
+                      {(caseQuery || sourceFirmFilter || industryFilter || capabilityFilter || showSelectedOnly || showInternalOnly) && (
+                        <button
+                          type="button"
+                          onClick={clearCaseFilters}
+                          className="border border-black/10 px-3 py-1 text-black transition-colors hover:border-black/20"
+                        >
+                          Clear Filters
+                        </button>
+                      )}
+                    </div>
+
+                    {vaultCaseError && (
+                      <div className="border-l-2 border-black/20 bg-black/[0.02] p-4 text-sm text-black/70">
+                        {vaultCaseError}
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      {isLoadingVaultCases ? (
+                        <div className="flex items-center justify-center border border-black/10 bg-black/[0.01] px-6 py-10 text-sm text-black/60">
+                          <Loader2 className="mr-3 h-4 w-4 animate-spin" />
+                          Loading case recommendations...
+                        </div>
+                      ) : filteredVaultCases.length ? (
+                        filteredVaultCases.map((vaultCase) => {
+                          const isSelected = selectedVaultCaseIds.includes(vaultCase.id);
+                          return (
+                            <div
+                              key={vaultCase.id}
+                              className={`border p-6 transition-all ${
+                                isSelected
+                                  ? 'border-black bg-black/[0.02]'
+                                  : 'border-black/10 bg-white hover:border-black/20'
+                              }`}
+                            >
+                              <div className="mb-4 flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                                    <span className="inline-flex items-center bg-black px-3 py-1 text-xs text-white">
+                                      {vaultCase.sourceFirm}
+                                    </span>
+                                    {vaultCase.isInternal && (
+                                      <span className="inline-flex items-center border border-black bg-black px-3 py-1 text-xs text-white">
+                                        Internal
+                                      </span>
+                                    )}
+                                    <span className="inline-flex items-center border border-black/10 px-3 py-1 text-xs text-black">
+                                      {vaultCase.problemType}
+                                    </span>
+                                    <span className="inline-flex items-center border border-black/10 px-3 py-1 text-xs text-black/70">
+                                      {vaultCase.industry}
+                                    </span>
+                                  </div>
+                                  <h3
+                                    className="mb-2 text-base tracking-tight text-black"
+                                    style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
+                                  >
+                                    {vaultCase.title}
+                                  </h3>
+                                  <p className="text-sm leading-relaxed text-black/70">{vaultCase.summary}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleVaultCase(vaultCase.id)}
+                                  className={`shrink-0 border px-4 py-2 text-sm transition-all ${
+                                    isSelected
+                                      ? 'border-black bg-black text-white hover:bg-black/90'
+                                      : 'border-black/10 bg-white text-black hover:border-black/20'
+                                  }`}
+                                >
+                                  {isSelected ? 'Selected' : 'Select Case'}
+                                </button>
+                              </div>
+
+                              <div className="mb-4 flex flex-wrap gap-2">
+                                {vaultCase.tags.slice(0, 5).map((tag) => (
+                                  <span key={tag} className="inline-flex items-center border border-black/10 px-3 py-1 text-xs text-black/70">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+
+                              <div className="flex items-center justify-between gap-4 border-t border-black/5 pt-4 text-xs text-black/50">
+                                <div className="flex flex-wrap items-center gap-4">
+                                  <span>{vaultCase.businessFunction}</span>
+                                  <span>{vaultCase.capability}</span>
+                                  <span>{vaultCase.region}</span>
+                                  {vaultCase.linkedEngagementId && <span>Linked to prior engagement</span>}
+                                  {typeof vaultCase.matchScore === 'number' && <span>Match score {vaultCase.matchScore}</span>}
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  {vaultCase.linkedEngagementId && (
+                                    <Link
+                                      to={`/workspace?id=${vaultCase.linkedEngagementId}`}
+                                      className="inline-flex items-center gap-1 text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black"
+                                    >
+                                      Source engagement
+                                    </Link>
+                                  )}
+                                  {vaultCase.sourceUrl ? (
+                                    <a
+                                      href={vaultCase.sourceUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1 text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black"
+                                    >
+                                      Source
+                                      <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="border border-black/10 bg-black/[0.01] px-6 py-10 text-sm text-black/60">
+                          No curated cases matched the current filters. Clear filters or add more brief context for better recommendations.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+              </section>
+
               {/* Actions */}
               <div className="flex items-center justify-between border-t border-black/5 pt-8">
                 <Link
@@ -718,21 +802,30 @@ export default function NewEngagement() {
                 >
                   Save Draft
                 </Link>
-                <button
-                  onClick={handleCreate}
-                  disabled={!isFormValid || isSubmitting}
-                  className={`px-6 py-3 text-sm transition-all ${
-                    isFormValid && !isSubmitting
-                      ? 'border border-black bg-black text-white hover:bg-black/90'
-                      : 'cursor-not-allowed border border-black/10 bg-black/5 text-black/40'
-                  }`}
-                >
-                  {isSubmitting
-                    ? 'Creating Workspace…'
-                    : selectedVaultCaseIds.length
-                    ? `Continue with ${selectedVaultCaseIds.length} Selected Case${selectedVaultCaseIds.length === 1 ? '' : 's'}`
-                    : 'Continue to Workspace'}
-                </button>
+                <div className="text-right">
+                  <div className="mb-2 text-xs text-black/45">
+                    {readyFileCount > 0
+                      ? `${readyFileCount} source file${readyFileCount === 1 ? '' : 's'} prepared`
+                      : brief.trim()
+                      ? 'Brief-only workflow'
+                      : 'Add context to continue'}
+                  </div>
+                  <button
+                    onClick={handleCreate}
+                    disabled={!isFormValid || isSubmitting}
+                    className={`px-6 py-3 text-sm transition-all ${
+                      isFormValid && !isSubmitting
+                        ? 'border border-black bg-black text-white hover:bg-black/90'
+                        : 'cursor-not-allowed border border-black/10 bg-black/5 text-black/40'
+                    }`}
+                  >
+                    {isSubmitting
+                      ? 'Creating Workspace…'
+                      : selectedVaultCaseIds.length
+                      ? `Continue with ${selectedVaultCaseIds.length} Selected Case${selectedVaultCaseIds.length === 1 ? '' : 's'}`
+                      : 'Continue to Workspace'}
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>

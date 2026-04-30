@@ -17,6 +17,8 @@ import { useAppData } from '../lib/AppProvider';
 import { BackButton } from './shared/BackButton';
 import type { UploadDraft } from '../lib/types';
 
+type NoticeTone = 'success' | 'error';
+
 export default function EngagementWorkspace() {
   const {
     engagements,
@@ -42,6 +44,7 @@ export default function EngagementWorkspace() {
   const [sectionToRegenerate, setSectionToRegenerate] = useState('');
   const [isSavingWorkspace, setIsSavingWorkspace] = useState(false);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const [noticeTone, setNoticeTone] = useState<NoticeTone>('success');
 
   useEffect(() => {
     const selectedId = searchParams.get('id') || engagements[0]?.id || null;
@@ -49,6 +52,13 @@ export default function EngagementWorkspace() {
       void selectEngagement(selectedId);
     }
   }, [engagements, searchParams, selectEngagement]);
+
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    if (requestedTab) {
+      setActiveTab(requestedTab);
+    }
+  }, [searchParams]);
 
   const handlePreview = () => {
     setIsPreviewOpen(true);
@@ -65,20 +75,30 @@ export default function EngagementWorkspace() {
 
   const handleRegenerate = async (instructions: string, evidenceMode: string) => {
     if (!currentEngagement) return;
-    await regenerateSection(currentEngagement.id, sectionToRegenerate, instructions, evidenceMode);
-    setIsRegenerateOpen(false);
+    try {
+      await regenerateSection(currentEngagement.id, sectionToRegenerate, instructions, evidenceMode);
+      showNotice('Section regenerated');
+      setIsRegenerateOpen(false);
+    } catch (error) {
+      showNotice(error instanceof Error ? error.message : 'Unable to regenerate section', 'error');
+    }
   };
 
   const handleSaveWorkspace = async () => {
     if (!currentEngagement || isSavingWorkspace) return;
-    setIsSavingWorkspace(true);
-    await saveWorkspace(currentEngagement.id);
-    setIsSavingWorkspace(false);
-    setSaveNotice('Saved successfully');
-    window.setTimeout(() => setSaveNotice(null), 2000);
+    try {
+      setIsSavingWorkspace(true);
+      await saveWorkspace(currentEngagement.id);
+      showNotice('Workspace saved');
+    } catch (error) {
+      showNotice(error instanceof Error ? error.message : 'Unable to save workspace', 'error');
+    } finally {
+      setIsSavingWorkspace(false);
+    }
   };
 
-  const showNotice = (message: string) => {
+  const showNotice = (message: string, tone: NoticeTone = 'success') => {
+    setNoticeTone(tone);
     setSaveNotice(message);
     window.setTimeout(() => setSaveNotice(null), 2500);
   };
@@ -112,6 +132,61 @@ export default function EngagementWorkspace() {
     outcomes: currentEngagement.outputs.slice(0, 4),
   };
 
+  const workflowSteps = [
+    { id: 'brief', label: 'Create engagement' },
+    { id: 'matched-cases', label: 'Review matched cases' },
+    { id: 'proposal', label: 'Generate outputs' },
+    { id: 'workplan', label: 'Inspect traceability' },
+    { id: 'vault', label: 'Save to vault' },
+  ];
+
+  const activeWorkflowIndex =
+    activeTab === 'brief'
+      ? 0
+      : activeTab === 'matched-cases'
+      ? 1
+      : activeTab === 'proposal' || activeTab === 'issue-tree'
+      ? 2
+      : activeTab === 'workplan'
+      ? 3
+      : 4;
+
+  const primaryAction = (() => {
+    if (activeTab === 'brief') {
+      return {
+        label: 'Review Matched Cases',
+        disabled: !currentEngagement.brief.trim() && currentEngagement.uploads.length === 0,
+        run: () => setActiveTab('matched-cases'),
+      };
+    }
+    if (activeTab === 'matched-cases') {
+      return {
+        label: 'Generate Proposal',
+        disabled: currentEngagement.matchedCases.filter((item) => item.included).length === 0,
+        run: () => setActiveTab('proposal'),
+      };
+    }
+    if (activeTab === 'proposal') {
+      return {
+        label: 'Inspect Issue Tree',
+        disabled: false,
+        run: () => setActiveTab('issue-tree'),
+      };
+    }
+    if (activeTab === 'issue-tree') {
+      return {
+        label: 'Review Workplan',
+        disabled: false,
+        run: () => setActiveTab('workplan'),
+      };
+    }
+    return {
+      label: 'Save to Vault',
+      disabled: false,
+      run: () => setIsPromoteOpen(true),
+    };
+  })();
+
   return (
     <div className="flex min-h-screen bg-white">
       <Sidebar activeItem="engagements" />
@@ -127,49 +202,113 @@ export default function EngagementWorkspace() {
           engagement={currentEngagement}
           onSave={handleSaveWorkspace}
           onExport={() => setIsExportOpen(true)}
+          onPrimaryAction={primaryAction.run}
           onVersionHistory={() => setIsVersionHistoryOpen(true)}
           onDuplicate={async () => {
-            const duplicate = await duplicateEngagement(currentEngagement.id);
-            showNotice('Engagement duplicated');
-            window.location.assign(`/workspace?id=${duplicate.id}`);
+            try {
+              const duplicate = await duplicateEngagement(currentEngagement.id);
+              showNotice('Engagement duplicated');
+              window.location.assign(`/workspace?id=${duplicate.id}`);
+            } catch (error) {
+              showNotice(error instanceof Error ? error.message : 'Unable to duplicate engagement', 'error');
+            }
           }}
           onArchive={async () => {
-            const nextStatus = currentEngagement.status === 'Archived' ? 'Draft' : 'Archived';
-            await updateEngagementStatus(currentEngagement.id, nextStatus);
-            showNotice(nextStatus === 'Archived' ? 'Engagement archived' : 'Engagement restored to draft');
+            try {
+              const nextStatus = currentEngagement.status === 'Archived' ? 'Draft' : 'Archived';
+              await updateEngagementStatus(currentEngagement.id, nextStatus);
+              showNotice(nextStatus === 'Archived' ? 'Engagement archived' : 'Engagement restored to draft');
+            } catch (error) {
+              showNotice(error instanceof Error ? error.message : 'Unable to update engagement status', 'error');
+            }
           }}
           onDelete={async () => {
             const confirmed = window.confirm(`Delete "${currentEngagement.title}"? This removes the workspace, uploads, and version history.`);
             if (!confirmed) return;
-            await deleteEngagement(currentEngagement.id);
-            window.location.assign('/dashboard');
+            try {
+              await deleteEngagement(currentEngagement.id);
+              window.location.assign('/dashboard');
+            } catch (error) {
+              showNotice(error instanceof Error ? error.message : 'Unable to delete engagement', 'error');
+            }
           }}
           onPromoteToVault={() => setIsPromoteOpen(true)}
+          primaryActionLabel={primaryAction.label}
+          primaryActionDisabled={primaryAction.disabled}
           isSaving={isSavingWorkspace}
           saveNotice={saveNotice}
+          noticeTone={noticeTone}
         />
 
         {/* Tab Navigation */}
         <WorkspaceTabs activeTab={activeTab} onTabChange={setActiveTab} />
+
+        <div className="border-b border-black/5 bg-black/[0.015] px-8 py-4">
+          <div className="mx-auto flex max-w-6xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="grid gap-3 md:grid-cols-5">
+              {workflowSteps.map((step, index) => {
+                const isComplete = index < activeWorkflowIndex;
+                const isActive = index === activeWorkflowIndex;
+                return (
+                  <div
+                    key={step.id}
+                    className={`border px-4 py-3 text-sm ${
+                      isActive
+                        ? 'border-black bg-white text-black'
+                        : isComplete
+                        ? 'border-black/10 bg-white text-black/70'
+                        : 'border-black/10 bg-transparent text-black/40'
+                    }`}
+                  >
+                    <div className="mb-1 text-[11px] uppercase tracking-[0.18em] text-black/35">Step {index + 1}</div>
+                    <div>{step.label}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="max-w-md text-sm text-black/60">
+              {activeTab === 'brief' && 'Make sure the brief is grounded enough to drive retrieval. Then move into matched cases.'}
+              {activeTab === 'matched-cases' && 'Keep only the cases you would actually want shaping the first draft. Then generate outputs.'}
+              {activeTab === 'proposal' && 'Start with the proposal storyline, then pressure-test the issue tree and workplan before saving the engagement.'}
+              {activeTab === 'issue-tree' && 'Use the issue tree to verify that the proposal logic is defensible before moving into execution planning.'}
+              {activeTab === 'workplan' && 'Check source traceability and final delivery structure. Then save the engagement into the vault if it is reusable.'}
+            </div>
+          </div>
+        </div>
 
         {/* Tab Content */}
         <div className="bg-white">
           {activeTab === 'brief' && (
             <BriefTab
               engagement={currentEngagement}
+              onGoToMatchedCases={() => setActiveTab('matched-cases')}
               onUploadFiles={async (uploads: UploadDraft[]) => {
-                await uploadFiles(currentEngagement.id, uploads);
+                try {
+                  await uploadFiles(currentEngagement.id, uploads);
+                } catch (error) {
+                  showNotice(error instanceof Error ? error.message : 'Unable to upload files', 'error');
+                  throw error;
+                }
               }}
+              onStatusMessage={(message, tone) => showNotice(message, tone)}
             />
           )}
-          {activeTab === 'matched-cases' && <MatchedCasesTab engagement={currentEngagement} onPreview={() => handlePreview()} />}
+          {activeTab === 'matched-cases' && (
+            <MatchedCasesTab engagement={currentEngagement} onPreview={() => handlePreview()} onContinue={() => setActiveTab('proposal')} />
+          )}
           {activeTab === 'proposal' && (
             <ProposalStarterTab
               onExport={() => setIsExportOpen(true)}
               onVersionHistory={() => setIsVersionHistoryOpen(true)}
               onRegenerateSection={handleRegenerateSection}
               onSaveArtifact={async (payload) => {
-                await saveArtifact(currentEngagement.id, 'proposal', payload);
+                try {
+                  await saveArtifact(currentEngagement.id, 'proposal', payload);
+                  showNotice('Proposal saved');
+                } catch (error) {
+                  showNotice(error instanceof Error ? error.message : 'Unable to save proposal', 'error');
+                  throw error;
+                }
               }}
               engagement={currentEngagement}
             />
@@ -179,7 +318,13 @@ export default function EngagementWorkspace() {
               onExport={() => setIsExportOpen(true)}
               onVersionHistory={() => setIsVersionHistoryOpen(true)}
               onSaveArtifact={async (payload) => {
-                await saveArtifact(currentEngagement.id, 'issue-tree', payload);
+                try {
+                  await saveArtifact(currentEngagement.id, 'issue-tree', payload);
+                  showNotice('Issue tree saved');
+                } catch (error) {
+                  showNotice(error instanceof Error ? error.message : 'Unable to save issue tree', 'error');
+                  throw error;
+                }
               }}
               engagement={currentEngagement}
             />
@@ -189,7 +334,13 @@ export default function EngagementWorkspace() {
               onExport={() => setIsExportOpen(true)}
               onVersionHistory={() => setIsVersionHistoryOpen(true)}
               onSaveArtifact={async (payload) => {
-                await saveArtifact(currentEngagement.id, 'workplan', payload);
+                try {
+                  await saveArtifact(currentEngagement.id, 'workplan', payload);
+                  showNotice('Workplan saved');
+                } catch (error) {
+                  showNotice(error instanceof Error ? error.message : 'Unable to save workplan', 'error');
+                  throw error;
+                }
               }}
               engagement={currentEngagement}
             />
@@ -209,7 +360,13 @@ export default function EngagementWorkspace() {
         engagement={currentEngagement}
         onRestore={async (versionId) => {
           if (!currentEngagement) return;
-          await restoreVersion(currentEngagement.id, versionId);
+          try {
+            await restoreVersion(currentEngagement.id, versionId);
+            showNotice('Version restored');
+          } catch (error) {
+            showNotice(error instanceof Error ? error.message : 'Unable to restore version', 'error');
+            throw error;
+          }
         }}
       />
       <ExportModal
@@ -228,9 +385,13 @@ export default function EngagementWorkspace() {
         onClose={() => setIsPromoteOpen(false)}
         defaults={promoteDefaults}
         onSubmit={async (payload) => {
-          await promoteEngagementToVault(currentEngagement.id, payload);
-          setSaveNotice('Saved to vault');
-          window.setTimeout(() => setSaveNotice(null), 2500);
+          try {
+            await promoteEngagementToVault(currentEngagement.id, payload);
+            showNotice('Saved to vault');
+          } catch (error) {
+            showNotice(error instanceof Error ? error.message : 'Unable to save engagement to vault', 'error');
+            throw error;
+          }
         }}
       />
     </div>

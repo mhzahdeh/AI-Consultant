@@ -11,15 +11,27 @@ import MembersAndInvites from "./components/MembersAndInvites";
 import Dashboard from "./components/Dashboard";
 import VaultPage from "./components/VaultPage";
 import NewEngagement from "./components/NewEngagement";
-import BriefReview from "./components/BriefReview";
 import EngagementWorkspace from "./components/EngagementWorkspace";
 import UsagePage from "./components/UsagePage";
 import BillingPage from "./components/BillingPage";
 import SettingsPage from "./components/SettingsPage";
+import DesignSystemPage from "./components/DesignSystemPage";
 import { useAppData } from "./lib/AppProvider";
 
 function LoadingScreen() {
   return <div className="flex min-h-screen items-center justify-center bg-white text-sm text-black/60">Loading…</div>;
+}
+
+function HomeRoute() {
+  const { session, isLoading } = useAppData();
+  if (isLoading) return <LoadingScreen />;
+  if (!session?.authenticated) {
+    return <Navigate to="/landing" replace />;
+  }
+  if (!session.bootstrapReady) {
+    return <Navigate to={session.organizations.length > 1 ? "/select-organization" : "/create-organization"} replace />;
+  }
+  return <Navigate to="/dashboard" replace />;
 }
 
 function PublicOnly({ children }: { children: React.ReactNode }) {
@@ -59,7 +71,8 @@ function RequireWorkspace({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<NavigationHub />} />
+      <Route path="/" element={<HomeRoute />} />
+      <Route path="/navigation" element={<NavigationHub />} />
       <Route path="/landing" element={<LandingPage />} />
       <Route
         path="/signup"
@@ -130,7 +143,7 @@ function AppRoutes() {
         path="/brief-review"
         element={
           <RequireWorkspace>
-            <BriefReview />
+            <Navigate to="/new-engagement" replace />
           </RequireWorkspace>
         }
       />
@@ -166,6 +179,7 @@ function AppRoutes() {
           </RequireWorkspace>
         }
       />
+      <Route path="/design-system" element={<DesignSystemPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -101,6 +101,9 @@ export interface MatchedCase {
   confidence: number;
   confidenceLabel: "Strong" | "Medium" | "Weak";
   rationale: string;
+  matchSignals?: string[];
+  reasoningPoints?: string[];
+  qualityScore?: number;
   reusableElements: string[];
   included: boolean;
 }
@@ -136,6 +139,9 @@ export interface VaultOverview {
     totalCases: number;
     totalArtifacts: number;
     totalSources: number;
+    internalCases: number;
+    externalCases: number;
+    reusableInternalCases: number;
   };
   highlightedCapabilities: string[];
   cases: VaultCase[];

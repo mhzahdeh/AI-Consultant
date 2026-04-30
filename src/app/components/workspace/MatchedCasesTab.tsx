@@ -1,20 +1,32 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { FileText, CheckCircle2, X, Eye, Loader2, AlertCircle, TrendingUp, Heart, RefreshCw } from 'lucide-react';
 import { useAppData } from '../../lib/AppProvider';
+import { MatchedCaseRadar } from '../visualizations/MatchedCaseRadar';
 import type { Engagement } from '../../lib/types';
 
 interface MatchedCasesTabProps {
   engagement: Engagement;
   onPreview: (caseId: string) => void;
+  onContinue?: () => void;
 }
 
-export function MatchedCasesTab({ engagement, onPreview }: MatchedCasesTabProps) {
+export function MatchedCasesTab({ engagement, onPreview, onContinue }: MatchedCasesTabProps) {
   const { toggleMatchedCase, listVaultCases, updateVaultCaseFeedback } = useAppData();
   const [matchingStatus] = useState<'loading' | 'completed' | 'empty'>('completed');
   const [sortBy, setSortBy] = useState('confidence');
   const [feedbackNotice, setFeedbackNotice] = useState('');
   const cases = engagement.matchedCases;
+  const sortedCases = useMemo(() => {
+    const nextCases = [...cases];
+    if (sortBy === 'title') {
+      return nextCases.sort((left, right) => left.engagementTitle.localeCompare(right.engagementTitle));
+    }
+    if (sortBy === 'quality') {
+      return nextCases.sort((left, right) => (right.qualityScore || 0) - (left.qualityScore || 0) || right.confidence - left.confidence);
+    }
+    return nextCases.sort((left, right) => right.confidence - left.confidence || (right.qualityScore || 0) - (left.qualityScore || 0));
+  }, [cases, sortBy]);
 
   const toggleInclude = async (id: string, included: boolean) => {
     await toggleMatchedCase(engagement.id, id, included);
@@ -65,7 +77,10 @@ export function MatchedCasesTab({ engagement, onPreview }: MatchedCasesTabProps)
               <p className="mb-8 text-sm leading-relaxed text-black/60">
                 We couldn't find closely related prior engagements in your vault. You can still generate outputs from your brief, or upload more relevant prior work to improve reuse over time.
               </p>
-              <button className="border border-black bg-black px-6 py-3 text-sm text-white transition-all hover:bg-black/90">
+              <button
+                onClick={() => window.location.assign(`/workspace?id=${engagement.id}&tab=proposal`)}
+                className="border border-black bg-black px-6 py-3 text-sm text-white transition-all hover:bg-black/90"
+              >
                 Continue with Brief Only
               </button>
             </div>
@@ -78,6 +93,8 @@ export function MatchedCasesTab({ engagement, onPreview }: MatchedCasesTabProps)
   return (
     <div className="p-8">
       <div className="mx-auto max-w-6xl space-y-8">
+        <MatchedCaseRadar cases={cases} />
+
         {/* Summary Strip */}
         <div className="border-l-2 border-black bg-black/[0.02] p-6">
           <div className="flex items-center justify-between">
@@ -103,16 +120,24 @@ export function MatchedCasesTab({ engagement, onPreview }: MatchedCasesTabProps)
                 className="appearance-none border border-black/10 bg-white py-2 px-3 pr-8 text-sm text-black transition-colors hover:border-black/20 focus:border-black focus:outline-none"
               >
                 <option value="confidence">Sort by Confidence</option>
-                <option value="date">Sort by Date</option>
+                <option value="quality">Sort by Fit Quality</option>
                 <option value="title">Sort by Title</option>
               </select>
+              <button
+                type="button"
+                onClick={onContinue}
+                disabled={!selectedCount}
+                className="inline-flex items-center justify-center border border-black bg-black px-4 py-2 text-sm text-white transition-all hover:bg-black/90 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Generate Proposal
+              </button>
             </div>
           </div>
         </div>
 
         {/* Matched Cases */}
         <div className="space-y-4">
-          {cases.map((matchedCase, i) => (
+          {sortedCases.map((matchedCase, i) => (
             <motion.div
               key={matchedCase.id}
               initial={{ opacity: 0, y: 10 }}
@@ -159,6 +184,18 @@ export function MatchedCasesTab({ engagement, onPreview }: MatchedCasesTabProps)
                 <p className="text-sm leading-relaxed text-black/70">
                   {matchedCase.rationale}
                 </p>
+                {matchedCase.reasoningPoints?.length ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {matchedCase.reasoningPoints.slice(0, 4).map((point) => (
+                      <span
+                        key={point}
+                        className="inline-flex items-center border border-black/10 bg-white px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-black/55"
+                      >
+                        {point}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               {matchedCase.included && (

@@ -52,9 +52,12 @@ export function SupportSettings() {
           <p className="mb-4 text-xs text-black/70">
             Real-time support for urgent technical issues
           </p>
-          <button className="inline-flex items-center border border-black bg-black px-4 py-2 text-xs text-white transition-all hover:bg-black/90">
+          <a
+            href="mailto:support@aicopilot.com?subject=Urgent%20Support%20Request"
+            className="inline-flex items-center border border-black bg-black px-4 py-2 text-xs text-white transition-all hover:bg-black/90"
+          >
             Start Chat
-          </button>
+          </a>
         </div>
       </div>
 
@@ -109,7 +112,7 @@ export function SupportSettings() {
 
         <div className="space-y-3">
           <a
-            href="#"
+            href="mailto:support@aicopilot.com?subject=Getting%20Started%20Guide"
             className="flex items-start gap-3 border border-black/10 bg-white p-4 transition-all hover:border-black/20"
           >
             <HelpCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-black/40" />
@@ -122,7 +125,7 @@ export function SupportSettings() {
           </a>
 
           <a
-            href="#"
+            href="mailto:support@aicopilot.com?subject=Upload%20Best%20Practices"
             className="flex items-start gap-3 border border-black/10 bg-white p-4 transition-all hover:border-black/20"
           >
             <FileText className="mt-0.5 h-4 w-4 flex-shrink-0 text-black/40" />
@@ -135,7 +138,7 @@ export function SupportSettings() {
           </a>
 
           <a
-            href="#"
+            href="mailto:privacy@aicopilot.com?subject=Privacy%20and%20Data%20Handling"
             className="flex items-start gap-3 border border-black/10 bg-white p-4 transition-all hover:border-black/20"
           >
             <Shield className="mt-0.5 h-4 w-4 flex-shrink-0 text-black/40" />
@@ -148,7 +151,7 @@ export function SupportSettings() {
           </a>
 
           <a
-            href="#"
+            href="mailto:support@aicopilot.com?subject=Deletion%20and%20Data%20Removal"
             className="flex items-start gap-3 border border-black/10 bg-white p-4 transition-all hover:border-black/20"
           >
             <Trash2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-black/40" />

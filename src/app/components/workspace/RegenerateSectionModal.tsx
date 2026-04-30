@@ -12,6 +12,23 @@ interface RegenerateSectionModalProps {
 export function RegenerateSectionModal({ isOpen, onClose, sectionName, onRegenerate }: RegenerateSectionModalProps) {
   const [instructions, setInstructions] = useState('');
   const [evidenceMode, setEvidenceMode] = useState('brief-cases');
+  const revisionPresets = [
+    'Make this section more specific to the client context',
+    'Reduce generic filler and make the logic sharper',
+    'Emphasize execution risks and dependencies',
+    'Lean more heavily on the selected analog cases',
+  ];
+  const sectionPlaceholder = sectionName === 'problem_statement'
+    ? 'Example: make the decision more explicit, call out the client constraint, and tighten the opening paragraph.'
+    : sectionName === 'objectives'
+    ? 'Example: reduce this to 3 sharp objectives and tie them more directly to the brief.'
+    : sectionName === 'workstreams'
+    ? 'Example: make the workstreams more mutually exclusive and closer to the actual engagement scope.'
+    : sectionName === 'deliverables'
+    ? 'Example: replace generic deliverables with decision-ready outputs the client team would actually use.'
+    : sectionName === 'timeline'
+    ? 'Example: compress the early phases and make the sequencing more realistic for a 6-8 week engagement.'
+    : 'Example: make this section more specific, more decision-oriented, and less generic.';
 
   useEffect(() => {
     if (!isOpen) return;
@@ -78,13 +95,25 @@ export function RegenerateSectionModal({ isOpen, onClose, sectionName, onRegener
                 <option value="cases-only">Selected cases only</option>
                 <option value="uploads-only">Uploads only</option>
               </select>
+              <div className="mb-4 flex flex-wrap gap-2">
+                {revisionPresets.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setInstructions((current) => (current ? `${current} ${preset}` : preset))}
+                    className="border border-black/10 bg-black/[0.01] px-3 py-1.5 text-xs text-black/70 transition-colors hover:border-black/20"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
               <label className="mb-2 block text-sm text-black">
                 Targeted Instructions (Optional)
               </label>
               <textarea
                 value={instructions}
                 onChange={(e) => setInstructions(e.target.value)}
-                placeholder="Example: Focus more on regulatory requirements and include specific licensing timeline..."
+                placeholder={sectionPlaceholder}
                 rows={6}
                 className="w-full resize-none border border-black/10 bg-white py-3 px-4 text-sm text-black placeholder-black/40 transition-colors focus:border-black focus:outline-none"
               />

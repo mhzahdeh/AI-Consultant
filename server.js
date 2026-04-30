@@ -11,6 +11,7 @@ import {
   buildIssueTreeArtifactContent as buildIssueTreeArtifactContentModule,
   buildProposalArtifactContent as buildProposalArtifactContentModule,
   buildProposalProvenanceForRegeneration,
+  regenerateProposalSection as regenerateProposalSectionModule,
   buildWorkplanArtifactContent as buildWorkplanArtifactContentModule,
 } from "./server/artifacts.js";
 import {
@@ -150,6 +151,9 @@ function initializeDatabase() {
       confidence INTEGER NOT NULL,
       confidence_label TEXT NOT NULL,
       rationale TEXT NOT NULL,
+      match_signals_json TEXT NOT NULL DEFAULT '[]',
+      reasoning_points_json TEXT NOT NULL DEFAULT '[]',
+      quality_score INTEGER NOT NULL DEFAULT 0,
       reusable_elements_json TEXT NOT NULL,
       included INTEGER NOT NULL DEFAULT 1,
       FOREIGN KEY (engagement_id) REFERENCES engagements(id) ON DELETE CASCADE
@@ -215,7 +219,23 @@ function initializeDatabase() {
     );
   `);
 
+  ensureMatchedCaseColumns();
   ensureVaultCaseFeedbackColumns();
+}
+
+function ensureMatchedCaseColumns() {
+  const columns = new Set(
+    db.prepare(`PRAGMA table_info(matched_cases)`).all().map((column) => column.name)
+  );
+  if (!columns.has("match_signals_json")) {
+    db.exec(`ALTER TABLE matched_cases ADD COLUMN match_signals_json TEXT NOT NULL DEFAULT '[]'`);
+  }
+  if (!columns.has("reasoning_points_json")) {
+    db.exec(`ALTER TABLE matched_cases ADD COLUMN reasoning_points_json TEXT NOT NULL DEFAULT '[]'`);
+  }
+  if (!columns.has("quality_score")) {
+    db.exec(`ALTER TABLE matched_cases ADD COLUMN quality_score INTEGER NOT NULL DEFAULT 0`);
+  }
 }
 
 function ensureVaultCaseFeedbackColumns() {
@@ -938,6 +958,9 @@ function serializeEngagement(engagementId) {
     confidence: row.confidence,
     confidenceLabel: row.confidence_label,
     rationale: row.rationale,
+    matchSignals: JSON.parse(row.match_signals_json || "[]"),
+    reasoningPoints: JSON.parse(row.reasoning_points_json || "[]"),
+    qualityScore: Number(row.quality_score || 0),
     reusableElements: JSON.parse(row.reusable_elements_json),
     included: Boolean(row.included),
   }));
@@ -1417,6 +1440,34 @@ function sanitizeFileName(fileName) {
   return fileName.replace(/[^a-zA-Z0-9._-]+/g, "_");
 }
 
+const ALLOWED_PROBLEM_TYPES = new Set([
+  "Market Entry Strategy",
+  "Digital Transformation",
+  "Operations Optimization",
+  "Growth Strategy",
+  "Cost Reduction",
+  "Organization Design",
+]);
+
+function normalizeRequiredText(value) {
+  return String(value || "").trim();
+}
+
+function validateUploadDrafts(rawUploads) {
+  if (!Array.isArray(rawUploads)) {
+    return { uploads: [], error: "Uploads must be an array" };
+  }
+  const uploads = rawUploads.map((upload) => ({
+    name: normalizeRequiredText(upload?.name),
+    mimeType: normalizeRequiredText(upload?.mimeType) || "application/octet-stream",
+    contentBase64: String(upload?.contentBase64 || "").trim(),
+  }));
+  if (uploads.some((upload) => !upload.name || !upload.contentBase64)) {
+    return { uploads: [], error: "Each upload must include a file name and file contents" };
+  }
+  return { uploads, error: null };
+}
+
 function createEngagementRecord({
   organizationId,
   actorUserId,
@@ -1499,8 +1550,10 @@ function createEngagementRecord({
 
     for (const item of resolvedMatchedCases) {
       db.prepare(
-        `INSERT INTO matched_cases (id, engagement_id, file_title, engagement_title, confidence, confidence_label, rationale, reusable_elements_json, included)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO matched_cases (
+          id, engagement_id, file_title, engagement_title, confidence, confidence_label,
+          rationale, match_signals_json, reasoning_points_json, quality_score, reusable_elements_json, included
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(
         nextId("cas"),
         engagementId,
@@ -1509,6 +1562,9 @@ function createEngagementRecord({
         item.confidence,
         item.confidenceLabel,
         item.rationale,
+        JSON.stringify(item.matchSignals || []),
+        JSON.stringify(item.reasoningPoints || []),
+        Number(item.qualityScore || 0),
         JSON.stringify(item.reusableElements),
         item.included ? 1 : 0
       );
@@ -1633,6 +1689,9 @@ function duplicateEngagementRecord({ engagementId, organizationId, actorUserId }
     confidence: row.confidence,
     confidenceLabel: row.confidence_label,
     rationale: row.rationale,
+    matchSignals: JSON.parse(row.match_signals_json || "[]"),
+    reasoningPoints: JSON.parse(row.reasoning_points_json || "[]"),
+    qualityScore: Number(row.quality_score || 0),
     reusableElements: JSON.parse(row.reusable_elements_json),
     included: Boolean(row.included),
   }));
@@ -2000,15 +2059,45 @@ async function requestHandler(req, res) {
       if (!context) return;
       if (!requireRole(res, context.membership, ["owner", "admin", "editor"])) return;
       const body = await parseBody(req);
+      const title = normalizeRequiredText(body.title);
+      const client = normalizeRequiredText(body.client);
+      const problemType = normalizeRequiredText(body.problemType);
+      const brief = String(body.brief || "").trim();
+      const notes = String(body.notes || "");
+      const { uploads, error: uploadError } = validateUploadDrafts(Array.isArray(body.uploads) ? body.uploads : []);
+      if (!title) {
+        json(res, 400, { error: "Engagement title is required" });
+        return;
+      }
+      if (!client) {
+        json(res, 400, { error: "Client alias is required" });
+        return;
+      }
+      if (!problemType) {
+        json(res, 400, { error: "Problem type is required" });
+        return;
+      }
+      if (!ALLOWED_PROBLEM_TYPES.has(problemType)) {
+        json(res, 400, { error: "Problem type is not supported" });
+        return;
+      }
+      if (!brief && uploads.length === 0) {
+        json(res, 400, { error: "Add a brief or at least one uploaded source file" });
+        return;
+      }
+      if (uploadError) {
+        json(res, 400, { error: uploadError });
+        return;
+      }
       const engagementId = createEngagementRecord({
         organizationId: context.membership.organization_id,
         actorUserId: context.session.user_id,
-        title: body.title,
-        client: body.client,
-        problemType: body.problemType,
-        brief: body.brief || "",
-        notes: body.notes || "",
-        uploads: Array.isArray(body.uploads) ? body.uploads : [],
+        title,
+        client,
+        problemType,
+        brief,
+        notes,
+        uploads,
         selectedVaultCaseIds: Array.isArray(body.selectedVaultCaseIds) ? body.selectedVaultCaseIds : [],
       });
       json(res, 201, serializeEngagement(engagementId));
@@ -2121,13 +2210,18 @@ async function requestHandler(req, res) {
         return;
       }
       const body = await parseBody(req);
+      const brief = String(body.brief || "").trim();
+      if (!brief) {
+        json(res, 400, { error: "Brief content cannot be empty" });
+        return;
+      }
       await updateArtifact({
         engagementId,
         kind: "brief",
         actorUserId: context.session.user_id,
         organizationId: context.membership.organization_id,
         title: "Canonical Brief",
-        content: buildBriefArtifactContent(body.brief || ""),
+        content: buildBriefArtifactContent(brief),
         source: "Manual edit",
         description: "Updated canonical brief",
       });
@@ -2148,12 +2242,21 @@ async function requestHandler(req, res) {
       }
       const artifactKind = kind === "issue-tree" ? "issue_tree" : kind;
       const body = await parseBody(req);
+      const title = normalizeRequiredText(body.title);
+      if (!title) {
+        json(res, 400, { error: "Artifact title is required" });
+        return;
+      }
+      if (!body.content || typeof body.content !== "object") {
+        json(res, 400, { error: "Artifact content is required" });
+        return;
+      }
       await updateArtifact({
         engagementId,
         kind: artifactKind,
         actorUserId: context.session.user_id,
         organizationId: context.membership.organization_id,
-        title: body.title,
+        title,
         content: body.content,
         source: "Manual edit",
         description: `Saved ${artifactLabel(artifactKind)} changes`,
@@ -2206,6 +2309,70 @@ async function requestHandler(req, res) {
       return;
     }
 
+    if (url.pathname.match(/^\/api\/engagements\/[^/]+\/rematch$/) && req.method === "POST") {
+      const context = requireOrganizationContext(req, res);
+      if (!context) return;
+      if (!requireRole(res, context.membership, ["owner", "admin", "editor"])) return;
+      const engagementId = url.pathname.split("/")[3];
+      const engagement = getEngagementForUser(engagementId, context.session.user_id);
+      if (!engagement) {
+        json(res, 404, { error: "Engagement not found" });
+        return;
+      }
+      const serialized = serializeEngagement(engagementId);
+      const nextMatches = buildContextualMatchedCases(db, {
+        title: serialized.title,
+        client: serialized.client,
+        problemType: serialized.problemType,
+        brief: serialized.brief,
+      });
+      runTransaction(() => {
+        db.prepare(`DELETE FROM matched_cases WHERE engagement_id = ?`).run(engagementId);
+        for (const item of nextMatches) {
+          db.prepare(
+            `INSERT INTO matched_cases (
+              id, engagement_id, file_title, engagement_title, confidence, confidence_label,
+              rationale, match_signals_json, reasoning_points_json, quality_score, reusable_elements_json, included
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ).run(
+            nextId("cas"),
+            engagementId,
+            item.fileTitle,
+            item.engagementTitle,
+            item.confidence,
+            item.confidenceLabel,
+            item.rationale,
+            JSON.stringify(item.matchSignals || []),
+            JSON.stringify(item.reasoningPoints || []),
+            Number(item.qualityScore || 0),
+            JSON.stringify(item.reusableElements),
+            item.included ? 1 : 0
+          );
+        }
+        const refreshed = serializeEngagement(engagementId);
+        const proposal = buildProposalArtifactContentModule(refreshed);
+        const issueTree = buildIssueTreeArtifactContentModule(refreshed);
+        const workplan = buildWorkplanArtifactContentModule(refreshed);
+        db.prepare(`UPDATE artifacts SET generated_from = ?, content_json = ?, updated_at = ? WHERE engagement_id = ? AND kind = 'proposal'`)
+          .run(nextMatches.filter((item) => item.included).length, JSON.stringify(proposal), isoNow(), engagementId);
+        db.prepare(`UPDATE artifacts SET content_json = ?, updated_at = ? WHERE engagement_id = ? AND kind = 'issue_tree'`)
+          .run(JSON.stringify(issueTree), isoNow(), engagementId);
+        db.prepare(`UPDATE artifacts SET content_json = ?, updated_at = ? WHERE engagement_id = ? AND kind = 'workplan'`)
+          .run(JSON.stringify(workplan), isoNow(), engagementId);
+        db.prepare(`UPDATE engagements SET updated_at = ? WHERE id = ?`).run(isoNow(), engagementId);
+      });
+      createAuditLog({
+        organizationId: context.membership.organization_id,
+        userId: context.session.user_id,
+        action: "workspace.saved",
+        entityType: "engagement",
+        entityId: engagementId,
+        details: { engagementTitle: engagement.title, description: "Re-ran case matching" },
+      });
+      json(res, 200, serializeEngagement(engagementId));
+      return;
+    }
+
     if (url.pathname.match(/^\/api\/engagements\/[^/]+\/regenerate$/) && req.method === "POST") {
       const context = requireOrganizationContext(req, res);
       if (!context) return;
@@ -2233,7 +2400,7 @@ async function requestHandler(req, res) {
         item.key === section || item.label.toLowerCase().replace(/\s+/g, "_") === section
           ? {
               ...item,
-              body: `${item.body}\n\nRefined for this engagement${body.instructions ? ` with direction: ${body.instructions}` : "."}\n\nEvidence mode: ${evidenceContext}\n\nUpdated source emphasis: ${nextProvenance[section].map((trace) => trace.label).join(", ") || "client brief"}.`,
+              body: regenerateProposalSectionModule(serializedEngagement, item.key, body.instructions, evidenceMode),
             }
           : item
       );
@@ -2348,7 +2515,15 @@ async function requestHandler(req, res) {
         return;
       }
       const body = await parseBody(req);
-      const uploads = Array.isArray(body.uploads) ? body.uploads : [];
+      const { uploads, error: uploadError } = validateUploadDrafts(Array.isArray(body.uploads) ? body.uploads : []);
+      if (uploadError) {
+        json(res, 400, { error: uploadError });
+        return;
+      }
+      if (!uploads.length) {
+        json(res, 400, { error: "Add at least one source file" });
+        return;
+      }
       for (const upload of uploads) {
         await saveUploadRecord({
           organizationId: context.membership.organization_id,
