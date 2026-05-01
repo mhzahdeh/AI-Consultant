@@ -30,14 +30,6 @@ function uploadedSources(engagement, limit = 3) {
   return Array.isArray(engagement.uploads) ? engagement.uploads.slice(0, limit) : [];
 }
 
-function titleCase(value) {
-  return String(value || "")
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
 function tokenize(value) {
   return String(value || "")
     .toLowerCase()
@@ -182,20 +174,6 @@ function proposalSectionLibrary(engagement) {
     ]),
     source_note: uploadLine,
   };
-}
-
-function proposalSectionDirectives(sectionKey) {
-  const directives = {
-    problem_statement: "Write a tight consulting problem statement in paragraph form. State the decision, why it matters now, and what must be resolved.",
-    objectives: "Write crisp, action-oriented objectives as bullets. Avoid boilerplate and vague transformation language.",
-    workstreams: "Write named workstreams with one-sentence descriptions. Each workstream should feel mutually reinforcing and specific to the brief.",
-    deliverables: "List the concrete outputs the team should hand over. Make them decision-ready, not generic artifacts.",
-    case_evidence: "Summarize how selected cases should influence the engagement. Focus on transferable patterns and explicit limitations.",
-    timeline: "Write a practical phase sequence with timing. Each phase should imply a clear purpose and output.",
-    assumptions: "List explicit assumptions that the team is relying on to make the first draft credible.",
-    risks: "List the most material delivery or recommendation risks in sharp language.",
-  };
-  return directives[sectionKey] || "Rewrite the section into a stronger first draft.";
 }
 
 function applyEvidenceModeToSection(body, engagement, evidenceMode, sectionKey) {

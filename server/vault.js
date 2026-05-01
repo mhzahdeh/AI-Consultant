@@ -132,16 +132,6 @@ const STOP_TOKENS = new Set([
   "workplan",
 ]);
 
-function tokenSet(value) {
-  return new Set(tokenizeContext(value));
-}
-
-function overlapTerms(left, right, max = 4) {
-  const leftSet = tokenSet(left);
-  const rightSet = tokenSet(right);
-  return [...leftSet].filter((token) => rightSet.has(token)).slice(0, max);
-}
-
 function startsWithClientAlias(clientName, client) {
   const normalizedClientName = normalizeText(clientName);
   const normalizedClient = normalizeText(client);

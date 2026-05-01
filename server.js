@@ -11,9 +11,12 @@ import {
   buildIssueTreeArtifactContent as buildIssueTreeArtifactContentModule,
   buildProposalArtifactContent as buildProposalArtifactContentModule,
   buildProposalProvenanceForRegeneration,
-  regenerateProposalSection as regenerateProposalSectionModule,
   buildWorkplanArtifactContent as buildWorkplanArtifactContentModule,
 } from "./server/artifacts.js";
+import {
+  generateArtifactsForEngagement,
+  regenerateProposalSectionWithOpenAI,
+} from "./server/openai.js";
 import {
   buildContextualMatchedCases,
   buildSelectedMatchedCases,
@@ -1376,6 +1379,31 @@ function createArtifact(engagementId, kind, title, generatedFrom, content) {
   ).run(nextId("art"), engagementId, kind, title, generatedFrom, JSON.stringify(content), isoNow());
 }
 
+async function refreshGeneratedArtifactsForEngagement(engagementId) {
+  const serialized = serializeEngagement(engagementId);
+  const generated = await generateArtifactsForEngagement(serialized);
+  const proposalGeneratedFrom = Array.isArray(serialized.matchedCases)
+    ? serialized.matchedCases.filter((item) => item.included).length
+    : 0;
+
+  db.prepare(
+    `UPDATE artifacts
+     SET generated_from = ?, content_json = ?, updated_at = ?
+     WHERE engagement_id = ? AND kind = 'proposal'`
+  ).run(proposalGeneratedFrom, JSON.stringify(generated.proposal), isoNow(), engagementId);
+  db.prepare(
+    `UPDATE artifacts
+     SET content_json = ?, updated_at = ?
+     WHERE engagement_id = ? AND kind = 'issue_tree'`
+  ).run(JSON.stringify(generated.issueTree), isoNow(), engagementId);
+  db.prepare(
+    `UPDATE artifacts
+     SET content_json = ?, updated_at = ?
+     WHERE engagement_id = ? AND kind = 'workplan'`
+  ).run(JSON.stringify(generated.workplan), isoNow(), engagementId);
+  db.prepare("UPDATE engagements SET updated_at = ? WHERE id = ?").run(isoNow(), engagementId);
+}
+
 async function saveUploadRecord({ organizationId, engagementId, upload }) {
   const uploadId = nextId("upl");
   const extension = fileExtension(upload.name);
@@ -2100,6 +2128,7 @@ async function requestHandler(req, res) {
         uploads,
         selectedVaultCaseIds: Array.isArray(body.selectedVaultCaseIds) ? body.selectedVaultCaseIds : [],
       });
+      await refreshGeneratedArtifactsForEngagement(engagementId);
       json(res, 201, serializeEngagement(engagementId));
       return;
     }
@@ -2349,18 +2378,9 @@ async function requestHandler(req, res) {
             item.included ? 1 : 0
           );
         }
-        const refreshed = serializeEngagement(engagementId);
-        const proposal = buildProposalArtifactContentModule(refreshed);
-        const issueTree = buildIssueTreeArtifactContentModule(refreshed);
-        const workplan = buildWorkplanArtifactContentModule(refreshed);
-        db.prepare(`UPDATE artifacts SET generated_from = ?, content_json = ?, updated_at = ? WHERE engagement_id = ? AND kind = 'proposal'`)
-          .run(nextMatches.filter((item) => item.included).length, JSON.stringify(proposal), isoNow(), engagementId);
-        db.prepare(`UPDATE artifacts SET content_json = ?, updated_at = ? WHERE engagement_id = ? AND kind = 'issue_tree'`)
-          .run(JSON.stringify(issueTree), isoNow(), engagementId);
-        db.prepare(`UPDATE artifacts SET content_json = ?, updated_at = ? WHERE engagement_id = ? AND kind = 'workplan'`)
-          .run(JSON.stringify(workplan), isoNow(), engagementId);
         db.prepare(`UPDATE engagements SET updated_at = ? WHERE id = ?`).run(isoNow(), engagementId);
       });
+      await refreshGeneratedArtifactsForEngagement(engagementId);
       createAuditLog({
         organizationId: context.membership.organization_id,
         userId: context.session.user_id,
@@ -2400,10 +2420,21 @@ async function requestHandler(req, res) {
         item.key === section || item.label.toLowerCase().replace(/\s+/g, "_") === section
           ? {
               ...item,
-              body: regenerateProposalSectionModule(serializedEngagement, item.key, body.instructions, evidenceMode),
+              body: "",
             }
           : item
       );
+      for (const item of nextSections) {
+        if (item.body === "") {
+          item.body = await regenerateProposalSectionWithOpenAI({
+            engagement: serializedEngagement,
+            sectionKey: item.key,
+            instructions: body.instructions,
+            evidenceMode,
+            evidenceContext,
+          });
+        }
+      }
       await updateArtifact({
         engagementId,
         kind: "proposal",

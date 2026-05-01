@@ -29,19 +29,28 @@ AI Consultant is a full-stack consulting workspace demo built with React, Vite, 
 npm install
 ```
 
-2. Start the backend API in one terminal:
+2. Optional: configure OpenAI for live artifact generation:
+
+```bash
+export OPENAI_API_KEY="your_api_key_here"
+export OPENAI_MODEL="gpt-5"
+```
+
+You can also set `OPENAI_BASE_URL` if you need to route through a compatible proxy. If `OPENAI_API_KEY` is not set, the app falls back to the existing local template-based artifact generator.
+
+3. Start the backend API in one terminal:
 
 ```bash
 npm run backend
 ```
 
-3. Start the frontend dev server in a second terminal:
+4. Start the frontend dev server in a second terminal:
 
 ```bash
 npm run dev
 ```
 
-4. Open the Vite URL shown in the terminal, usually `http://127.0.0.1:5173`.
+5. Open the Vite URL shown in the terminal, usually `http://127.0.0.1:5173`.
 
 The frontend proxies `/api` requests to `http://127.0.0.1:3001` through [vite.config.ts](/Users/mohammadzahedah/Desktop/AI-Consultant/vite.config.ts).
 
