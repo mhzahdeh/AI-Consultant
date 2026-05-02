@@ -103,19 +103,17 @@ export function LimitHitModal({
                     {resetDate ? (
                       <>
                         You have reached your monthly limit for {limitType.toLowerCase()}. Your limit will reset on {resetDate}.
-                        {canUpgrade && ' Upgrade your plan to increase limits and continue working without interruption.'}
                       </>
                     ) : (
                       <>
                         You have reached your limit for {limitType.toLowerCase()}.
-                        {canUpgrade && ' Upgrade your plan to increase this limit.'}
                       </>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Upgrade Benefits */}
+              {/* Coming soon notice for owners */}
               {canUpgrade && (
                 <div className="border border-black/10 bg-black/[0.02] p-5">
                   <div className="mb-3 flex items-center gap-2">
@@ -124,15 +122,12 @@ export function LimitHitModal({
                       className="text-sm"
                       style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
                     >
-                      Upgrade for Higher Limits
+                      Higher Limits Coming Soon
                     </div>
                   </div>
 
-                  <div className="space-y-1.5 text-xs text-black/70">
-                    <div>• 5x increased generation limits</div>
-                    <div>• 5x increased upload limits</div>
-                    <div>• Priority generation speed</div>
-                    <div>• Advanced analytics</div>
+                  <div className="text-xs text-black/70">
+                    Paid plans with expanded limits are in progress. Your limit will reset at the start of the next billing period.
                   </div>
                 </div>
               )}
@@ -151,7 +146,7 @@ export function LimitHitModal({
                   to="/billing"
                   className="flex-1 inline-flex items-center justify-center border border-black bg-black px-6 py-3 text-sm text-white transition-all hover:bg-black/90"
                 >
-                  View Plans
+                  View Billing
                 </Link>
               )}
             </div>

@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { FileText, Upload, RefreshCw, FileDown, Database, Clock, TrendingUp, Crown, ArrowRight } from 'lucide-react';
+import { FileText, Upload, RefreshCw, FileDown, Database, Clock, TrendingUp, Crown } from 'lucide-react';
 import { Sidebar } from './shared/Sidebar';
 import { LimitHitModal } from './usage/LimitHitModal';
 import { useAppData } from '../lib/AppProvider';
@@ -11,7 +11,7 @@ export default function UsagePage() {
   const { bootstrap } = useAppData();
   const [userRole] = useState<'owner' | 'admin' | 'editor' | 'viewer'>((bootstrap?.user.role as 'owner') || 'owner');
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
-  const currentPlan = bootstrap?.organization.plan || 'Team';
+  const currentPlan = bootstrap?.organization.plan || 'Starter';
   const billingPeriod = bootstrap?.usage.billingPeriod || '';
   const usageSummary = bootstrap?.usage.summary || [];
   const usageMetrics = bootstrap?.usage.metrics || [];
@@ -21,14 +21,6 @@ export default function UsagePage() {
   if (!bootstrap) {
     return <div className="flex min-h-screen items-center justify-center bg-white text-sm text-black/60">Loading usage…</div>;
   }
-
-  const planUpgradeFeatures = [
-    'Unlimited active engagements',
-    'Increased upload limits (5,000/month)',
-    'Increased generation limits (25,000/month)',
-    'Priority generation speed',
-    'Advanced vault organization',
-  ];
 
   const getProgressBarStyle = (metric: typeof usageMetrics[0]) => {
     if (metric.isAtLimit) return 'bg-black';
@@ -192,9 +184,9 @@ export default function UsagePage() {
                           {/* Action for near limit */}
                           {metric.isNearLimit && !metric.isAtLimit && userRole === 'owner' && (
                             <div className="mt-4 border-t border-black/5 pt-4">
-                              <button className="text-xs text-black/60 underline decoration-black/20 transition-colors hover:text-black hover:decoration-black">
-                                Upgrade to increase limit
-                              </button>
+                              <span className="text-xs text-black/40">
+                                Higher limits coming soon
+                              </span>
                             </div>
                           )}
 
@@ -285,7 +277,7 @@ export default function UsagePage() {
                       </Link>
                     </div>
 
-                    {/* Upgrade Guidance */}
+                    {/* Paid plans coming soon */}
                     <div className="border border-black/10 bg-black/[0.02] p-6">
                       <div className="mb-4 flex items-center gap-2">
                         <TrendingUp className="h-5 w-5 text-black/60" />
@@ -293,23 +285,13 @@ export default function UsagePage() {
                           className="text-sm"
                           style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
                         >
-                          Enterprise Features
+                          Higher Limits Coming Soon
                         </div>
                       </div>
 
-                      <div className="mb-4 space-y-2 text-xs text-black/70">
-                        {planUpgradeFeatures.map((feature, i) => (
-                          <div key={i}>• {feature}</div>
-                        ))}
+                      <div className="text-xs leading-relaxed text-black/60">
+                        Solo, Team, and Enterprise plans with expanded limits are in progress. Check back soon.
                       </div>
-
-                      <Link
-                        to="/plans"
-                        className="inline-flex w-full items-center justify-center gap-2 border border-black bg-black px-4 py-2 text-xs text-white transition-all hover:bg-black/90"
-                      >
-                        View Plans
-                        <ArrowRight className="h-3 w-3" />
-                      </Link>
                     </div>
 
                     {/* Usage Insights */}

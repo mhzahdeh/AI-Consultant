@@ -39,7 +39,7 @@ export function Sidebar({ activeItem = 'dashboard' }: SidebarProps) {
         <div className="border border-white/10 bg-white/5 px-4 py-3">
           <div className="mb-1 text-xs text-white/40">Current plan</div>
           <div className="text-sm text-white" style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>
-            {bootstrap?.organization.plan || 'Team'}
+            {bootstrap?.organization.plan || 'Starter'}
           </div>
         </div>
       </div>

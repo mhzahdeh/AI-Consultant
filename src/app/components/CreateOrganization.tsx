@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Building2, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Building2, ArrowRight } from 'lucide-react';
 import { useAppData } from '../lib/AppProvider';
 import { useNavigate } from 'react-router';
 
@@ -11,7 +11,6 @@ export default function CreateOrganization() {
   const [orgName, setOrgName] = useState('');
   const [slug, setSlug] = useState('');
   const [useCase, setUseCase] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState('team');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,7 +48,7 @@ export default function CreateOrganization() {
     if (Object.keys(newErrors).length === 0) {
       try {
         setIsSubmitting(true);
-        await createOrganization({ name: orgName, slug, useCase, plan: selectedPlan === 'starter' ? 'Starter' : selectedPlan === 'solo' ? 'Solo' : 'Team' });
+        await createOrganization({ name: orgName, slug, useCase, plan: 'Starter' });
         navigate('/dashboard', { replace: true });
       } catch (error) {
         setFormError(error instanceof Error ? error.message : 'Unable to create organization');
@@ -200,97 +199,52 @@ export default function CreateOrganization() {
                 </div>
               </div>
 
-              {/* Right: Plan Preview */}
+              {/* Right: Plan Info */}
               <div>
                 <div className="sticky top-8 space-y-4">
-                  <div className="border border-black/10 bg-white p-6">
-                    <div className="mb-4 text-xs uppercase tracking-wider text-black/40">
-                      Your Plan
+                  {/* Current Plan */}
+                  <div className="border border-black bg-black/[0.02] p-6">
+                    <div className="mb-1 flex items-center justify-between">
+                      <span
+                        className="text-sm text-black"
+                        style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
+                      >
+                        Starter
+                      </span>
+                      <span className="text-xs text-black/60">Your plan</span>
                     </div>
-
-                    {/* Plan Cards */}
-                    <div className="space-y-3">
-                      <button
-                        onClick={() => setSelectedPlan('starter')}
-                        className={`w-full border p-4 text-left transition-all ${
-                          selectedPlan === 'starter'
-                            ? 'border-black bg-black/[0.02]'
-                            : 'border-black/10 bg-white hover:border-black/20'
-                        }`}
-                      >
-                        <div className="mb-1 flex items-center justify-between">
-                          <span
-                            className="text-sm"
-                            style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
-                          >
-                            Starter
-                          </span>
-                          {selectedPlan === 'starter' && (
-                            <CheckCircle2 className="h-4 w-4 text-black" />
-                          )}
-                        </div>
-                        <div className="mb-2 text-xs text-black/60">1 user • Limited vault</div>
-                        <div className="text-xs text-black/40">Free</div>
-                      </button>
-
-                      <button
-                        onClick={() => setSelectedPlan('solo')}
-                        className={`w-full border p-4 text-left transition-all ${
-                          selectedPlan === 'solo'
-                            ? 'border-black bg-black/[0.02]'
-                            : 'border-black/10 bg-white hover:border-black/20'
-                        }`}
-                      >
-                        <div className="mb-1 flex items-center justify-between">
-                          <span
-                            className="text-sm"
-                            style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
-                          >
-                            Solo
-                          </span>
-                          {selectedPlan === 'solo' && (
-                            <CheckCircle2 className="h-4 w-4 text-black" />
-                          )}
-                        </div>
-                        <div className="mb-2 text-xs text-black/60">1 user • Unlimited vault</div>
-                        <div className="text-xs text-black/40">$99/month</div>
-                      </button>
-
-                      <button
-                        onClick={() => setSelectedPlan('team')}
-                        className={`w-full border p-4 text-left transition-all ${
-                          selectedPlan === 'team'
-                            ? 'border-black bg-black/[0.02]'
-                            : 'border-black/10 bg-white hover:border-black/20'
-                        }`}
-                      >
-                        <div className="mb-1 flex items-center justify-between">
-                          <span
-                            className="text-sm"
-                            style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
-                          >
-                            Team
-                          </span>
-                          {selectedPlan === 'team' && (
-                            <CheckCircle2 className="h-4 w-4 text-black" />
-                          )}
-                        </div>
-                        <div className="mb-2 text-xs text-black/60">
-                          Unlimited users • Unlimited vault
-                        </div>
-                        <div className="text-xs text-black/40">$49/user/month</div>
-                      </button>
-                    </div>
-
-                    <div className="mt-4 border-t border-black/5 pt-4 text-xs text-black/40">
-                      You can change plans anytime
+                    <div className="mb-3 text-xs text-black/60">1 user • 100 uploads / month</div>
+                    <div className="text-lg text-black" style={{ fontFamily: 'var(--font-display)', fontWeight: 400 }}>
+                      Free
                     </div>
                   </div>
 
-                  {/* Features */}
+                  {/* Coming Soon */}
                   <div className="border border-black/10 bg-white p-6">
                     <div className="mb-3 text-xs uppercase tracking-wider text-black/40">
-                      Included
+                      Coming Soon
+                    </div>
+                    <div className="space-y-3">
+                      {[
+                        { name: 'Solo', price: '$49/mo', desc: '1 user · unlimited vault' },
+                        { name: 'Team', price: '$149/mo', desc: 'Up to 10 users · shared vault' },
+                        { name: 'Enterprise', price: 'Custom', desc: 'Unlimited seats · custom controls' },
+                      ].map((p) => (
+                        <div key={p.name} className="flex items-center justify-between opacity-50">
+                          <div>
+                            <div className="text-xs text-black" style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>{p.name}</div>
+                            <div className="text-xs text-black/50">{p.desc}</div>
+                          </div>
+                          <div className="text-xs text-black/60">{p.price}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Included in Starter */}
+                  <div className="border border-black/10 bg-white p-6">
+                    <div className="mb-3 text-xs uppercase tracking-wider text-black/40">
+                      Included on Starter
                     </div>
                     <ul className="space-y-2 text-xs text-black/70">
                       <li>• Unlimited engagements</li>

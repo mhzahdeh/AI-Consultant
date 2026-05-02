@@ -3,44 +3,22 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Crown, Calendar, CreditCard, Users, Check, AlertCircle, TrendingUp } from 'lucide-react';
 import { Sidebar } from './shared/Sidebar';
-import { UpgradeModal } from './billing/UpgradeModal';
-import { UpgradeSuccessModal } from './billing/UpgradeSuccessModal';
 import { PaymentIssueState } from './billing/PaymentIssueState';
 import { useAppData } from '../lib/AppProvider';
 import { BackButton } from './shared/BackButton';
 
 export default function BillingPage() {
-  const { bootstrap, updatePlan } = useAppData();
+  const { bootstrap } = useAppData();
   const [userRole] = useState<'owner' | 'admin' | 'editor' | 'viewer' | 'billing'>((bootstrap?.user.role as 'owner') || 'owner');
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const hasPaymentIssue = bootstrap?.billing.hasPaymentIssue || false;
   const currentPlan = bootstrap?.billing.currentPlan;
   const plans =
     bootstrap?.billing.plans.map((plan) => ({
       ...plan,
-      cta: plan.name === currentPlan?.name ? 'Current Plan' : plan.name === 'Enterprise' ? 'Contact Sales' : 'Switch Plan',
       isCurrent: plan.name === currentPlan?.name,
-      disabled: plan.name === currentPlan?.name,
     })) || [];
 
   const canManageBilling = userRole === 'owner' || userRole === 'billing';
-
-  const handleUpgrade = (planName: string) => {
-    setSelectedPlan(planName);
-    setIsUpgradeModalOpen(true);
-  };
-
-  const handleUpgradeConfirm = () => {
-    setIsUpgradeModalOpen(false);
-    setTimeout(async () => {
-      if (selectedPlan) {
-        await updatePlan(selectedPlan);
-      }
-      setIsSuccessModalOpen(true);
-    }, 500);
-  };
 
   if (!bootstrap || !currentPlan) {
     return <div className="flex min-h-screen items-center justify-center bg-white text-sm text-black/60">Loading billing…</div>;
@@ -160,15 +138,9 @@ export default function BillingPage() {
                   </div>
 
                   <div className="flex items-center gap-3 border-t border-black/5 pt-6">
-                    <button
-                      onClick={() => handleUpgrade('Enterprise')}
-                      className="border border-black bg-black px-6 py-3 text-sm text-white transition-all hover:bg-black/90"
-                    >
-                      Upgrade Plan
-                    </button>
-                    <button className="border border-black/10 bg-white px-6 py-3 text-sm text-black transition-all hover:border-black/20">
-                      Manage Billing
-                    </button>
+                    <div className="border border-black/10 bg-black/[0.02] px-6 py-3 text-sm text-black/50">
+                      Paid plans coming soon
+                    </div>
                   </div>
                 </div>
               </section>
@@ -242,17 +214,14 @@ export default function BillingPage() {
                     {/* CTA */}
                     {canManageBilling && (
                       <button
-                        onClick={() => !plan.disabled && handleUpgrade(plan.name)}
-                        disabled={plan.disabled}
-                        className={`w-full px-6 py-3 text-sm transition-all ${
+                        disabled
+                        className={`w-full px-6 py-3 text-sm cursor-not-allowed ${
                           plan.isCurrent
-                            ? 'border border-black/10 bg-transparent text-black/40 cursor-not-allowed'
-                            : plan.disabled
-                            ? 'border border-black/10 bg-transparent text-black/40 cursor-not-allowed'
-                            : 'border border-black bg-black text-white hover:bg-black/90'
+                            ? 'border border-black bg-black text-white'
+                            : 'border border-black/10 bg-transparent text-black/30'
                         }`}
                       >
-                        {plan.cta}
+                        {plan.isCurrent ? 'Current Plan' : 'Coming Soon'}
                       </button>
                     )}
                   </motion.div>
@@ -316,61 +285,9 @@ export default function BillingPage() {
               </div>
             </section>
 
-            {/* Billing History (minimal) */}
-            {canManageBilling && (
-              <section>
-                <h2
-                  className="mb-4 text-lg tracking-tight text-black"
-                  style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}
-                >
-                  Recent Billing
-                </h2>
-                <div className="border border-black/10 bg-white">
-                  {[
-                    { date: 'Apr 1, 2026', amount: 149, status: 'Paid', invoice: 'INV-2026-04' },
-                    { date: 'Mar 1, 2026', amount: 149, status: 'Paid', invoice: 'INV-2026-03' },
-                    { date: 'Feb 1, 2026', amount: 149, status: 'Paid', invoice: 'INV-2026-02' },
-                  ].map((item, i) => (
-                    <div
-                      key={i}
-                      className={`flex items-center justify-between px-6 py-4 transition-all hover:bg-black/[0.01] ${
-                        i !== 2 ? 'border-b border-black/5' : ''
-                      }`}
-                    >
-                      <div>
-                        <div className="mb-1 text-sm text-black">{item.date}</div>
-                        <div className="text-xs text-black/60">{item.invoice}</div>
-                      </div>
-                      <div className="flex items-center gap-6">
-                        <div className="text-sm text-black">${item.amount}</div>
-                        <div className="text-xs text-black/60">{item.status}</div>
-                        <button className="text-xs text-black underline decoration-black/20 transition-colors hover:decoration-black">
-                          Download
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
           </div>
         </div>
       </div>
-
-      {/* Upgrade Modal */}
-      <UpgradeModal
-        isOpen={isUpgradeModalOpen}
-        onClose={() => setIsUpgradeModalOpen(false)}
-        planName={selectedPlan || ''}
-        onConfirm={handleUpgradeConfirm}
-      />
-
-      {/* Success Modal */}
-      <UpgradeSuccessModal
-        isOpen={isSuccessModalOpen}
-        onClose={() => setIsSuccessModalOpen(false)}
-        planName={selectedPlan || ''}
-      />
     </div>
   );
 }

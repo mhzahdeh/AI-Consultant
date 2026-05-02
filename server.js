@@ -191,7 +191,7 @@ function seedDatabaseIfEmpty() {
   const ownerName = legacy?.user?.fullName || "Sarah Chen";
   const ownerEmail = legacy?.user?.email || "sarah@northstar-advisory.com";
   const organizationName = legacy?.organization?.name || "Northstar Advisory";
-  const organizationPlan = legacy?.organization?.plan || "Team";
+  const organizationPlan = "Starter";
 
   runTransaction(() => {
     db.prepare(
@@ -685,7 +685,7 @@ function buildBilling(organizationId) {
       ],
     },
   ];
-  const current = plans.find((plan) => plan.name === organization.plan) || plans[2];
+  const current = plans.find((plan) => plan.name === organization.plan) || plans[0];
   return {
     hasPaymentIssue: false,
     currentPlan: {
@@ -1582,7 +1582,7 @@ async function requestHandler(req, res) {
         db.prepare(
           `INSERT INTO organizations (id, name, slug, plan, use_case, created_at)
            VALUES (?, ?, ?, ?, ?, ?)`
-        ).run(organizationId, name, slug, body.plan || "Team", body.useCase || "", isoNow());
+        ).run(organizationId, name, slug, "Starter", body.useCase || "", isoNow());
         db.prepare(
           `INSERT INTO memberships (id, user_id, organization_id, role, status, joined_at, invited_at, invited_by_user_id)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
@@ -2057,17 +2057,7 @@ async function requestHandler(req, res) {
     }
 
     if (url.pathname === "/api/billing/plan" && req.method === "PATCH") {
-      const context = requireOrganizationContext(req, res);
-      if (!context) return;
-      if (!requireRole(res, context.membership, ["owner", "billing"])) return;
-      const body = await parseBody(req);
-      const allowed = new Set(["Starter", "Solo", "Team", "Enterprise"]);
-      if (!allowed.has(body.planName)) {
-        json(res, 404, { error: "Plan not found" });
-        return;
-      }
-      db.prepare("UPDATE organizations SET plan = ? WHERE id = ?").run(body.planName, context.membership.organization_id);
-      json(res, 200, buildBilling(context.membership.organization_id).currentPlan);
+      json(res, 503, { error: "Paid plans are not yet available. Check back soon." });
       return;
     }
 
