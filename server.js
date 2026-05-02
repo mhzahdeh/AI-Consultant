@@ -26,6 +26,7 @@ db.exec("PRAGMA foreign_keys = ON;");
 
 initializeDatabase();
 seedDatabaseIfEmpty();
+enforceFreeOnlyPlans();
 
 function initializeDatabase() {
   db.exec(`
@@ -215,6 +216,11 @@ function seedDatabaseIfEmpty() {
       seedSampleWorkspace(orgId, ownerUserId);
     }
   });
+}
+
+function enforceFreeOnlyPlans() {
+  // Until payment gateway is live, lock every org to Starter regardless of what's in the DB.
+  db.prepare("UPDATE organizations SET plan = 'Starter' WHERE plan != 'Starter'").run();
 }
 
 function migrateLegacyOrganization(legacy, organizationId, ownerUserId) {
